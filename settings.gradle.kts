@@ -20,4 +20,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "mapconductor-core"
+rootProject.name = "android-sdk-core"

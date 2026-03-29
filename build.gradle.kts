@@ -125,7 +125,7 @@ publishing {
                 description.set(libraryDescription)
                 url.set(
                     project.findProperty("libraryUrl") as String?
-                        ?: "https://github.com/MapConductor/android-core",
+                        ?: "https://github.com/MapConductor/android-sdk-core",
                 )
 
                 licenses {
@@ -144,12 +144,12 @@ publishing {
                 }
 
                 scm {
-                    connection.set("scm:git:git://github.com/MapConductor/android-core.git")
+                    connection.set("scm:git:git://github.com/MapConductor/android-sdk-core.git")
                     developerConnection
-                        .set("scm:git:ssh://github.com:MapConductor/android-core.git")
+                        .set("scm:git:ssh://github.com:MapConductor/android-sdk-core.git")
                     url.set(
                         project.findProperty("scmUrl") as String?
-                            ?: "https://github.com/MapConductor/android-core.git",
+                            ?: "https://github.com/MapConductor/android-sdk-core.git",
                     )
                 }
             }
@@ -159,7 +159,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            setUrl("https://maven.pkg.github.com/MapConductor/android-core")
+            setUrl("https://maven.pkg.github.com/MapConductor/android-sdk-core")
             credentials {
                 username =
                     project.findProperty("gpr.user") as String? ?: System.getenv("GPR_USER")
