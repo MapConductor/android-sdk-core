@@ -2,7 +2,7 @@
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    id("org.jlleitschuh.gradle.ktlint")
+    alias(libs.plugins.jlleitschuh.ktlint)
     id("maven-publish")
     id("signing")
     id("com.gradleup.nmcp") version "0.0.8"
