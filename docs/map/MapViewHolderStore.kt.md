@@ -1,10 +1,7 @@
-Here is the high-quality SDK documentation for the provided code snippet.
-
-***
-
 # StaticHolder
 
-An abstract generic class that provides a basic in-memory key-value store. It is designed to be extended by other classes that need to manage a collection of objects indexed by string identifiers.
+An abstract generic class that provides a basic in-memory key-value store. It is designed to be
+extended by other classes that need to manage a collection of objects indexed by string identifiers.
 
 ### Signature
 
@@ -14,7 +11,9 @@ abstract class StaticHolder<ValueType>
 
 ### Description
 
-`StaticHolder` serves as a base for creating simple caches or registries. It uses a `MutableMap` internally to store values of a generic type `ValueType` against a `String` key. It provides fundamental methods for adding, retrieving, checking, and removing items from the store.
+`StaticHolder` serves as a base for creating simple caches or registries. It uses a `MutableMap`
+internally to store values of a generic type `ValueType` against a `String` key. It provides
+fundamental methods for adding, retrieving, checking, and removing items from the store.
 
 ## Methods
 
@@ -29,9 +28,9 @@ fun has(id: String): Boolean
 
 **Parameters**
 
-| Parameter | Type   | Description                  |
-| :-------- | :----- | :--------------------------- |
-| `id`      | `String` | The unique identifier for the value. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier for the value.
 
 **Returns**
 
@@ -50,9 +49,9 @@ fun get(id: String): ValueType?
 
 **Parameters**
 
-| Parameter | Type   | Description                  |
-| :-------- | :----- | :--------------------------- |
-| `id`      | `String` | The unique identifier for the value. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier for the value.
 
 **Returns**
 
@@ -71,10 +70,12 @@ fun set(id: String, viewHolder: ValueType)
 
 **Parameters**
 
-| Parameter    | Type        | Description                          |
-| :----------- | :---------- | :----------------------------------- |
-| `id`         | `String`    | The unique identifier for the value. |
-| `viewHolder` | `ValueType` | The value to be stored.              |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier for the value.
+- `viewHolder`
+    - Type: `ValueType`
+    - Description: The value to be stored.
 
 ---
 
@@ -89,9 +90,9 @@ fun remove(id: String)
 
 **Parameters**
 
-| Parameter | Type   | Description                  |
-| :-------- | :----- | :--------------------------- |
-| `id`      | `String` | The unique identifier for the value. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier for the value.
 
 ---
 
@@ -108,7 +109,9 @@ fun clearAll()
 
 # MapViewHolderStoreBaseAsync
 
-An abstract base class for managing a store of map view holders. It extends `StaticHolder` to provide storage functionality and introduces an asynchronous method to get or create map view holders.
+An abstract base class for managing a store of map view holders. It extends `StaticHolder` to
+provide storage functionality and introduces an asynchronous method to get or create map view
+holders.
 
 ### Signature
 
@@ -122,17 +125,21 @@ abstract class MapViewHolderStoreBaseAsync<
 
 ### Description
 
-`MapViewHolderStoreBaseAsync` is designed to manage the lifecycle of map views, which can be resource-intensive to create. By extending `StaticHolder<MapViewHolderInterface<TMapView, TMap>>`, it inherits methods for storing, retrieving, and removing map view holders.
+`MapViewHolderStoreBaseAsync` is designed to manage the lifecycle of map views, which can be
+resource-intensive to create. By extending `StaticHolder<MapViewHolderInterface<TMapView, TMap>>`,
+it inherits methods for storing, retrieving, and removing map view holders.
 
-The key feature of this class is the `getOrCreate` abstract method, which ensures that map view holders are created asynchronously and only when necessary, promoting efficient resource usage.
+The key feature of this class is the `getOrCreate` abstract method, which ensures that map view
+holders are created asynchronously and only when necessary, promoting efficient resource usage.
 
 ### Generic Type Parameters
 
-| Parameter  | Description                                                              |
-| :--------- | :----------------------------------------------------------------------- |
-| `TMapView` | The type of the native map view UI component (e.g., `MapView`).          |
-| `TMap`     | The type of the underlying map object (e.g., `GoogleMap`, `MapboxMap`).    |
-| `TOptions` | The type of the configuration options used to create a new map instance. |
+- `TMapView`
+    - Description: The type of the native map view UI component (e.g., `MapView`).
+- `TMap`
+    - Description: The type of the underlying map object (e.g., `GoogleMap`, `MapboxMap`).
+- `TOptions`
+    - Description: The type of the configuration options used to create a new map instance.
 
 ### Inherited Methods
 
@@ -148,7 +155,8 @@ This class inherits all public methods from `StaticHolder<MapViewHolderInterface
 
 ### getOrCreate
 
-Asynchronously gets an existing `MapViewHolderInterface` from the store or creates a new one if it doesn't exist.
+Asynchronously gets an existing `MapViewHolderInterface` from the store or creates a new one if it
+doesn't exist.
 
 **Signature**
 ```kotlin
@@ -161,15 +169,23 @@ abstract suspend fun getOrCreate(
 
 **Description**
 
-This function first attempts to retrieve a `MapViewHolderInterface` using the provided `id`. If no holder is found, it proceeds to create a new one using the given `context` and `options`. The newly created holder is then stored and returned. This "get-or-create" pattern is ideal for managing shared map resources efficiently. As a `suspend` function, it must be called from a coroutine or another `suspend` function.
+This function first attempts to retrieve a `MapViewHolderInterface` using the provided `id`. If no
+holder is found, it proceeds to create a new one using the given `context` and `options`. The newly
+created holder is then stored and returned. This "get-or-create" pattern is ideal for managing
+shared map resources efficiently. As a `suspend` function, it must be called from a coroutine or
+another `suspend` function.
 
 **Parameters**
 
-| Parameter | Type      | Description                                                  |
-| :-------- | :-------- | :----------------------------------------------------------- |
-| `context` | `Context` | The Android `Context` required to create a new map view.     |
-| `id`      | `String`  | The unique identifier for the map view holder.               |
-| `options` | `TOptions`  | The configuration options to use if a new holder is created. |
+- `context`
+    - Type: `Context`
+    - Description: The Android `Context` required to create a new map view.
+- `id`
+    - Type: `String`
+    - Description: The unique identifier for the map view holder.
+- `options`
+    - Type: `TOptions`
+    - Description: The configuration options to use if a new holder is created.
 
 **Returns**
 
@@ -177,7 +193,8 @@ This function first attempts to retrieve a `MapViewHolderInterface` using the pr
 
 ### Example
 
-Below is an example of how you might implement `MapViewHolderStoreBaseAsync` for a specific map provider.
+Below is an example of how you might implement `MapViewHolderStoreBaseAsync` for a specific map
+provider.
 
 ```kotlin
 // Assume these types are defined for a specific map SDK

@@ -1,7 +1,3 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
----
-
 # Interface `MapDesignTypeInterface<T>`
 
 ## Signature
@@ -10,15 +6,18 @@ interface MapDesignTypeInterface<T>
 ```
 
 ## Description
-Defines a generic contract for a map design type. Any class implementing this interface represents a specific design characteristic or style that can be applied to a map, such as its visual theme or data layer.
+Defines a generic contract for a map design type. Any class implementing this interface represents a
+specific design characteristic or style that can be applied to a map, such as its visual theme or
+data layer.
 
-This interface ensures that every design type provides a unique identifier (`id`) and a method to retrieve its core value (`getValue`), both of which are of the generic type `T`.
+This interface ensures that every design type provides a unique identifier (`id`) and a method to
+retrieve its core value (`getValue`), both of which are of the generic type `T`.
 
 ## Type Parameters
 
-| Parameter | Description |
-|-----------|-------------|
-| `T`       | The type of the identifier and the value for the design type. This allows for flexibility, such as using `String`, `Int`, or an `Enum`. |
+- `T`
+    - Description: The type of the identifier and the value for the design type. This allows for
+      flexibility, such as using `String`, `Int`, or an `Enum`.
 
 ## Properties
 
@@ -35,14 +34,16 @@ A read-only property that serves as the unique identifier for the map design typ
 ### `getValue()`
 **Signature:** `fun getValue(): T`
 
-Retrieves the value associated with the map design type. In many implementations, this may return the same value as the `id`.
+Retrieves the value associated with the map design type. In many implementations, this may return
+the same value as the `id`.
 
 **Returns**
 - `T`: The value of the design type.
 
 ## Example
 
-Here is an example of an `enum` class that implements `MapDesignTypeInterface` to define a set of available map styles.
+Here is an example of an `enum` class that implements `MapDesignTypeInterface` to define a set of
+available map styles.
 
 ```kotlin
 // Define an enum for map styles that implements the interface with String as the type.

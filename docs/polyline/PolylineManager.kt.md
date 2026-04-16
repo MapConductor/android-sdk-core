@@ -1,16 +1,17 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet, formatted in Markdown.
-
----
-
 # PolylineManager
 
 ## `PolylineManager<ActualPolyline>`
 
 ### Description
 
-The `PolylineManager` class is a comprehensive utility for managing a collection of polyline entities on a map. It provides a robust API for registering, retrieving, and removing polylines. Its key feature is the `find` method, which performs efficient hit-testing to identify the polyline closest to a given geographical coordinate, making it ideal for handling user interactions like taps on polylines.
+The `PolylineManager` class is a comprehensive utility for managing a collection of polyline
+entities on a map. It provides a robust API for registering, retrieving, and removing polylines. Its
+key feature is the `find` method, which performs efficient hit-testing to identify the polyline
+closest to a given geographical coordinate, making it ideal for handling user interactions like taps
+on polylines.
 
-The manager is generic, denoted by `<ActualPolyline>`, which represents the underlying platform-specific polyline object being managed.
+The manager is generic, denoted by `<ActualPolyline>`, which represents the underlying
+platform-specific polyline object being managed.
 
 ### Methods
 
@@ -24,13 +25,14 @@ fun registerEntity(entity: PolylineEntityInterface<ActualPolyline>)
 
 ##### Description
 
-Registers a new polyline entity with the manager. If an entity with the same ID already exists, it will be overwritten.
+Registers a new polyline entity with the manager. If an entity with the same ID already exists, it
+will be overwritten.
 
 ##### Parameters
 
-| Parameter | Type                                        | Description                              |
-| :-------- | :------------------------------------------ | :--------------------------------------- |
-| `entity`  | `PolylineEntityInterface<ActualPolyline>` | The polyline entity to add to the manager. |
+- `entity`
+    - Type: `PolylineEntityInterface<ActualPolyline>`
+    - Description: The polyline entity to add to the manager.
 
 ---
 
@@ -48,9 +50,9 @@ Removes a polyline entity from the manager using its unique identifier.
 
 ##### Parameters
 
-| Parameter | Type     | Description                                |
-| :-------- | :------- | :----------------------------------------- |
-| `id`        | `String` | The unique ID of the polyline entity to remove. |
+- `id`
+    - Type: `String`
+    - Description: The unique ID of the polyline entity to remove.
 
 ##### Returns
 
@@ -74,9 +76,9 @@ Retrieves a polyline entity from the manager by its unique identifier.
 
 ##### Parameters
 
-| Parameter | Type     | Description                                  |
-| :-------- | :------- | :------------------------------------------- |
-| `id`        | `String` | The unique ID of the polyline entity to retrieve. |
+- `id`
+    - Type: `String`
+    - Description: The unique ID of the polyline entity to retrieve.
 
 ##### Returns
 
@@ -100,9 +102,9 @@ Checks if an entity with the specified ID is registered with the manager.
 
 ##### Parameters
 
-| Parameter | Type     | Description                                  |
-| :-------- | :------- | :------------------------------------------- |
-| `id`        | `String` | The unique ID of the polyline entity to check for. |
+- `id`
+    - Type: `String`
+    - Description: The unique ID of the polyline entity to check for.
 
 ##### Returns
 
@@ -159,20 +161,29 @@ fun find(
 
 ##### Description
 
-Finds the polyline entity closest to a specified geographical position (e.g., a user's tap). The search is constrained by a tap tolerance radius defined in the application settings. This method calculates the search radius in meters based on the current map zoom level and efficiently identifies the polyline segment nearest to the given position. It correctly handles both geodesic and linear (straight-line) polylines.
+Finds the polyline entity closest to a specified geographical position (e.g., a user's tap). The
+search is constrained by a tap tolerance radius defined in the application settings. This method
+calculates the search radius in meters based on the current map zoom level and efficiently
+identifies the polyline segment nearest to the given position. It correctly handles both geodesic
+and linear (straight-line) polylines.
 
 ##### Parameters
 
-| Parameter        | Type                  | Description                                                                                                                                                           |
-| :--------------- | :-------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `position`       | `GeoPointInterface`   | The geographical coordinate to search around, typically the location of a tap event.                                                                                  |
-| `cameraPosition` | `MapCameraPosition?`  | **Optional.** The current state of the map camera, including zoom and visible region. Providing this improves performance by filtering out off-screen polylines. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographical coordinate to search around, typically the location of a tap
+      event.
+- `cameraPosition`
+    - Type: `MapCameraPosition?`
+    - Description: **Optional.** The current state of the map camera, including zoom and visible
+      region. Providing this improves performance by filtering out off-screen polylines.
 
 ##### Returns
 
 **`PolylineHitResult<ActualPolyline>?`**
 
-A `PolylineHitResult` object containing the closest entity and the exact point of intersection, or `null` if no polyline is found within the tap tolerance.
+A `PolylineHitResult` object containing the closest entity and the exact point of intersection, or
+`null` if no polyline is found within the tap tolerance.
 
 ### Example
 
@@ -212,14 +223,18 @@ if (hitResult != null) {
 
 #### Description
 
-A data class that encapsulates the result of a successful hit test performed by `PolylineManager.find`. It holds the entity that was hit and the specific point on that entity's path closest to the search location.
+A data class that encapsulates the result of a successful hit test performed by
+`PolylineManager.find`. It holds the entity that was hit and the specific point on that entity's
+path closest to the search location.
 
 #### Properties
 
-| Property       | Type                                        | Description                                                                    |
-| :------------- | :------------------------------------------ | :----------------------------------------------------------------------------- |
-| `entity`       | `PolylineEntityInterface<ActualPolyline>` | The polyline entity that was found to be closest to the search position.       |
-| `closestPoint` | `GeoPointInterface`                         | The specific point on the `entity`'s path that is nearest to the search position. |
+- `entity`
+    - Type: `PolylineEntityInterface<ActualPolyline>`
+    - Description: The polyline entity that was found to be closest to the search position.
+- `closestPoint`
+    - Type: `GeoPointInterface`
+    - Description: The specific point on the `entity`'s path that is nearest to the search position.
 
 ---
 
@@ -229,7 +244,8 @@ A data class that encapsulates the result of a successful hit test performed by 
 
 #### Description
 
-This interface defines the public contract for a polyline manager. The `PolylineManager` class is the concrete implementation of this interface.
+This interface defines the public contract for a polyline manager. The `PolylineManager` class is
+the concrete implementation of this interface.
 
 #### Methods
 

@@ -1,6 +1,8 @@
 # MapPaddings
 
-The `MapPaddings` class and `MapPaddingsInterface` define a structure for specifying padding on the four sides of a map view. This is useful for creating a visible region within the map's viewport that is not obscured by other UI elements.
+The `MapPaddings` class and `MapPaddingsInterface` define a structure for specifying padding on the
+four sides of a map view. This is useful for creating a visible region within the map's viewport
+that is not obscured by other UI elements.
 
 ## MapPaddingsInterface
 
@@ -14,16 +16,23 @@ interface MapPaddingsInterface
 
 ### Description
 
-Provides a standardized way to access padding values. Any class that represents map paddings can implement this interface.
+Provides a standardized way to access padding values. Any class that represents map paddings can
+implement this interface.
 
 ### Properties
 
-| Property | Type     | Description                               |
-|----------|----------|-------------------------------------------|
-| `top`    | `Double` | The padding from the top edge in pixels.  |
-| `left`   | `Double` | The padding from the left edge in pixels. |
-| `bottom` | `Double` | The padding from the bottom edge in pixels.|
-| `right`  | `Double` | The padding from the right edge in pixels.|
+- `top`
+    - Type: `Double`
+    - Description: The padding from the top edge in pixels.
+- `left`
+    - Type: `Double`
+    - Description: The padding from the left edge in pixels.
+- `bottom`
+    - Type: `Double`
+    - Description: The padding from the bottom edge in pixels.
+- `right`
+    - Type: `Double`
+    - Description: The padding from the right edge in pixels.
 
 ---
 
@@ -39,7 +48,9 @@ open class MapPaddings : MapPaddingsInterface
 
 ### Description
 
-Represents the padding values for the four edges of a map view in pixels. It allows developers to define an inset area where map content like markers or routes can be displayed without being covered by UI components. This class is `open`, so it can be subclassed if needed.
+Represents the padding values for the four edges of a map view in pixels. It allows developers to
+define an inset area where map content like markers or routes can be displayed without being covered
+by UI components. This class is `open`, so it can be subclassed if needed.
 
 ### Constructor
 
@@ -61,16 +72,28 @@ constructor(
 
 ##### Description
 
-Initializes a `MapPaddings` object. All parameters have a default value of `0.0`. The `@JvmOverloads` annotation enables this constructor to be called from Java with any number of arguments from left to right, with the remaining parameters taking their default values.
+Initializes a `MapPaddings` object. All parameters have a default value of `0.0`. The
+`@JvmOverloads` annotation enables this constructor to be called from Java with any number of
+arguments from left to right, with the remaining parameters taking their default values.
 
 ##### Parameters
 
-| Parameter | Type     | Description                               | Default |
-|-----------|----------|-------------------------------------------|---------|
-| `top`     | `Double` | The padding from the top edge in pixels.  | `0.0`   |
-| `left`    | `Double` | The padding from the left edge in pixels. | `0.0`   |
-| `bottom`  | `Double` | The padding from the bottom edge in pixels.| `0.0`   |
-| `right`   | `Double` | The padding from the right edge in pixels.| `0.0`   |
+- `top`
+    - Type: `Double`
+    - Default: `0.0`
+    - Description: The padding from the top edge in pixels.
+- `left`
+    - Type: `Double`
+    - Default: `0.0`
+    - Description: The padding from the left edge in pixels.
+- `bottom`
+    - Type: `Double`
+    - Default: `0.0`
+    - Description: The padding from the bottom edge in pixels.
+- `right`
+    - Type: `Double`
+    - Default: `0.0`
+    - Description: The padding from the right edge in pixels.
 
 ### Companion Object
 
@@ -86,7 +109,8 @@ val Zeros: MapPaddings
 
 ##### Description
 
-Provides a convenient, pre-defined `MapPaddings` object where all padding values (`top`, `left`, `bottom`, `right`) are `0.0`.
+Provides a convenient, pre-defined `MapPaddings` object where all padding values (`top`, `left`,
+`bottom`, `right`) are `0.0`.
 
 #### `from()`
 
@@ -100,19 +124,20 @@ fun from(paddings: MapPaddingsInterface): MapPaddings
 
 ##### Description
 
-Creates a `MapPaddings` instance from any object that implements the `MapPaddingsInterface`. This method includes an optimization: if the provided `paddings` object is already an instance of `MapPaddings`, it is returned directly to avoid unnecessary object creation.
+Creates a `MapPaddings` instance from any object that implements the `MapPaddingsInterface`. This
+method includes an optimization: if the provided `paddings` object is already an instance of
+`MapPaddings`, it is returned directly to avoid unnecessary object creation.
 
 ##### Parameters
 
-| Parameter  | Type                   | Description                                          |
-|------------|------------------------|------------------------------------------------------|
-| `paddings` | `MapPaddingsInterface` | An object conforming to the `MapPaddingsInterface`.  |
+- `paddings`
+    - Type: `MapPaddingsInterface`
+    - Description: An object conforming to the `MapPaddingsInterface`.
 
 ##### Returns
 
-| Type          | Description                                                              |
-|---------------|--------------------------------------------------------------------------|
-| `MapPaddings` | A `MapPaddings` instance with values copied from the `paddings` parameter. |
+- Type: `MapPaddings`
+- Description: A `MapPaddings` instance with values copied from the `paddings` parameter.
 
 ### Example
 

@@ -1,16 +1,14 @@
-Of course! Here is a high-quality SDK document for the provided `GeoRectBounds` class.
-
----
-
 # GeoRectBounds
 
 ## Class: GeoRectBounds
 
 ### Description
 
-Represents a rectangular geographical area defined by a southwest and a northeast `GeoPoint`. This class is designed to correctly handle bounding boxes that cross the antimeridian (180th meridian).
+Represents a rectangular geographical area defined by a southwest and a northeast `GeoPoint`. This
+class is designed to correctly handle bounding boxes that cross the antimeridian (180th meridian).
 
-An empty `GeoRectBounds` can be created by providing no arguments to the constructor. The bounds can then be defined by adding points using the `extend` method.
+An empty `GeoRectBounds` can be created by providing no arguments to the constructor. The bounds can
+then be defined by adding points using the `extend` method.
 
 ### Signature
 
@@ -23,10 +21,12 @@ class GeoRectBounds(
 
 ### Parameters
 
-| Parameter   | Type       | Description                                        |
-| :---------- | :--------- | :------------------------------------------------- |
-| `southWest` | `GeoPoint?` | The southwest corner of the bounding box. Optional. |
-| `northEast` | `GeoPoint?` | The northeast corner of the bounding box. Optional. |
+- `southWest`
+    - Type: `GeoPoint?`
+    - Description: The southwest corner of the bounding box. Optional.
+- `northEast`
+    - Type: `GeoPoint?`
+    - Description: The northeast corner of the bounding box. Optional.
 
 ---
 
@@ -84,7 +84,8 @@ val center: GeoPoint?
 
 #### Description
 
-Calculates the geographical center of the bounding box. Correctly handles bounds that cross the antimeridian. Returns `null` if the bounds are empty.
+Calculates the geographical center of the bounding box. Correctly handles bounds that cross the
+antimeridian. Returns `null` if the bounds are empty.
 
 ---
 
@@ -100,13 +101,15 @@ fun extend(point: GeoPointInterface)
 
 #### Description
 
-Expands the bounding box to include the given geographical point. If the bounds are empty, they will be initialized to the location of this point. This method modifies the current `GeoRectBounds` instance.
+Expands the bounding box to include the given geographical point. If the bounds are empty, they will
+be initialized to the location of this point. This method modifies the current `GeoRectBounds`
+instance.
 
 #### Parameters
 
-| Parameter | Type                | Description                               |
-| :-------- | :------------------ | :---------------------------------------- |
-| `point`   | `GeoPointInterface` | The geographical point to include in the bounds. |
+- `point`
+    - Type: `GeoPointInterface`
+    - Description: The geographical point to include in the bounds.
 
 ---
 
@@ -120,17 +123,19 @@ fun contains(point: GeoPointInterface): Boolean
 
 #### Description
 
-Checks if the given geographical point is within this bounding box (inclusive). This check correctly handles bounds that cross the antimeridian.
+Checks if the given geographical point is within this bounding box (inclusive). This check correctly
+handles bounds that cross the antimeridian.
 
 #### Parameters
 
-| Parameter | Type                | Description                                  |
-| :-------- | :------------------ | :------------------------------------------- |
-| `point`   | `GeoPointInterface` | The point to check for containment.          |
+- `point`
+    - Type: `GeoPointInterface`
+    - Description: The point to check for containment.
 
 #### Returns
 
-`Boolean` - `true` if the point is inside the bounds, `false` otherwise. Returns `false` if the bounds are empty.
+`Boolean` - `true` if the point is inside the bounds, `false` otherwise. Returns `false` if the
+bounds are empty.
 
 ---
 
@@ -144,13 +149,14 @@ fun union(other: GeoRectBounds): GeoRectBounds
 
 #### Description
 
-Computes the union of this bounding box and another `GeoRectBounds`. It returns a new `GeoRectBounds` that encompasses both of the original bounds.
+Computes the union of this bounding box and another `GeoRectBounds`. It returns a new
+`GeoRectBounds` that encompasses both of the original bounds.
 
 #### Parameters
 
-| Parameter | Type            | Description                               |
-| :-------- | :-------------- | :---------------------------------------- |
-| `other`   | `GeoRectBounds` | The other bounding box to combine with this one. |
+- `other`
+    - Type: `GeoRectBounds`
+    - Description: The other bounding box to combine with this one.
 
 #### Returns
 
@@ -172,7 +178,8 @@ Calculates the latitudinal and longitudinal span of the bounding box.
 
 #### Returns
 
-`GeoPoint?` - A `GeoPoint` where the `latitude` represents the latitudinal span in degrees and the `longitude` represents the longitudinal span in degrees. Returns `null` if the bounds are empty.
+`GeoPoint?` - A `GeoPoint` where the `latitude` represents the latitudinal span in degrees and the
+`longitude` represents the longitudinal span in degrees. Returns `null` if the bounds are empty.
 
 ---
 
@@ -186,17 +193,20 @@ fun toUrlValue(precision: Int = 6): String
 
 #### Description
 
-Formats the bounding box coordinates into a single comma-separated string, suitable for use in URL parameters. The format is `south,west,north,east`.
+Formats the bounding box coordinates into a single comma-separated string, suitable for use in URL
+parameters. The format is `south,west,north,east`.
 
 #### Parameters
 
-| Parameter   | Type  | Description                                                              |
-| :---------- | :---- | :----------------------------------------------------------------------- |
-| `precision` | `Int` | The number of decimal places to use for formatting the coordinates. Defaults to `6`. |
+- `precision`
+    - Type: `Int`
+    - Description: The number of decimal places to use for formatting the coordinates. Defaults to
+      `6`.
 
 #### Returns
 
-`String` - A string representation of the bounds. For empty bounds, it returns `"1.0,180.0,-1.0,-180.0"`.
+`String` - A string representation of the bounds. For empty bounds, it returns
+`"1.0,180.0,-1.0,-180.0"`.
 
 ---
 
@@ -210,14 +220,18 @@ fun expandedByDegrees(latPad: Double, lonPad: Double): GeoRectBounds
 
 #### Description
 
-Creates a new `GeoRectBounds` instance that is expanded from the original by a specified amount in every direction. The padding values are added to the north and east boundaries and subtracted from the south and west boundaries. This method correctly handles expansion across the antimeridian.
+Creates a new `GeoRectBounds` instance that is expanded from the original by a specified amount in
+every direction. The padding values are added to the north and east boundaries and subtracted from
+the south and west boundaries. This method correctly handles expansion across the antimeridian.
 
 #### Parameters
 
-| Parameter | Type     | Description                                        |
-| :-------- | :------- | :------------------------------------------------- |
-| `latPad`  | `Double` | The number of degrees to expand latitude-wise (north and south). |
-| `lonPad`  | `Double` | The number of degrees to expand longitude-wise (east and west).  |
+- `latPad`
+    - Type: `Double`
+    - Description: The number of degrees to expand latitude-wise (north and south).
+- `lonPad`
+    - Type: `Double`
+    - Description: The number of degrees to expand longitude-wise (east and west).
 
 #### Returns
 
@@ -235,17 +249,19 @@ fun intersects(other: GeoRectBounds): Boolean
 
 #### Description
 
-Determines if this bounding box has any overlap with another `GeoRectBounds`. The check is inclusive of the boundaries and correctly handles cases where one or both bounds cross the antimeridian.
+Determines if this bounding box has any overlap with another `GeoRectBounds`. The check is inclusive
+of the boundaries and correctly handles cases where one or both bounds cross the antimeridian.
 
 #### Parameters
 
-| Parameter | Type            | Description                               |
-| :-------- | :-------------- | :---------------------------------------- |
-| `other`   | `GeoRectBounds` | The other bounding box to check for intersection. |
+- `other`
+    - Type: `GeoRectBounds`
+    - Description: The other bounding box to check for intersection.
 
 #### Returns
 
-`Boolean` - `true` if the two bounding boxes intersect, `false` otherwise. Returns `false` if either of the bounds is empty.
+`Boolean` - `true` if the two bounding boxes intersect, `false` otherwise. Returns `false` if either
+of the bounds is empty.
 
 ---
 

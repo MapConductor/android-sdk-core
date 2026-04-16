@@ -1,12 +1,12 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
----
-
 # WGS84
 
-A singleton object that provides methods for Spherical Mercator projection. This projection is widely used in web mapping systems (like Google Maps and OpenStreetMap) to represent the WGS84 geographic coordinate system on a 2D plane.
+A singleton object that provides methods for Spherical Mercator projection. This projection is
+widely used in web mapping systems (like Google Maps and OpenStreetMap) to represent the WGS84
+geographic coordinate system on a 2D plane.
 
-This object facilitates the conversion between geographic coordinates (`GeoPointInterface`) and 2D world coordinates (`Offset`), which are essential for rendering map data on a screen. The projection calculations are based on a standard 256x256 pixel map tile.
+This object facilitates the conversion between geographic coordinates (`GeoPointInterface`) and 2D
+world coordinates (`Offset`), which are essential for rendering map data on a screen. The projection
+calculations are based on a standard 256x256 pixel map tile.
 
 ## Methods
 
@@ -16,17 +16,19 @@ This object facilitates the conversion between geographic coordinates (`GeoPoint
 fun project(position: GeoPointInterface): Offset
 ```
 
-Projects a geographic coordinate (`GeoPointInterface`) into a 2D world coordinate (`Offset`) using the Spherical Mercator projection.
+Projects a geographic coordinate (`GeoPointInterface`) into a 2D world coordinate (`Offset`) using
+the Spherical Mercator projection.
 
 #### Parameters
 
-| Parameter  | Type                | Description                                       |
-|------------|---------------------|---------------------------------------------------|
-| `position` | `GeoPointInterface` | The geographic point (latitude/longitude) to project. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point (latitude/longitude) to project.
 
 #### Returns
 
-An `Offset` object representing the x and y coordinates on the 2D projected plane, scaled to a 256x256 world space.
+An `Offset` object representing the x and y coordinates on the 2D projected plane, scaled to a
+256x256 world space.
 
 #### Example
 
@@ -54,13 +56,15 @@ println("Projected coordinates: $projectedPoint")
 fun unproject(point: Offset): GeoPointInterface
 ```
 
-Performs the inverse projection, converting a 2D world coordinate (`Offset`) back into a geographic coordinate (`GeoPointInterface`). This is useful for determining the latitude and longitude corresponding to a specific point on the map, such as a user's tap location.
+Performs the inverse projection, converting a 2D world coordinate (`Offset`) back into a geographic
+coordinate (`GeoPointInterface`). This is useful for determining the latitude and longitude
+corresponding to a specific point on the map, such as a user's tap location.
 
 #### Parameters
 
-| Parameter | Type     | Description                                                              |
-|-----------|----------|--------------------------------------------------------------------------|
-| `point`   | `Offset` | The 2D world coordinate (x, y) to unproject, based on a 256x256 tile system. |
+- `point`
+    - Type: `Offset`
+    - Description: The 2D world coordinate (x, y) to unproject, based on a 256x256 tile system.
 
 #### Returns
 

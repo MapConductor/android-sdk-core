@@ -1,4 +1,4 @@
-### `interpolateAtMeridianGeodesic`
+# `interpolateAtMeridianGeodesic`
 
 #### Signature
 ```kotlin
@@ -9,23 +9,30 @@ fun interpolateAtMeridianGeodesic(
 ```
 
 #### Description
-Calculates the geographical point where the great circle path between two points (`from` and `to`) intersects the antimeridian (180° or -180° longitude).
+Calculates the geographical point where the great circle path between two points (`from` and `to`)
+intersects the antimeridian (180° or -180° longitude).
 
-This function employs a high-precision iterative binary search algorithm to find the exact intersection point. It is particularly useful for accurately rendering geodesic paths that cross the international date line, preventing visual artifacts where a line incorrectly wraps around the globe. The final returned point will have its longitude set precisely to `180.0` or `-180.0`, with its latitude and altitude spherically interpolated.
+This function employs a high-precision iterative binary search algorithm to find the exact
+intersection point. It is particularly useful for accurately rendering geodesic paths that cross the
+international date line, preventing visual artifacts where a line incorrectly wraps around the
+globe. The final returned point will have its longitude set precisely to `180.0` or `-180.0`, with
+its latitude and altitude spherically interpolated.
 
 #### Parameters
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `from` | `GeoPointInterface` | The starting point of the geodesic path. |
-| `to` | `GeoPointInterface` | The ending point of the geodesic path. |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting point of the geodesic path.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending point of the geodesic path.
 
 #### Returns
-| Type | Description |
-| :--- | :--- |
-| `GeoPoint` | A new `GeoPoint` object representing the intersection point on the antimeridian. |
+- Type: `GeoPoint`
+- Description: A new `GeoPoint` object representing the intersection point on the antimeridian.
 
 #### Example
-The following example demonstrates how to find the antimeridian crossing point for a path from a point east of the antimeridian (e.g., near Fiji) to a point west of it (e.g., near Hawaii).
+The following example demonstrates how to find the antimeridian crossing point for a path from a
+point east of the antimeridian (e.g., near Fiji) to a point west of it (e.g., near Hawaii).
 
 ```kotlin
 import com.mapconductor.core.features.GeoPoint

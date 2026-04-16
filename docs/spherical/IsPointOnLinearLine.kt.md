@@ -1,8 +1,4 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
-***
-
-### isPointOnLinearLine
+# isPointOnLinearLine
 
 #### Signature
 
@@ -17,28 +13,42 @@ fun isPointOnLinearLine(
 
 #### Description
 
-Determines if a given geographic point (`position`) is within a specified distance (`thresholdMeters`) of a straight line segment defined by `from` and `to` points.
+Determines if a given geographic point (`position`) is within a specified distance
+(`thresholdMeters`) of a straight line segment defined by `from` and `to` points.
 
-This function uses a planar (flat-earth) approximation for the calculation, ignoring the Earth's curvature for the path of the line segment. It correctly handles longitude wrapping by choosing the shorter path across the ±180° meridian.
+This function uses a planar (flat-earth) approximation for the calculation, ignoring the Earth's
+curvature for the path of the line segment. It correctly handles longitude wrapping by choosing the
+shorter path across the ±180° meridian.
 
-If the `position` is within the threshold, the function returns a `Pair` containing the closest point on the line segment and the exact distance in meters. Otherwise, it returns `null`.
+If the `position` is within the threshold, the function returns a `Pair` containing the closest
+point on the line segment and the exact distance in meters. Otherwise, it returns `null`.
 
 #### Parameters
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `from` | `GeoPointInterface` | The starting point of the line segment. |
-| `to` | `GeoPointInterface` | The ending point of the line segment. |
-| `position` | `GeoPointInterface` | The point to check against the line segment. |
-| `thresholdMeters` | `Double` | The maximum allowed distance in meters from the line segment for the point to be considered "on" it. |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting point of the line segment.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending point of the line segment.
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The point to check against the line segment.
+- `thresholdMeters`
+    - Type: `Double`
+    - Description: The maximum allowed distance in meters from the line segment for the point to be
+      considered "on" it.
 
 #### Returns
 
 **`Pair<GeoPointInterface, Double>?`**
 
 *   A `Pair` containing the following if the `position` is within the `thresholdMeters`:
-    *   **`first`**: A `GeoPoint` instance representing the closest point on the line segment to the `position`. Its altitude is linearly interpolated if both `from` and `to` points have altitude values.
-    *   **`second`**: A `Double` representing the perpendicular distance in meters from the `position` to the line segment.
+    *   **`first`**: A `GeoPoint` instance representing the closest point on the line segment to the
+        `position`. Its altitude is linearly interpolated if both `from` and `to` points have
+        altitude values.
+    *   **`second`**: A `Double` representing the perpendicular distance in meters from the
+        `position` to the line segment.
 *   Returns `null` if the `position` is outside the specified threshold.
 
 #### Example

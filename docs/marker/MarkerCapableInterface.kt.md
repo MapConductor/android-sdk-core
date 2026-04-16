@@ -1,14 +1,16 @@
-Of course! Here is the high-quality SDK documentation for the provided `MarkerCapableInterface` code snippet.
-
 # Interface `MarkerCapableInterface`
 
-Defines the contract for a component capable of managing and displaying markers on a map. This interface provides methods for adding, updating, and interacting with markers, as well as checking their existence.
+Defines the contract for a component capable of managing and displaying markers on a map. This
+interface provides methods for adding, updating, and interacting with markers, as well as checking
+their existence.
 
 ---
 
 ## `compositionMarkers`
 
-Adds or updates a collection of markers on the map. This function is designed for efficiently managing multiple markers at once, recomposing the map's markers to match the provided list of `MarkerState` objects. This is a suspend function and should be called from a coroutine.
+Adds or updates a collection of markers on the map. This function is designed for efficiently
+managing multiple markers at once, recomposing the map's markers to match the provided list of
+`MarkerState` objects. This is a suspend function and should be called from a coroutine.
 
 ### Signature
 
@@ -18,9 +20,9 @@ suspend fun compositionMarkers(data: List<MarkerState>)
 
 ### Parameters
 
-| Parameter | Type                | Description                                                              |
-| :-------- | :------------------ | :----------------------------------------------------------------------- |
-| `data`    | `List<MarkerState>` | A list of `MarkerState` objects, each representing a marker to be drawn. |
+- `data`
+    - Type: `List<MarkerState>`
+    - Description: A list of `MarkerState` objects, each representing a marker to be drawn.
 
 ### Example
 
@@ -43,7 +45,9 @@ coroutineScope.launch {
 
 ## `updateMarker`
 
-Updates a single existing marker on the map based on its `MarkerState`. If a marker with the same ID as the provided state exists, it will be updated. If it does not exist, it may be created. This is a suspend function and should be called from a coroutine.
+Updates a single existing marker on the map based on its `MarkerState`. If a marker with the same ID
+as the provided state exists, it will be updated. If it does not exist, it may be created. This is a
+suspend function and should be called from a coroutine.
 
 ### Signature
 
@@ -53,9 +57,9 @@ suspend fun updateMarker(state: MarkerState)
 
 ### Parameters
 
-| Parameter | Type          | Description                                                |
-| :-------- | :------------ | :--------------------------------------------------------- |
-| `state`   | `MarkerState` | The state object representing the marker to be updated. |
+- `state`
+    - Type: `MarkerState`
+    - Description: The state object representing the marker to be updated.
 
 ### Example
 
@@ -68,7 +72,7 @@ import kotlinx.coroutines.launch
 val updatedMarkerState = MarkerState(
     id = "marker-1",
     position = LatLng(34.0522, -118.2437),
-    alpha = 0.5f // Update the marker's alpha
+    clickable = false // Update the marker's clickability
 )
 
 // Update the marker on the map
@@ -81,7 +85,8 @@ coroutineScope.launch {
 
 ## `setOnMarkerDragStart`
 
-> **Deprecated:** Use the `onDragStart` lambda property on an individual `MarkerState` object for more granular, per-marker control.
+> **Deprecated:** Use the `onDragStart` lambda property on an individual `MarkerState` object for
+more granular, per-marker control.
 
 Sets a global listener that is invoked when a user begins dragging any marker on the map.
 
@@ -94,15 +99,17 @@ fun setOnMarkerDragStart(listener: OnMarkerEventHandler?)
 
 ### Parameters
 
-| Parameter  | Type                   | Description                                                              |
-| :--------- | :--------------------- | :----------------------------------------------------------------------- |
-| `listener` | `OnMarkerEventHandler?` | The callback to invoke when a marker drag starts. Pass `null` to clear the listener. |
+- `listener`
+    - Type: `OnMarkerEventHandler?`
+    - Description: The callback to invoke when a marker drag starts. Pass `null` to clear the
+      listener.
 
 ---
 
 ## `setOnMarkerDrag`
 
-> **Deprecated:** Use the `onDrag` lambda property on an individual `MarkerState` object for more granular, per-marker control.
+> **Deprecated:** Use the `onDrag` lambda property on an individual `MarkerState` object for more
+granular, per-marker control.
 
 Sets a global listener that is invoked repeatedly while a user is dragging any marker on the map.
 
@@ -115,15 +122,17 @@ fun setOnMarkerDrag(listener: OnMarkerEventHandler?)
 
 ### Parameters
 
-| Parameter  | Type                   | Description                                                              |
-| :--------- | :--------------------- | :----------------------------------------------------------------------- |
-| `listener` | `OnMarkerEventHandler?` | The callback to invoke while a marker is being dragged. Pass `null` to clear the listener. |
+- `listener`
+    - Type: `OnMarkerEventHandler?`
+    - Description: The callback to invoke while a marker is being dragged. Pass `null` to clear the
+      listener.
 
 ---
 
 ## `setOnMarkerDragEnd`
 
-> **Deprecated:** Use the `onDragEnd` lambda property on an individual `MarkerState` object for more granular, per-marker control.
+> **Deprecated:** Use the `onDragEnd` lambda property on an individual `MarkerState` object for more
+granular, per-marker control.
 
 Sets a global listener that is invoked when a user finishes dragging any marker on the map.
 
@@ -136,15 +145,17 @@ fun setOnMarkerDragEnd(listener: OnMarkerEventHandler?)
 
 ### Parameters
 
-| Parameter  | Type                   | Description                                                              |
-| :--------- | :--------------------- | :----------------------------------------------------------------------- |
-| `listener` | `OnMarkerEventHandler?` | The callback to invoke when a marker drag operation ends. Pass `null` to clear the listener. |
+- `listener`
+    - Type: `OnMarkerEventHandler?`
+    - Description: The callback to invoke when a marker drag operation ends. Pass `null` to clear
+      the listener.
 
 ---
 
 ## `setOnMarkerAnimateStart`
 
-> **Deprecated:** Use the `onAnimateStart` lambda property on an individual `MarkerState` object for more granular, per-marker control.
+> **Deprecated:** Use the `onAnimateStart` lambda property on an individual `MarkerState` object for
+more granular, per-marker control.
 
 Sets a global listener that is invoked when a marker animation begins.
 
@@ -157,15 +168,17 @@ fun setOnMarkerAnimateStart(listener: OnMarkerEventHandler?)
 
 ### Parameters
 
-| Parameter  | Type                   | Description                                                              |
-| :--------- | :--------------------- | :----------------------------------------------------------------------- |
-| `listener` | `OnMarkerEventHandler?` | The callback to invoke when a marker animation starts. Pass `null` to clear the listener. |
+- `listener`
+    - Type: `OnMarkerEventHandler?`
+    - Description: The callback to invoke when a marker animation starts. Pass `null` to clear the
+      listener.
 
 ---
 
 ## `setOnMarkerAnimateEnd`
 
-> **Deprecated:** Use the `onAnimateEnd` lambda property on an individual `MarkerState` object for more granular, per-marker control.
+> **Deprecated:** Use the `onAnimateEnd` lambda property on an individual `MarkerState` object for
+more granular, per-marker control.
 
 Sets a global listener that is invoked when a marker animation completes.
 
@@ -178,15 +191,17 @@ fun setOnMarkerAnimateEnd(listener: OnMarkerEventHandler?)
 
 ### Parameters
 
-| Parameter  | Type                   | Description                                                              |
-| :--------- | :--------------------- | :----------------------------------------------------------------------- |
-| `listener` | `OnMarkerEventHandler?` | The callback to invoke when a marker animation finishes. Pass `null` to clear the listener. |
+- `listener`
+    - Type: `OnMarkerEventHandler?`
+    - Description: The callback to invoke when a marker animation finishes. Pass `null` to clear the
+      listener.
 
 ---
 
 ## `setOnMarkerClickListener`
 
-> **Deprecated:** Use the `onClick` lambda property on an individual `MarkerState` object for more granular, per-marker control.
+> **Deprecated:** Use the `onClick` lambda property on an individual `MarkerState` object for more
+granular, per-marker control.
 
 Sets a global listener that is invoked when a user clicks on any marker.
 
@@ -199,15 +214,17 @@ fun setOnMarkerClickListener(listener: OnMarkerEventHandler?)
 
 ### Parameters
 
-| Parameter  | Type                   | Description                                                              |
-| :--------- | :--------------------- | :----------------------------------------------------------------------- |
-| `listener` | `OnMarkerEventHandler?` | The callback to invoke when a marker is clicked. Pass `null` to clear the listener. |
+- `listener`
+    - Type: `OnMarkerEventHandler?`
+    - Description: The callback to invoke when a marker is clicked. Pass `null` to clear the
+      listener.
 
 ---
 
 ## `hasMarker`
 
-Checks if a specific marker, identified by its `MarkerState`, currently exists on the map. The check is typically based on the marker's unique ID.
+Checks if a specific marker, identified by its `MarkerState`, currently exists on the map. The check
+is typically based on the marker's unique ID.
 
 ### Signature
 
@@ -217,13 +234,14 @@ fun hasMarker(state: MarkerState): Boolean
 
 ### Parameters
 
-| Parameter | Type          | Description                                             |
-| :-------- | :------------ | :------------------------------------------------------ |
-| `state`   | `MarkerState` | The state object of the marker to check for. |
+- `state`
+    - Type: `MarkerState`
+    - Description: The state object of the marker to check for.
 
 ### Returns
 
-`Boolean` - Returns `true` if a marker with the same ID as the provided state exists, `false` otherwise.
+`Boolean` - Returns `true` if a marker with the same ID as the provided state exists, `false`
+otherwise.
 
 ### Example
 

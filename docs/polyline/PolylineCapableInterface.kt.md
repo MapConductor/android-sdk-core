@@ -1,6 +1,7 @@
 # PolylineCapableInterface
 
-An interface for components that have the capability to display and manage polylines on a map. This interface provides a standard contract for adding, updating, and interacting with polylines.
+An interface for components that have the capability to display and manage polylines on a map. This
+interface provides a standard contract for adding, updating, and interacting with polylines.
 
 ---
 
@@ -8,7 +9,10 @@ An interface for components that have the capability to display and manage polyl
 
 ### compositionPolylines
 
-Asynchronously composes a list of polylines on the map. This function synchronizes the polylines displayed on the map with the provided list of `PolylineState` objects. It will add new polylines, update existing ones, and remove any polylines that are not in the new list. This is the preferred method for managing a collection of polylines declaratively.
+Asynchronously composes a list of polylines on the map. This function synchronizes the polylines
+displayed on the map with the provided list of `PolylineState` objects. It will add new polylines,
+update existing ones, and remove any polylines that are not in the new list. This is the preferred
+method for managing a collection of polylines declaratively.
 
 #### Signature
 
@@ -18,9 +22,9 @@ suspend fun compositionPolylines(data: List<PolylineState>)
 
 #### Parameters
 
-| Parameter | Type                  | Description                                                              |
-| :-------- | :-------------------- | :----------------------------------------------------------------------- |
-| `data`    | `List<PolylineState>` | The complete list of polyline states to be rendered on the map.          |
+- `data`
+    - Type: `List<PolylineState>`
+    - Description: The complete list of polyline states to be rendered on the map.
 
 #### Example
 
@@ -41,7 +45,9 @@ coroutineScope.launch {
 
 ### updatePolyline
 
-Asynchronously adds a new polyline or updates an existing one based on the provided `PolylineState`. If a polyline with the same ID already exists on the map, its properties will be updated. Otherwise, a new polyline will be created and added.
+Asynchronously adds a new polyline or updates an existing one based on the provided `PolylineState`.
+If a polyline with the same ID already exists on the map, its properties will be updated. Otherwise,
+a new polyline will be created and added.
 
 #### Signature
 
@@ -51,9 +57,9 @@ suspend fun updatePolyline(state: PolylineState)
 
 #### Parameters
 
-| Parameter | Type          | Description                                      |
-| :-------- | :------------ | :----------------------------------------------- |
-| `state`   | `PolylineState` | The state of the polyline to add or update.      |
+- `state`
+    - Type: `PolylineState`
+    - Description: The state of the polyline to add or update.
 
 #### Example
 
@@ -77,7 +83,9 @@ coroutineScope.launch {
 
 Sets a global click listener for all polylines managed by this component.
 
-> **Deprecated:** This method is deprecated. Use the `onClick` lambda property within the `PolylineState` for each individual polyline instead. This provides more granular control and is aligned with modern, state-driven UI patterns.
+> **Deprecated:** This method is deprecated. Use the `onClick` lambda property within the
+`PolylineState` for each individual polyline instead. This provides more granular control and is
+aligned with modern, state-driven UI patterns.
 
 #### Signature
 
@@ -88,15 +96,17 @@ fun setOnPolylineClickListener(listener: OnPolylineEventHandler?)
 
 #### Parameters
 
-| Parameter  | Type                     | Description                                                              |
-| :--------- | :----------------------- | :----------------------------------------------------------------------- |
-| `listener` | `OnPolylineEventHandler?` | The event handler to be invoked when any polyline is clicked. Set to `null` to remove the listener. |
+- `listener`
+    - Type: `OnPolylineEventHandler?`
+    - Description: The event handler to be invoked when any polyline is clicked. Set to `null` to
+      remove the listener.
 
 ---
 
 ### hasPolyline
 
-Checks if a polyline matching the given `PolylineState` exists on the map. The check is typically performed using the unique identifier from the `PolylineState`.
+Checks if a polyline matching the given `PolylineState` exists on the map. The check is typically
+performed using the unique identifier from the `PolylineState`.
 
 #### Signature
 
@@ -106,9 +116,9 @@ fun hasPolyline(state: PolylineState): Boolean
 
 #### Parameters
 
-| Parameter | Type          | Description                                                              |
-| :-------- | :------------ | :----------------------------------------------------------------------- |
-| `state`   | `PolylineState` | The polyline state to check for. The lookup is based on the polyline's ID. |
+- `state`
+    - Type: `PolylineState`
+    - Description: The polyline state to check for. The lookup is based on the polyline's ID.
 
 #### Returns
 

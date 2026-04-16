@@ -1,12 +1,10 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet, formatted in Markdown.
-
----
-
-### `GroundImageState`
+# `GroundImageState`
 
 A state holder class that defines and manages a ground image overlay on a map.
 
-It encapsulates all properties necessary for rendering an image over a specific geographical area, such as its boundaries, the image resource, and its opacity. The properties are observable and mutable, allowing for dynamic updates to the ground overlay in a Compose-based environment.
+It encapsulates all properties necessary for rendering an image over a specific geographical area,
+such as its boundaries, the image resource, and its opacity. The properties are observable and
+mutable, allowing for dynamic updates to the ground overlay in a Compose-based environment.
 
 #### Signature
 
@@ -24,35 +22,67 @@ class GroundImageState(
 
 #### Parameters
 
-| Parameter | Type | Description | Optional |
-| :--- | :--- | :--- | :--- |
-| `bounds` | `GeoRectBounds` | The geographical coordinates that define the rectangular area where the image will be placed. | No |
-| `image` | `Drawable` | The `Drawable` resource to be displayed as the overlay. | No |
-| `opacity` | `Float` | The opacity of the image, ranging from `0.0f` (fully transparent) to `1.0f` (fully opaque). | Yes, defaults to `1.0f`. |
-| `tileSize` | `Int` | The size in pixels for the tiles used to render the image. Affects rendering performance and quality. | Yes, defaults to `GroundImageTileProvider.DEFAULT_TILE_SIZE`. |
-| `id` | `String?` | A unique identifier for this ground image. If `null`, a stable ID is automatically generated based on the other properties. | Yes, defaults to `null`. |
-| `extra` | `Serializable?` | Optional, serializable data that can be associated with the ground image for custom use cases. | Yes, defaults to `null`. |
-| `onClick` | `OnGroundImageEventHandler?` | A callback function that is invoked when the user clicks on the ground image. | Yes, defaults to `null`. |
+- `bounds`
+    - Type: `GeoRectBounds`
+    - Description: The geographical coordinates that define the rectangular area where the image
+      will be placed.
+- `image`
+    - Type: `Drawable`
+    - Description: The `Drawable` resource to be displayed as the overlay.
+- `opacity`
+    - Type: `Float`
+    - Description: The opacity of the image, ranging from `0.0f` (fully transparent) to `1.0f`
+      (fully opaque).
+- `tileSize`
+    - Type: `Int`
+    - Description: The size in pixels for the tiles used to render the image. Affects rendering
+      performance and quality.
+- `id`
+    - Type: `String?`
+    - Description: A unique identifier for this ground image. If `null`, a stable ID is
+      automatically generated based on the other properties.
+- `extra`
+    - Type: `Serializable?`
+    - Description: Optional, serializable data that can be associated with the ground image for
+      custom use cases.
+- `onClick`
+    - Type: `OnGroundImageEventHandler?`
+    - Description: A callback function that is invoked when the user clicks on the ground image.
 
 #### Properties
 
-All constructor parameters are exposed as mutable `var` properties. You can modify these properties after initialization to dynamically update the ground image on the map.
+All constructor parameters are exposed as mutable `var` properties. You can modify these properties
+after initialization to dynamically update the ground image on the map.
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `id` | `String` | The unique identifier for the component. |
-| `bounds` | `GeoRectBounds` | The geographical area the image covers. |
-| `image` | `Drawable` | The image `Drawable` to display. |
-| `opacity` | `Float` | The opacity of the image. |
-| `tileSize` | `Int` | The size of the rendering tiles. |
-| `extra` | `Serializable?` | Extra data associated with the image. |
-| `onClick` | `OnGroundImageEventHandler?` | The click event handler. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier for the component.
+- `bounds`
+    - Type: `GeoRectBounds`
+    - Description: The geographical area the image covers.
+- `image`
+    - Type: `Drawable`
+    - Description: The image `Drawable` to display.
+- `opacity`
+    - Type: `Float`
+    - Description: The opacity of the image.
+- `tileSize`
+    - Type: `Int`
+    - Description: The size of the rendering tiles.
+- `extra`
+    - Type: `Serializable?`
+    - Description: Extra data associated with the image.
+- `onClick`
+    - Type: `OnGroundImageEventHandler?`
+    - Description: The click event handler.
 
 #### Methods
 
 ##### `asFlow`
 
-Returns a `Flow` that emits a value whenever any property of the `GroundImageState` changes. This is useful for observing state changes in a reactive programming paradigm. The flow only emits when the underlying data has actually changed.
+Returns a `Flow` that emits a value whenever any property of the `GroundImageState` changes. This is
+useful for observing state changes in a reactive programming paradigm. The flow only emits when the
+underlying data has actually changed.
 
 **Signature**
 ```kotlin
@@ -61,9 +91,8 @@ fun asFlow(): Flow<GroundImageFingerPrint>
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `Flow<GroundImageFingerPrint>` | A flow that emits a unique fingerprint of the state upon any change. |
+- Type: `Flow<GroundImageFingerPrint>`
+- Description: A flow that emits a unique fingerprint of the state upon any change.
 
 #### Example
 
@@ -99,7 +128,8 @@ groundImage.opacity = 0.5f
 
 ### `GroundImageEvent`
 
-A data class that encapsulates information about a click event on a ground image. An instance of this class is passed to the `OnGroundImageEventHandler` when a click occurs.
+A data class that encapsulates information about a click event on a ground image. An instance of
+this class is passed to the `OnGroundImageEventHandler` when a click occurs.
 
 #### Signature
 
@@ -112,10 +142,13 @@ data class GroundImageEvent(
 
 #### Parameters
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `GroundImageState` | The state of the ground image that was clicked. |
-| `clicked` | `GeoPoint?` | The geographical coordinates (`GeoPoint`) of the click location. This can be `null` if the exact point cannot be determined. |
+- `state`
+    - Type: `GroundImageState`
+    - Description: The state of the ground image that was clicked.
+- `clicked`
+    - Type: `GeoPoint?`
+    - Description: The geographical coordinates (`GeoPoint`) of the click location. This can be
+      `null` if the exact point cannot be determined.
 
 ---
 

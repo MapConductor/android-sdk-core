@@ -1,20 +1,20 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
----
-
 # GroundImageOverlayRendererInterface<ActualGroundImage>
 
 ## Description
 
-The `GroundImageOverlayRendererInterface` defines a contract for rendering and managing ground image overlays on a map. Implementations of this interface are responsible for handling the lifecycle of ground images, including their creation, modification, and removal, by translating abstract state changes into calls to a specific, underlying map SDK.
+The `GroundImageOverlayRendererInterface` defines a contract for rendering and managing ground image
+overlays on a map. Implementations of this interface are responsible for handling the lifecycle of
+ground images, including their creation, modification, and removal, by translating abstract state
+changes into calls to a specific, underlying map SDK.
 
-This interface is designed to be asynchronous, using `suspend` functions to ensure that map operations do not block the main thread.
+This interface is designed to be asynchronous, using `suspend` functions to ensure that map
+operations do not block the main thread.
 
 ### Type Parameters
 
-| Name | Description |
-| :--- | :--- |
-| `ActualGroundImage` | The native ground image object type from the specific map SDK being used (e.g., `com.google.android.gms.maps.model.GroundOverlay`). |
+- `ActualGroundImage`
+    - Description: The native ground image object type from the specific map SDK being used (e.g.,
+      `com.google.android.gms.maps.model.GroundOverlay`).
 
 ---
 
@@ -32,9 +32,10 @@ interface AddParamsInterface
 
 #### Properties
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `GroundImageState` | Holds the complete configuration and state for the new ground image to be created, such as its image source, geographic bounds, and visual properties. |
+- `state`
+    - Type: `GroundImageState`
+    - Description: Holds the complete configuration and state for the new ground image to be
+      created, such as its image source, geographic bounds, and visual properties.
 
 ### ChangeParamsInterface<ActualGroundImage>
 
@@ -48,10 +49,12 @@ interface ChangeParamsInterface<ActualGroundImage>
 
 #### Properties
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `current` | `GroundImageEntityInterface<ActualGroundImage>` | The entity representing the new, updated state of the ground image. |
-| `prev` | `GroundImageEntityInterface<ActualGroundImage>` | The entity representing the previous state of the ground image before the change. |
+- `current`
+    - Type: `GroundImageEntityInterface<ActualGroundImage>`
+    - Description: The entity representing the new, updated state of the ground image.
+- `prev`
+    - Type: `GroundImageEntityInterface<ActualGroundImage>`
+    - Description: The entity representing the previous state of the ground image before the change.
 
 ---
 
@@ -59,7 +62,8 @@ interface ChangeParamsInterface<ActualGroundImage>
 
 ### onAdd
 
-Called when one or more new ground images need to be added to the map. The implementation should create the native map SDK ground image objects based on the provided data.
+Called when one or more new ground images need to be added to the map. The implementation should
+create the native map SDK ground image objects based on the provided data.
 
 #### Signature
 
@@ -69,19 +73,23 @@ suspend fun onAdd(data: List<AddParamsInterface>): List<ActualGroundImage?>
 
 #### Parameters
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<AddParamsInterface>` | A list of parameter objects, each containing the state for a new ground image to be rendered. |
+- `data`
+    - Type: `List<AddParamsInterface>`
+    - Description: A list of parameter objects, each containing the state for a new ground image to
+      be rendered.
 
 #### Returns
 
 **Type**: `List<ActualGroundImage?>`
 
-A list of the newly created native `ActualGroundImage` objects. The size and order of this list must match the input `data` list. If a specific ground image fails to be created, its corresponding element in the returned list should be `null`.
+A list of the newly created native `ActualGroundImage` objects. The size and order of this list must
+match the input `data` list. If a specific ground image fails to be created, its corresponding
+element in the returned list should be `null`.
 
 ### onChange
 
-Called when properties of one or more existing ground images have been modified. The implementation should update the corresponding native ground image objects on the map.
+Called when properties of one or more existing ground images have been modified. The implementation
+should update the corresponding native ground image objects on the map.
 
 #### Signature
 
@@ -91,15 +99,18 @@ suspend fun onChange(data: List<ChangeParamsInterface<ActualGroundImage>>): List
 
 #### Parameters
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<ChangeParamsInterface<ActualGroundImage>>` | A list of change sets. Each element contains the previous and current states of a ground image that needs to be updated. |
+- `data`
+    - Type: `List<ChangeParamsInterface<ActualGroundImage>>`
+    - Description: A list of change sets. Each element contains the previous and current states of a
+      ground image that needs to be updated.
 
 #### Returns
 
 **Type**: `List<ActualGroundImage?>`
 
-A list of the updated native `ActualGroundImage` objects. The size and order of this list must match the input `data` list. If an update fails or is not applicable, the corresponding element can be `null`.
+A list of the updated native `ActualGroundImage` objects. The size and order of this list must match
+the input `data` list. If an update fails or is not applicable, the corresponding element can be
+`null`.
 
 ### onRemove
 
@@ -113,13 +124,17 @@ suspend fun onRemove(data: List<GroundImageEntityInterface<ActualGroundImage>>)
 
 #### Parameters
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<GroundImageEntityInterface<ActualGroundImage>>` | A list of ground image entities that should be removed from the map. The implementation should use the `ActualGroundImage` within each entity to remove it from the map view. |
+- `data`
+    - Type: `List<GroundImageEntityInterface<ActualGroundImage>>`
+    - Description: A list of ground image entities that should be removed from the map. The
+      implementation should use the `ActualGroundImage` within each entity to remove it from the map
+      view.
 
 ### onPostProcess
 
-A lifecycle hook called after all add, change, and remove operations for a given update cycle are complete. This can be used for final cleanup, batch processing, or triggering a map refresh if required by the SDK.
+A lifecycle hook called after all add, change, and remove operations for a given update cycle are
+complete. This can be used for final cleanup, batch processing, or triggering a map refresh if
+required by the SDK.
 
 #### Signature
 
@@ -131,7 +146,8 @@ suspend fun onPostProcess()
 
 ## Example
 
-Here is a conceptual example of how to implement `GroundImageOverlayRendererInterface` for a hypothetical map SDK.
+Here is a conceptual example of how to implement `GroundImageOverlayRendererInterface` for a
+hypothetical map SDK.
 
 ```kotlin
 // Assume MapController and MapSDKGroundImage are part of a fictional map SDK.
@@ -157,7 +173,7 @@ class MyMapGroundImageRenderer(
             nativeImage.updateBounds(newState.bounds)
             nativeImage.updateBitmap(newState.image)
             nativeImage.updateOpacity(newState.opacity)
-            
+
             nativeImage
         }
     }

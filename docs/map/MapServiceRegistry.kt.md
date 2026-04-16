@@ -1,8 +1,8 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
 # Map Service Registry SDK
 
-This document provides detailed documentation for the Map Service Registry components. This system provides a type-safe service locator pattern for registering and retrieving map-scoped services, with integration into Jetpack Compose.
+This document provides detailed documentation for the Map Service Registry components. This system
+provides a type-safe service locator pattern for registering and retrieving map-scoped services,
+with integration into Jetpack Compose.
 
 ## `MapServiceKey<T>`
 
@@ -12,9 +12,11 @@ interface MapServiceKey<T : Any>
 ```
 
 ### Description
-A typed service key used as a unique identifier to register and retrieve map-scoped services (often called plugins) from a `MapServiceRegistry`.
+A typed service key used as a unique identifier to register and retrieve map-scoped services (often
+called plugins) from a `MapServiceRegistry`.
 
-It is a best practice to define keys as singleton `object`s to ensure there is only one instance of the key for each service type.
+It is a best practice to define keys as singleton `object`s to ensure there is only one instance of
+the key for each service type.
 
 ### Example
 ```kotlin
@@ -37,7 +39,8 @@ interface MapServiceRegistry
 ```
 
 ### Description
-Defines the contract for a registry that stores and provides access to map-scoped services. This interface allows for different implementations, such as mutable or immutable registries.
+Defines the contract for a registry that stores and provides access to map-scoped services. This
+interface allows for different implementations, such as mutable or immutable registries.
 
 ### Methods
 
@@ -50,9 +53,9 @@ fun <T : Any> get(key: MapServiceKey<T>): T?
 ```
 
 **Parameters**
-| Parameter | Type                  | Description                               |
-| :-------- | :-------------------- | :---------------------------------------- |
-| `key`     | `MapServiceKey<T>`    | The unique key for the service to retrieve. |
+- `key`
+    - Type: `MapServiceKey<T>`
+    - Description: The unique key for the service to retrieve.
 
 **Returns**
 The service instance of type `T` if it exists in the registry, or `null` otherwise.
@@ -67,7 +70,8 @@ class MutableMapServiceRegistry : MapServiceRegistry
 ```
 
 ### Description
-A mutable, thread-safe implementation of `MapServiceRegistry`. It allows for adding, retrieving, and clearing services at runtime. This class uses a `ConcurrentHashMap` internally to manage services.
+A mutable, thread-safe implementation of `MapServiceRegistry`. It allows for adding, retrieving, and
+clearing services at runtime. This class uses a `ConcurrentHashMap` internally to manage services.
 
 ### Methods
 
@@ -80,10 +84,12 @@ fun <T : Any> put(key: MapServiceKey<T>, value: T)
 ```
 
 **Parameters**
-| Parameter | Type                  | Description                               |
-| :-------- | :-------------------- | :---------------------------------------- |
-| `key`     | `MapServiceKey<T>`    | The unique key for the service.           |
-| `value`   | `T`                   | The service instance to register.         |
+- `key`
+    - Type: `MapServiceKey<T>`
+    - Description: The unique key for the service.
+- `value`
+    - Type: `T`
+    - Description: The service instance to register.
 
 #### `get`
 Retrieves a service instance associated with the specified key.
@@ -94,9 +100,9 @@ override fun <T : Any> get(key: MapServiceKey<T>): T?
 ```
 
 **Parameters**
-| Parameter | Type                  | Description                               |
-| :-------- | :-------------------- | :---------------------------------------- |
-| `key`     | `MapServiceKey<T>`    | The unique key for the service to retrieve. |
+- `key`
+    - Type: `MapServiceKey<T>`
+    - Description: The unique key for the service to retrieve.
 
 **Returns**
 The service instance of type `T` if it is registered, or `null` otherwise.
@@ -119,7 +125,9 @@ object EmptyMapServiceRegistry : MapServiceRegistry
 ```
 
 ### Description
-A singleton, immutable implementation of `MapServiceRegistry` that contains no services. Its `get` method will always return `null`. It is primarily used as a default or placeholder value, especially for `LocalMapServiceRegistry`.
+A singleton, immutable implementation of `MapServiceRegistry` that contains no services. Its `get`
+method will always return `null`. It is primarily used as a default or placeholder value, especially
+for `LocalMapServiceRegistry`.
 
 ---
 
@@ -131,12 +139,16 @@ val LocalMapServiceRegistry: ProvidableCompositionLocal<MapServiceRegistry>
 ```
 
 ### Description
-A Jetpack Compose `CompositionLocal` that provides a `MapServiceRegistry` instance to the underlying composition tree. This allows descendant Composables to access map-scoped services without needing to pass the registry down explicitly as a parameter.
+A Jetpack Compose `CompositionLocal` that provides a `MapServiceRegistry` instance to the underlying
+composition tree. This allows descendant Composables to access map-scoped services without needing
+to pass the registry down explicitly as a parameter.
 
-The default value is `EmptyMapServiceRegistry`, which means that if no registry is provided, any attempt to retrieve a service will return `null`.
+The default value is `EmptyMapServiceRegistry`, which means that if no registry is provided, any
+attempt to retrieve a service will return `null`.
 
 ### Example
-The following example demonstrates how to define a service, register it with `MutableMapServiceRegistry`, provide it to the Composable tree, and access it in a child Composable.
+The following example demonstrates how to define a service, register it with
+`MutableMapServiceRegistry`, provide it to the Composable tree, and access it in a child Composable.
 
 ```kotlin
 import androidx.compose.runtime.Composable
@@ -183,7 +195,7 @@ fun MapScreen() {
 
     // Use the service
     val greeting = greeterService?.greet("Developer") ?: "Service not found"
-    
+
     Text(text = greeting) // Displays "Hello, Developer!"
 }
 ```

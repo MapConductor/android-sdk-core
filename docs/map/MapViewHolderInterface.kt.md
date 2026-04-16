@@ -1,5 +1,3 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
 # MapViewHolderInterface
 
 ## Signature
@@ -10,20 +8,27 @@ interface MapViewHolderInterface<ActualMapView, ActualMap>
 
 ## Description
 
-The `MapViewHolderInterface` defines a contract for a view holder that manages a map instance. It serves as an abstraction layer, bridging the gap between the core application logic and a platform-specific map implementation (e.g., Google Maps, Mapbox).
+The `MapViewHolderInterface` defines a contract for a view holder that manages a map instance. It
+serves as an abstraction layer, bridging the gap between the core application logic and a
+platform-specific map implementation (e.g., Google Maps, Mapbox).
 
-This interface provides access to the native map view and map objects and defines essential utility functions for converting between geographical coordinates (`GeoPoint`) and screen coordinates (`Offset`).
+This interface provides access to the native map view and map objects and defines essential utility
+functions for converting between geographical coordinates (`GeoPoint`) and screen coordinates
+(`Offset`).
 
-The generic types `ActualMapView` and `ActualMap` allow implementers to specify the concrete types of the map view and map objects provided by the underlying map SDK.
+The generic types `ActualMapView` and `ActualMap` allow implementers to specify the concrete types
+of the map view and map objects provided by the underlying map SDK.
 
 ---
 
 ## Properties
 
-| Name      | Type            | Description                                            |
-| :-------- | :-------------- | :----------------------------------------------------- |
-| `mapView` | `ActualMapView` | The underlying, platform-specific map view instance.   |
-| `map`     | `ActualMap`     | The underlying, platform-specific map object instance. |
+- `mapView`
+    - Type: `ActualMapView`
+    - Description: The underlying, platform-specific map view instance.
+- `map`
+    - Type: `ActualMap`
+    - Description: The underlying, platform-specific map object instance.
 
 ---
 
@@ -31,7 +36,9 @@ The generic types `ActualMapView` and `ActualMap` allow implementers to specify 
 
 ### toScreenOffset
 
-Converts a geographical coordinate to its corresponding pixel offset on the screen. This is useful for positioning UI elements (like custom markers or overlays) on the map at a specific latitude and longitude.
+Converts a geographical coordinate to its corresponding pixel offset on the screen. This is useful
+for positioning UI elements (like custom markers or overlays) on the map at a specific latitude and
+longitude.
 
 **Signature**
 
@@ -41,21 +48,25 @@ fun toScreenOffset(position: GeoPointInterface): Offset?
 
 **Parameters**
 
-| Parameter  | Type                | Description                                                                                                                            |
-| :--------- | :------------------ | :------------------------------------------------------------------------------------------------------------------------------------- |
-| `position` | `GeoPointInterface` | The geographical coordinate (`latitude`, `longitude`) to be converted into a screen offset.                                            |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographical coordinate (`latitude`, `longitude`) to be converted into a
+      screen offset.
 
 **Returns**
 
-`Offset?`: The screen coordinate as an `Offset(x, y)`, or `null` if the geographical point is not currently visible on the screen or the conversion cannot be performed.
+`Offset?`: The screen coordinate as an `Offset(x, y)`, or `null` if the geographical point is not
+currently visible on the screen or the conversion cannot be performed.
 
 ---
 
 ### fromScreenOffset
 
-Asynchronously converts a screen pixel offset (e.g., from a touch event) to its corresponding geographical coordinate on the map.
+Asynchronously converts a screen pixel offset (e.g., from a touch event) to its corresponding
+geographical coordinate on the map.
 
-As a `suspend` function, it must be called from a coroutine scope. This allows for non-blocking execution, which is often required by map SDKs for projection calculations.
+As a `suspend` function, it must be called from a coroutine scope. This allows for non-blocking
+execution, which is often required by map SDKs for projection calculations.
 
 **Signature**
 
@@ -65,13 +76,14 @@ suspend fun fromScreenOffset(offset: Offset): GeoPoint?
 
 **Parameters**
 
-| Parameter | Type     | Description                                                              |
-| :-------- | :------- | :----------------------------------------------------------------------- |
-| `offset`  | `Offset` | The screen pixel coordinate (`x`, `y`) to be converted to a geo-coordinate. |
+- `offset`
+    - Type: `Offset`
+    - Description: The screen pixel coordinate (`x`, `y`) to be converted to a geo-coordinate.
 
 **Returns**
 
-`GeoPoint?`: The corresponding `GeoPoint` on the map, or `null` if the offset is outside the map's display area.
+`GeoPoint?`: The corresponding `GeoPoint` on the map, or `null` if the offset is outside the map's
+display area.
 
 ---
 
@@ -79,7 +91,9 @@ suspend fun fromScreenOffset(offset: Offset): GeoPoint?
 
 Synchronously converts a screen pixel offset to its corresponding geographical coordinate.
 
-This function provides a default implementation that returns `null`. Implementers should override this method only if the underlying map SDK supports a synchronous, blocking conversion. Use `fromScreenOffset` for a more universally compatible, non-blocking approach.
+This function provides a default implementation that returns `null`. Implementers should override
+this method only if the underlying map SDK supports a synchronous, blocking conversion. Use
+`fromScreenOffset` for a more universally compatible, non-blocking approach.
 
 **Signature**
 
@@ -89,19 +103,21 @@ fun fromScreenOffsetSync(offset: Offset): GeoPoint? = null
 
 **Parameters**
 
-| Parameter | Type     | Description                                                              |
-| :-------- | :------- | :----------------------------------------------------------------------- |
-| `offset`  | `Offset` | The screen pixel coordinate (`x`, `y`) to be converted to a geo-coordinate. |
+- `offset`
+    - Type: `Offset`
+    - Description: The screen pixel coordinate (`x`, `y`) to be converted to a geo-coordinate.
 
 **Returns**
 
-`GeoPoint?`: The corresponding `GeoPoint`, or `null` if the conversion is not supported synchronously or the offset is outside the map's display area.
+`GeoPoint?`: The corresponding `GeoPoint`, or `null` if the conversion is not supported
+synchronously or the offset is outside the map's display area.
 
 ---
 
 ## Example
 
-Here is an example of how to implement and use the `MapViewHolderInterface` with a hypothetical Google Maps integration.
+Here is an example of how to implement and use the `MapViewHolderInterface` with a hypothetical
+Google Maps integration.
 
 ### 1. Implementation
 
@@ -139,7 +155,7 @@ class GoogleMapViewHolder(
         )
         return latLng?.let { GeoPoint(it.latitude, it.longitude) }
     }
-    
+
     override fun fromScreenOffsetSync(offset: Offset): GeoPoint? {
         // Since Google Maps supports this synchronously, we can override the default.
         val latLng = map.projection.fromScreenLocation(
@@ -167,10 +183,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun MapWithCustomMarker(mapViewHolder: GoogleMapViewHolder) {
     val coroutineScope = rememberCoroutineScope()
-    
+
     // A fixed geographical point for our marker
     val tokyoTowerPoint = GeoPoint(35.6586, 139.7454)
-    
+
     // State to hold the screen position of our marker
     var markerScreenOffset by remember { mutableStateOf<Offset?>(null) }
 

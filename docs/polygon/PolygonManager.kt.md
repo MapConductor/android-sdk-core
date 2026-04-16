@@ -2,20 +2,24 @@
 
 ## Description
 
-The `PolygonManager` class provides a comprehensive solution for managing a collection of polygon entities on a map. It offers standard CRUD (Create, Read, Update, Delete) operations and a powerful spatial query method, `find`, to determine which polygon contains a specific geographic coordinate.
+The `PolygonManager` class provides a comprehensive solution for managing a collection of polygon
+entities on a map. It offers standard CRUD (Create, Read, Update, Delete) operations and a powerful
+spatial query method, `find`, to determine which polygon contains a specific geographic coordinate.
 
 This manager is designed for performance and accuracy, with built-in support for:
 - **Z-indexing**: Prioritizes polygons with a higher `zIndex` when multiple polygons overlap.
-- **Geodesic correctness**: Accurately performs hit-testing on geodesic polygons by densifying their edges to follow the curvature of the Earth.
+- **Geodesic correctness**: Accurately performs hit-testing on geodesic polygons by densifying their
+  edges to follow the curvature of the Earth.
 - **Complex polygons**: Correctly handles polygons with holes and those that cross the antimeridian.
 
-The class is generic, allowing it to work with any underlying platform-specific polygon implementation (e.g., Google Maps Polygons, Mapbox Polygons) by specifying the `ActualPolygon` type.
+The class is generic, allowing it to work with any underlying platform-specific polygon
+implementation (e.g., Google Maps Polygons, Mapbox Polygons) by specifying the `ActualPolygon` type.
 
 ## Type Parameters
 
-| Name | Description |
-|---|---|
-| `<ActualPolygon>` | The concrete type of the underlying polygon object managed by the entities (e.g., `com.google.android.gms.maps.model.Polygon`). |
+- `<ActualPolygon>`
+    - Description: The concrete type of the underlying polygon object managed by the entities (e.g.,
+      `com.google.android.gms.maps.model.Polygon`).
 
 ## Constructor
 
@@ -31,7 +35,8 @@ PolygonManager<ActualPolygon>()
 ## Methods
 
 ### registerEntity
-Registers a polygon entity with the manager. If an entity with the same ID already exists, it will be overwritten.
+Registers a polygon entity with the manager. If an entity with the same ID already exists, it will
+be overwritten.
 
 #### Signature
 ```kotlin
@@ -39,9 +44,9 @@ fun registerEntity(entity: PolygonEntityInterface<ActualPolygon>)
 ```
 
 #### Parameters
-| Parameter | Type | Description |
-|---|---|---|
-| `entity` | `PolygonEntityInterface<ActualPolygon>` | The polygon entity to register. The entity's ID is used as the key for storage. |
+- `entity`
+    - Type: `PolygonEntityInterface<ActualPolygon>`
+    - Description: The polygon entity to register. The entity's ID is used as the key for storage.
 
 ---
 
@@ -54,12 +59,13 @@ fun removeEntity(id: String): PolygonEntityInterface<ActualPolygon>?
 ```
 
 #### Parameters
-| Parameter | Type | Description |
-|---|---|---|
-| `id` | `String` | The unique identifier of the polygon entity to remove. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier of the polygon entity to remove.
 
 #### Returns
-`PolygonEntityInterface<ActualPolygon>?`: The removed entity instance, or `null` if no entity with the specified ID was found.
+`PolygonEntityInterface<ActualPolygon>?`: The removed entity instance, or `null` if no entity with
+the specified ID was found.
 
 ---
 
@@ -72,12 +78,13 @@ fun getEntity(id: String): PolygonEntityInterface<ActualPolygon>?
 ```
 
 #### Parameters
-| Parameter | Type | Description |
-|---|---|---|
-| `id` | `String` | The unique identifier of the polygon entity to retrieve. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier of the polygon entity to retrieve.
 
 #### Returns
-`PolygonEntityInterface<ActualPolygon>?`: The entity instance corresponding to the given ID, or `null` if not found.
+`PolygonEntityInterface<ActualPolygon>?`: The entity instance corresponding to the given ID, or
+`null` if not found.
 
 ---
 
@@ -90,9 +97,9 @@ fun hasEntity(id: String): Boolean
 ```
 
 #### Parameters
-| Parameter | Type | Description |
-|---|---|---|
-| `id` | `String` | The unique identifier to check for. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier to check for.
 
 #### Returns
 `Boolean`: Returns `true` if an entity with the given ID exists, `false` otherwise.
@@ -108,7 +115,8 @@ fun allEntities(): List<PolygonEntityInterface<ActualPolygon>>
 ```
 
 #### Returns
-`List<PolygonEntityInterface<ActualPolygon>>`: A list containing all registered entity instances. The order of entities in the list is not guaranteed.
+`List<PolygonEntityInterface<ActualPolygon>>`: A list containing all registered entity instances.
+The order of entities in the list is not guaranteed.
 
 ---
 
@@ -125,12 +133,16 @@ fun clear()
 ### find
 Finds the top-most polygon entity that contains the given geographic coordinate.
 
-The search algorithm iterates through all registered polygons, sorted by their `zIndex` in descending order. This ensures that if multiple polygons overlap at the given position, the one with the highest `zIndex` (visually "on top") is returned.
+The search algorithm iterates through all registered polygons, sorted by their `zIndex` in
+descending order. This ensures that if multiple polygons overlap at the given position, the one with
+the highest `zIndex` (visually "on top") is returned.
 
-The method uses the winding number algorithm for a robust point-in-polygon test. It correctly handles complex cases, including:
+The method uses the winding number algorithm for a robust point-in-polygon test. It correctly
+handles complex cases, including:
 - **Holes:** A point located within a polygon's hole is considered outside the polygon.
 - **Antimeridian:** Polygons that cross the 180° longitude line are handled correctly.
-- **Geodesic Edges:** If an entity's `geodesic` property is `true`, its edges are densified to approximate great-circle paths on the globe, leading to a more accurate hit test.
+- **Geodesic Edges:** If an entity's `geodesic` property is `true`, its edges are densified to
+  approximate great-circle paths on the globe, leading to a more accurate hit test.
 - **On-Edge Points:** A point lying on the boundary of a polygon is considered to be inside it.
 
 #### Signature
@@ -139,12 +151,13 @@ fun find(position: GeoPointInterface): PolygonEntityInterface<ActualPolygon>?
 ```
 
 #### Parameters
-| Parameter | Type | Description |
-|---|---|---|
-| `position` | `GeoPointInterface` | The geographic coordinate (latitude and longitude) to test. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic coordinate (latitude and longitude) to test.
 
 #### Returns
-`PolygonEntityInterface<ActualPolygon>?`: The entity of the containing polygon with the highest `zIndex`, or `null` if the point is not inside any registered polygon.
+`PolygonEntityInterface<ActualPolygon>?`: The entity of the containing polygon with the highest
+`zIndex`, or `null` if the point is not inside any registered polygon.
 
 ## Example
 

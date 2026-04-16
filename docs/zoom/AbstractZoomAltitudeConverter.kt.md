@@ -1,6 +1,9 @@
 # AbstractZoomAltitudeConverter
 
-The `AbstractZoomAltitudeConverter` is an abstract base class designed to provide a standardized interface for converting between map zoom levels and camera altitude in meters. Concrete implementations of this class define the specific mathematical model for the conversion, which can vary based on the map projection and desired behavior.
+The `AbstractZoomAltitudeConverter` is an abstract base class designed to provide a standardized
+interface for converting between map zoom levels and camera altitude in meters. Concrete
+implementations of this class define the specific mathematical model for the conversion, which can
+vary based on the map projection and desired behavior.
 
 This class is intended to be extended, not instantiated directly.
 
@@ -17,9 +20,10 @@ abstract class AbstractZoomAltitudeConverter(
 Creates a new instance of an `AbstractZoomAltitudeConverter`.
 
 ### Parameters
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `zoom0Altitude` | `Double` | The camera altitude in meters that corresponds to zoom level 0.0. This value serves as the baseline for all conversion calculations. |
+- `zoom0Altitude`
+    - Type: `Double`
+    - Description: The camera altitude in meters that corresponds to zoom level 0.0. This value
+      serves as the baseline for all conversion calculations.
 
 ---
 
@@ -37,19 +41,24 @@ abstract fun zoomLevelToAltitude(
 ```
 
 #### Description
-Converts a given map zoom level to the corresponding camera altitude in meters. The calculation takes into account the camera's latitude and tilt to provide a more accurate altitude for a consistent viewing experience across different perspectives.
+Converts a given map zoom level to the corresponding camera altitude in meters. The calculation
+takes into account the camera's latitude and tilt to provide a more accurate altitude for a
+consistent viewing experience across different perspectives.
 
 #### Parameters
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `zoomLevel` | `Double` | The map zoom level to convert. |
-| `latitude` | `Double` | The current latitude of the camera in degrees. |
-| `tilt` | `Double` | The current tilt of the camera in degrees from nadir (0 = looking straight down). |
+- `zoomLevel`
+    - Type: `Double`
+    - Description: The map zoom level to convert.
+- `latitude`
+    - Type: `Double`
+    - Description: The current latitude of the camera in degrees.
+- `tilt`
+    - Type: `Double`
+    - Description: The current tilt of the camera in degrees from nadir (0 = looking straight down).
 
 #### Returns
-| Type | Description |
-| :--- | :--- |
-| `Double` | The calculated camera altitude in meters. |
+- Type: `Double`
+- Description: The calculated camera altitude in meters.
 
 ---
 
@@ -65,19 +74,24 @@ abstract fun altitudeToZoomLevel(
 ```
 
 #### Description
-Converts a given camera altitude in meters to the corresponding map zoom level. This is the inverse operation of `zoomLevelToAltitude`. The calculation also accounts for the camera's latitude and tilt.
+Converts a given camera altitude in meters to the corresponding map zoom level. This is the inverse
+operation of `zoomLevelToAltitude`. The calculation also accounts for the camera's latitude and
+tilt.
 
 #### Parameters
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `altitude` | `Double` | The camera altitude in meters to convert. |
-| `latitude` | `Double` | The current latitude of the camera in degrees. |
-| `tilt` | `Double` | The current tilt of the camera in degrees from nadir. |
+- `altitude`
+    - Type: `Double`
+    - Description: The camera altitude in meters to convert.
+- `latitude`
+    - Type: `Double`
+    - Description: The current latitude of the camera in degrees.
+- `tilt`
+    - Type: `Double`
+    - Description: The current tilt of the camera in degrees from nadir.
 
 #### Returns
-| Type | Description |
-| :--- | :--- |
-| `Double` | The calculated map zoom level. |
+- Type: `Double`
+- Description: The calculated map zoom level.
 
 ---
 
@@ -85,23 +99,36 @@ Converts a given camera altitude in meters to the corresponding map zoom level. 
 
 These constants provide default values and constraints used within conversion calculations.
 
-| Constant | Value | Description |
-| :--- | :--- | :--- |
-| `DEFAULT_ZOOM0_ALTITUDE` | `171_319_879.0` | The default altitude in meters for zoom level 0, calibrated to approximate Google Maps' visible regions. |
-| `ZOOM_FACTOR` | `2.0` | The multiplier used for zoom level calculations. Each integer zoom level change typically halves or doubles the view. |
-| `MIN_ZOOM_LEVEL` | `0.0` | The minimum allowed zoom level. |
-| `MAX_ZOOM_LEVEL` | `22.0` | The maximum allowed zoom level. |
-| `MIN_ALTITUDE` | `100.0` | The minimum allowed camera altitude in meters. |
-| `MAX_ALTITUDE` | `50_000_000.0` | The maximum allowed camera altitude in meters. |
-| `MIN_COS_LAT` | `0.01` | The minimum cosine of latitude, used to prevent division by zero near the poles. |
-| `MIN_COS_TILT` | `0.05` | The minimum cosine of tilt, used to prevent division by zero at extreme tilt angles. |
-| `WEB_MERCATOR_INITIAL_MPP_256` | `156_543.033_928` | The initial meters-per-pixel resolution for a 256px tile at zoom level 0 in the Web Mercator projection. |
+- `DEFAULT_ZOOM0_ALTITUDE`
+    - Description: The default altitude in meters for zoom level 0, calibrated to approximate Google
+      Maps' visible regions.
+- `ZOOM_FACTOR`
+    - Description: The multiplier used for zoom level calculations. Each integer zoom level change
+      typically halves or doubles the view.
+- `MIN_ZOOM_LEVEL`
+    - Description: The minimum allowed zoom level.
+- `MAX_ZOOM_LEVEL`
+    - Description: The maximum allowed zoom level.
+- `MIN_ALTITUDE`
+    - Description: The minimum allowed camera altitude in meters.
+- `MAX_ALTITUDE`
+    - Description: The maximum allowed camera altitude in meters.
+- `MIN_COS_LAT`
+    - Description: The minimum cosine of latitude, used to prevent division by zero near the poles.
+- `MIN_COS_TILT`
+    - Description: The minimum cosine of tilt, used to prevent division by zero at extreme tilt
+      angles.
+- `WEB_MERCATOR_INITIAL_MPP_256`
+    - Description: The initial meters-per-pixel resolution for a 256px tile at zoom level 0 in the
+      Web Mercator projection.
 
 ---
 
 ## Example
 
-Since `AbstractZoomAltitudeConverter` is an abstract class, you must create a concrete implementation to use it. The following example demonstrates how to create a simple linear converter.
+Since `AbstractZoomAltitudeConverter` is an abstract class, you must create a concrete
+implementation to use it. The following example demonstrates how to create a simple linear
+converter.
 
 ```kotlin
 import kotlin.math.cos

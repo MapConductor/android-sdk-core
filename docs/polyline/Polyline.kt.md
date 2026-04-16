@@ -1,12 +1,11 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
----
-
 # PolylineState
 
-The `PolylineState` class manages the state and appearance of a single polyline on the map. It is designed for use within a Jetpack Compose environment, making its properties observable for reactive UI updates.
+The `PolylineState` class manages the state and appearance of a single polyline on the map. It is
+designed for use within a Jetpack Compose environment, making its properties observable for reactive
+UI updates.
 
-This class encapsulates all properties of a polyline, such as its geographical points, color, width, and behavior. It also provides mechanisms for handling user interactions like clicks.
+This class encapsulates all properties of a polyline, such as its geographical points, color, width,
+and behavior. It also provides mechanisms for handling user interactions like clicks.
 
 ## `PolylineState`
 
@@ -27,26 +26,49 @@ class PolylineState(
 
 ### Description
 
-Creates and manages the state for a polyline component on the map. If an `id` is not provided, a unique ID is automatically generated based on the polyline's properties. All properties are mutable and observable by the Compose runtime.
+Creates and manages the state for a polyline component on the map. If an `id` is not provided, a
+unique ID is automatically generated based on the polyline's properties. All properties are mutable
+and observable by the Compose runtime.
 
 ### Parameters
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `points` | `List<GeoPointInterface>` | A list of `GeoPointInterface` objects that define the vertices of the polyline. |
-| `id` | `String?` | An optional unique identifier for the polyline. If `null`, a stable ID is generated from the other properties. Defaults to `null`. |
-| `strokeColor` | `Color` | The color of the polyline stroke. Defaults to `Color.Black`. |
-| `strokeWidth` | `Dp` | The width of the polyline stroke. Defaults to `1.dp`. |
-| `geodesic` | `Boolean` | If `true`, the polyline is drawn as a geodesic curve, which is the shortest path between two points on the Earth's surface. If `false`, it's drawn as a straight line on the 2D map projection. Defaults to `false`. |
-| `zIndex` | `Int` | The drawing order of the polyline. Polylines with higher `zIndex` values are drawn on top of those with lower values. Defaults to `0`. |
-| `extra` | `Serializable?` | Optional, serializable data that can be attached to the polyline state. Useful for storing custom metadata. Defaults to `null`. |
-| `onClick` | `OnPolylineEventHandler?` | A lambda function that is invoked when the user clicks on the polyline. The handler receives a `PolylineEvent` object. Defaults to `null`. |
+- `points`
+    - Type: `List<GeoPointInterface>`
+    - Description: A list of `GeoPointInterface` objects that define the vertices of the polyline.
+- `id`
+    - Type: `String?`
+    - Description: An optional unique identifier for the polyline. If `null`, a stable ID is
+      generated from the other properties. Defaults to `null`.
+- `strokeColor`
+    - Type: `Color`
+    - Description: The color of the polyline stroke. Defaults to `Color.Black`.
+- `strokeWidth`
+    - Type: `Dp`
+    - Description: The width of the polyline stroke. Defaults to `1.dp`.
+- `geodesic`
+    - Type: `Boolean`
+    - Description: If `true`, the polyline is drawn as a geodesic curve, which is the shortest path
+      between two points on the Earth's surface. If `false`, it's drawn as a straight line on the 2D
+      map projection. Defaults to `false`.
+- `zIndex`
+    - Type: `Int`
+    - Description: The drawing order of the polyline. Polylines with higher `zIndex` values are
+      drawn on top of those with lower values. Defaults to `0`.
+- `extra`
+    - Type: `Serializable?`
+    - Description: Optional, serializable data that can be attached to the polyline state. Useful
+      for storing custom metadata. Defaults to `null`.
+- `onClick`
+    - Type: `OnPolylineEventHandler?`
+    - Description: A lambda function that is invoked when the user clicks on the polyline. The
+      handler receives a `PolylineEvent` object. Defaults to `null`.
 
 ## Methods
 
 ### `copy`
 
-Creates a new `PolylineState` instance, allowing for the modification of specific properties while retaining the others. This is the recommended way to update polyline state in an immutable fashion.
+Creates a new `PolylineState` instance, allowing for the modification of specific properties while
+retaining the others. This is the recommended way to update polyline state in an immutable fashion.
 
 #### Signature
 
@@ -65,17 +87,18 @@ fun copy(
 
 #### Parameters
 
-The parameters are identical to the `PolylineState` constructor and allow you to override any of the existing properties.
+The parameters are identical to the `PolylineState` constructor and allow you to override any of the
+existing properties.
 
 #### Returns
 
-| Type | Description |
-| --- | --- |
-| `PolylineState` | A new `PolylineState` instance with the updated properties. |
+- Type: `PolylineState`
+- Description: A new `PolylineState` instance with the updated properties.
 
 ### `asFlow`
 
-Returns a `Flow` that emits a `PolylineFingerPrint` whenever any of the polyline's properties change. This is useful for observing state changes reactively and triggering updates efficiently.
+Returns a `Flow` that emits a `PolylineFingerPrint` whenever any of the polyline's properties
+change. This is useful for observing state changes reactively and triggering updates efficiently.
 
 #### Signature
 
@@ -85,13 +108,13 @@ fun asFlow(): Flow<PolylineFingerPrint>
 
 #### Returns
 
-| Type | Description |
-| --- | --- |
-| `Flow<PolylineFingerPrint>` | A Kotlin Flow that emits a new fingerprint upon state change. |
+- Type: `Flow<PolylineFingerPrint>`
+- Description: A Kotlin Flow that emits a new fingerprint upon state change.
 
 ### `fingerPrint`
 
-Generates a lightweight `PolylineFingerPrint` of the current state. This is primarily used internally for efficient change detection within the `asFlow` stream.
+Generates a lightweight `PolylineFingerPrint` of the current state. This is primarily used
+internally for efficient change detection within the `asFlow` stream.
 
 #### Signature
 
@@ -101,9 +124,8 @@ fun fingerPrint(): PolylineFingerPrint
 
 #### Returns
 
-| Type | Description |
-| --- | --- |
-| `PolylineFingerPrint` | A `PolylineFingerPrint` object representing the current state. |
+- Type: `PolylineFingerPrint`
+- Description: A `PolylineFingerPrint` object representing the current state.
 
 ## Related Types
 
@@ -119,7 +141,8 @@ typealias OnPolylineEventHandler = (PolylineEvent) -> Unit
 
 ### `PolylineEvent`
 
-A data class that represents a click event on a polyline. It is passed to the `OnPolylineEventHandler` when a click occurs.
+A data class that represents a click event on a polyline. It is passed to the
+`OnPolylineEventHandler` when a click occurs.
 
 #### Signature
 
@@ -132,14 +155,17 @@ data class PolylineEvent(
 
 #### Parameters
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `state` | `PolylineState` | The state of the polyline that was clicked. |
-| `clicked` | `GeoPointInterface` | The geographical point on the polyline where the click occurred. |
+- `state`
+    - Type: `PolylineState`
+    - Description: The state of the polyline that was clicked.
+- `clicked`
+    - Type: `GeoPointInterface`
+    - Description: The geographical point on the polyline where the click occurred.
 
 ### `PolylineFingerPrint`
 
-A data class that holds a lightweight, hash-based representation of a `PolylineState`. It is used for efficient change detection in reactive streams. This is mainly for internal use.
+A data class that holds a lightweight, hash-based representation of a `PolylineState`. It is used
+for efficient change detection in reactive streams. This is mainly for internal use.
 
 #### Signature
 

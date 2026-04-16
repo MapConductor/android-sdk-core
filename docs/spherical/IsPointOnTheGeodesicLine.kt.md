@@ -1,14 +1,13 @@
-Of course! Here is a high-quality SDK document for the provided code snippet, formatted in Markdown.
-
----
-
-### `isPointOnTheGeodesicLine`
+# `isPointOnTheGeodesicLine`
 
 <br/>
 
-Checks if a given point is near a geodesic polyline by finding the closest point on the line and its distance. If the calculated distance is within a specified threshold, the point can be considered "on" the line.
+Checks if a given point is near a geodesic polyline by finding the closest point on the line and its
+distance. If the calculated distance is within a specified threshold, the point can be considered
+"on" the line.
 
-The function first identifies a relevant line segment and then interpolates points along it to find the closest point. It includes optional debugging parameters to visualize the process.
+The function first identifies a relevant line segment and then interpolates points along it to find
+the closest point. It includes optional debugging parameters to visualize the process.
 
 #### Signature
 
@@ -24,23 +23,38 @@ fun isPointOnTheGeodesicLine(
 
 #### Parameters
 
-| Parameter            | Type                                       | Description                                                                                                                            |
-| -------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `points`             | `List<GeoPointInterface>`                  | A list of geo-points that define the vertices of the geodesic polyline. Must contain at least two points to form a line.                |
-| `position`           | `GeoPointInterface`                        | The geographic point to check against the polyline.                                                                                    |
-| `threshold`          | `Double`                                   | The tolerance in meters. This value is used to determine if the point is close enough to the line to be considered "on" it.             |
-| `debugDrawRectangle` | `((GeoRectBounds, Int) -> Unit)?`          | An optional lambda function for debugging. If provided, it is called to draw the bounding box of the line segment being inspected.        |
-| `debugDrawCircle`    | `((GeoPointInterface, Double, Int) -> Unit)?` | An optional lambda function for debugging. If provided, it is called to draw circles around interpolated points during the search process. |
+- `points`
+    - Type: `List<GeoPointInterface>`
+    - Description: A list of geo-points that define the vertices of the geodesic polyline. Must
+      contain at least two points to form a line.
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point to check against the polyline.
+- `threshold`
+    - Type: `Double`
+    - Description: The tolerance in meters. This value is used to determine if the point is close
+      enough to the line to be considered "on" it.
+- `debugDrawRectangle`
+    - Type: `((GeoRectBounds, Int) -> Unit)?`
+    - Description: An optional lambda function for debugging. If provided, it is called to draw the
+      bounding box of the line segment being inspected.
+- `debugDrawCircle`
+    - Type: `((GeoPointInterface, Double, Int) -> Unit)?`
+    - Description: An optional lambda function for debugging. If provided, it is called to draw
+      circles around interpolated points during the search process.
 
 #### Returns
 
 **`Pair<GeoPointInterface, Double>?`**
 
 *   A `Pair` containing:
-    *   `first`: The `GeoPointInterface` representing the closest point on the polyline to the `position`.
-    *   `second`: The `Double` value representing the distance in meters from the `position` to this closest point.
+    *   `first`: The `GeoPointInterface` representing the closest point on the polyline to the
+        `position`.
+    *   `second`: The `Double` value representing the distance in meters from the `position` to this
+        closest point.
 *   Returns `null` if the input `points` list contains fewer than two points.
-*   The distance in the returned pair may be `Double.MAX_VALUE` if a suitable intersection point cannot be precisely calculated.
+*   The distance in the returned pair may be `Double.MAX_VALUE` if a suitable intersection point
+    cannot be precisely calculated.
 
 #### Example
 

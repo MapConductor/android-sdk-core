@@ -1,12 +1,12 @@
-This document provides a detailed reference for the Marker Icon SDK, covering classes that generate standard pin-shaped map markers. These classes allow for customization of fill (color, image, or drawable), stroke, labels, and more.
+# `ColorDefaultIcon`
 
-## `ColorDefaultIcon`
-
-Creates a standard pin-shaped map marker icon with a solid color fill. This is the most common and straightforward marker type to use.
+Creates a standard pin-shaped map marker icon with a solid color fill. This is the most common and
+straightforward marker type to use.
 
 ### Constructor
 
-Initializes a new instance of `ColorDefaultIcon`. A convenience constructor is provided with sensible defaults for most parameters.
+Initializes a new instance of `ColorDefaultIcon`. A convenience constructor is provided with
+sensible defaults for most parameters.
 
 **Signature:**
 ```kotlin
@@ -28,26 +28,62 @@ constructor(
 
 ### Parameters
 
-| Parameter | Type | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `fillColor` | `Color` | The fill color of the marker body. | `Color.Red` |
-| `strokeColor` | `Color` | The color of the marker's outline. | `Color.White` |
-| `strokeWidth` | `Dp` | The width of the marker's outline. | `Settings.Default.iconStroke` |
-| `scale` | `Float` | The scaling factor for the entire icon. | `1.0f` |
-| `label` | `String?` | An optional text label to display inside the marker. | `null` |
-| `labelTextColor` | `Color?` | The color of the label text. | `Color.Black` |
-| `labelTextSize` | `TextUnit` | The size of the label text. | `18.sp` |
-| `labelTypeFace` | `Typeface` | The typeface for the label text. | `Typeface.DEFAULT` |
-| `labelStrokeColor` | `Color` | The color of the outline drawn around the label text for better visibility. | `Color.White` |
-| `infoAnchor` | `Offset` | The anchor point for an info window, relative to the icon's dimensions (0,0 is top-left, 1,1 is bottom-right). | `Offset(0.5f, 0f)` (top-center) |
-| `iconSize` | `Dp` | The base size of the icon before scaling. | `Settings.Default.iconSize` |
-| `debug` | `Boolean` | If `true`, a debug frame will be drawn around the icon's canvas. | `false` |
+- `fillColor`
+    - Type: `Color`
+    - Default: `Color.Red`
+    - Description: The fill color of the marker body.
+- `strokeColor`
+    - Type: `Color`
+    - Default: `Color.White`
+    - Description: The color of the marker's outline.
+- `strokeWidth`
+    - Type: `Dp`
+    - Default: `Settings.Default.iconStroke`
+    - Description: The width of the marker's outline.
+- `scale`
+    - Type: `Float`
+    - Default: `1.0f`
+    - Description: The scaling factor for the entire icon.
+- `label`
+    - Type: `String?`
+    - Default: `null`
+    - Description: An optional text label to display inside the marker.
+- `labelTextColor`
+    - Type: `Color?`
+    - Default: `Color.Black`
+    - Description: The color of the label text.
+- `labelTextSize`
+    - Type: `TextUnit`
+    - Default: `18.sp`
+    - Description: The size of the label text.
+- `labelTypeFace`
+    - Type: `Typeface`
+    - Default: `Typeface.DEFAULT`
+    - Description: The typeface for the label text.
+- `labelStrokeColor`
+    - Type: `Color`
+    - Default: `Color.White`
+    - Description: The color of the outline drawn around the label text for better visibility.
+- `infoAnchor`
+    - Type: `Offset`
+    - Default: `Offset(0.5f, 0f)` (top-center)
+    - Description: The anchor point for an info window, relative to the icon's dimensions (0,0 is
+      top-left, 1,1 is bottom-right).
+- `iconSize`
+    - Type: `Dp`
+    - Default: `Settings.Default.iconSize`
+    - Description: The base size of the icon before scaling.
+- `debug`
+    - Type: `Boolean`
+    - Default: `false`
+    - Description: If `true`, a debug frame will be drawn around the icon's canvas.
 
 ### Functions
 
 #### `copy`
 
-Creates a new `ColorDefaultIcon` instance, allowing you to modify specific properties while keeping others the same.
+Creates a new `ColorDefaultIcon` instance, allowing you to modify specific properties while keeping
+others the same.
 
 **Signature:**
 ```kotlin
@@ -93,7 +129,8 @@ val labeledMarker = ColorDefaultIcon(
 
 ## `ImageDefaultIcon`
 
-Creates a standard pin-shaped map marker icon filled with a `Bitmap` image. The image is scaled to fill the marker shape using a center-crop behavior, preserving its aspect ratio.
+Creates a standard pin-shaped map marker icon filled with a `Bitmap` image. The image is scaled to
+fill the marker shape using a center-crop behavior, preserving its aspect ratio.
 
 ### Constructor
 
@@ -113,14 +150,28 @@ constructor(
 
 ### Parameters
 
-| Parameter | Type | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `backgroundImage` | `Bitmap` | The bitmap image to use as the marker's fill. | (none) |
-| `strokeColor` | `Color` | The color of the marker's outline. | `Color.White` |
-| `strokeWidth` | `Dp` | The width of the marker's outline. | `Settings.Default.iconStroke` |
-| `scale` | `Float` | The scaling factor for the entire icon. | `1.0f` |
-| `label` | `String?` | An optional text label to display inside the marker. | `null` |
-| `...` | | Other parameters are identical to `ColorDefaultIcon`. | |
+- `backgroundImage`
+    - Type: `Bitmap`
+    - Default: (none)
+    - Description: The bitmap image to use as the marker's fill.
+- `strokeColor`
+    - Type: `Color`
+    - Default: `Color.White`
+    - Description: The color of the marker's outline.
+- `strokeWidth`
+    - Type: `Dp`
+    - Default: `Settings.Default.iconStroke`
+    - Description: The width of the marker's outline.
+- `scale`
+    - Type: `Float`
+    - Default: `1.0f`
+    - Description: The scaling factor for the entire icon.
+- `label`
+    - Type: `String?`
+    - Default: `null`
+    - Description: An optional text label to display inside the marker.
+- `...`
+    - Description: Other parameters are identical to `ColorDefaultIcon`.
 
 ### Functions
 
@@ -154,7 +205,9 @@ val imageMarker = ImageDefaultIcon(
 
 ## `DrawableDefaultIcon`
 
-Creates a standard pin-shaped map marker icon filled with a `Drawable`. The drawable is scaled to fill the marker shape. If the drawable has an intrinsic size, its aspect ratio is preserved using a center-crop behavior.
+Creates a standard pin-shaped map marker icon filled with a `Drawable`. The drawable is scaled to
+fill the marker shape. If the drawable has an intrinsic size, its aspect ratio is preserved using a
+center-crop behavior.
 
 ### Constructor
 
@@ -174,14 +227,28 @@ constructor(
 
 ### Parameters
 
-| Parameter | Type | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `backgroundDrawable` | `Drawable` | The drawable to use as the marker's fill. | (none) |
-| `strokeColor` | `Color` | The color of the marker's outline. | `Color.White` |
-| `strokeWidth` | `Dp` | The width of the marker's outline. | `Settings.Default.iconStroke` |
-| `scale` | `Float` | The scaling factor for the entire icon. | `1.0f` |
-| `label` | `String?` | An optional text label to display inside the marker. | `null` |
-| `...` | | Other parameters are identical to `ColorDefaultIcon`. | |
+- `backgroundDrawable`
+    - Type: `Drawable`
+    - Default: (none)
+    - Description: The drawable to use as the marker's fill.
+- `strokeColor`
+    - Type: `Color`
+    - Default: `Color.White`
+    - Description: The color of the marker's outline.
+- `strokeWidth`
+    - Type: `Dp`
+    - Default: `Settings.Default.iconStroke`
+    - Description: The width of the marker's outline.
+- `scale`
+    - Type: `Float`
+    - Default: `1.0f`
+    - Description: The scaling factor for the entire icon.
+- `label`
+    - Type: `String?`
+    - Default: `null`
+    - Description: An optional text label to display inside the marker.
+- `...`
+    - Description: Other parameters are identical to `ColorDefaultIcon`.
 
 ### Functions
 
@@ -218,7 +285,8 @@ val drawableMarker = myDrawable?.let {
 
 ## `DefaultMarkerIcon`
 
-A type alias for `ColorDefaultIcon`. This is provided for backward compatibility. It is recommended to use `ColorDefaultIcon` directly in new code.
+A type alias for `ColorDefaultIcon`. This is provided for backward compatibility. It is recommended
+to use `ColorDefaultIcon` directly in new code.
 
 **Signature:**
 ```kotlin
@@ -229,26 +297,51 @@ typealias DefaultMarkerIcon = ColorDefaultIcon
 
 ## `AbstractDefaultIcon`
 
-An abstract base class that provides the common framework for creating pin-shaped marker icons. It handles the rendering of the marker's shape, stroke, and label.
+An abstract base class that provides the common framework for creating pin-shaped marker icons. It
+handles the rendering of the marker's shape, stroke, and label.
 
-Developers should typically use one of the concrete subclasses (`ColorDefaultIcon`, `ImageDefaultIcon`, `DrawableDefaultIcon`) or extend this class to create custom fill behaviors.
+Developers should typically use one of the concrete subclasses (`ColorDefaultIcon`,
+`ImageDefaultIcon`, `DrawableDefaultIcon`) or extend this class to create custom fill behaviors.
 
 ### Properties
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `strokeColor` | `Color` | The color of the marker's outline. |
-| `strokeWidth` | `Dp` | The width of the marker's outline. |
-| `scale` | `Float` | The scaling factor for the entire icon. |
-| `label` | `String?` | The optional text label to display inside the marker. |
-| `labelTextColor` | `Color?` | The color of the label text. |
-| `labelTextSize` | `TextUnit` | The size of the label text. |
-| `labelTypeFace` | `Typeface` | The typeface for the label text. |
-| `labelStrokeColor` | `Color` | The color of the outline drawn around the label text. |
-| `iconSize` | `Dp` | The base size of the icon before scaling. |
-| `anchor` | `Offset` | The anchor point of the icon, relative to its dimensions. Fixed to `Offset(0.5f, 1f)` (bottom-center). |
-| `infoAnchor` | `Offset` | The anchor point for an info window, relative to the icon's dimensions. |
-| `debug` | `Boolean` | If `true`, a debug frame is drawn around the icon's canvas. |
+- `strokeColor`
+    - Type: `Color`
+    - Description: The color of the marker's outline.
+- `strokeWidth`
+    - Type: `Dp`
+    - Description: The width of the marker's outline.
+- `scale`
+    - Type: `Float`
+    - Description: The scaling factor for the entire icon.
+- `label`
+    - Type: `String?`
+    - Description: The optional text label to display inside the marker.
+- `labelTextColor`
+    - Type: `Color?`
+    - Description: The color of the label text.
+- `labelTextSize`
+    - Type: `TextUnit`
+    - Description: The size of the label text.
+- `labelTypeFace`
+    - Type: `Typeface`
+    - Description: The typeface for the label text.
+- `labelStrokeColor`
+    - Type: `Color`
+    - Description: The color of the outline drawn around the label text.
+- `iconSize`
+    - Type: `Dp`
+    - Description: The base size of the icon before scaling.
+- `anchor`
+    - Type: `Offset`
+    - Description: The anchor point of the icon, relative to its dimensions. Fixed to `Offset(0.5f,
+      1f)` (bottom-center).
+- `infoAnchor`
+    - Type: `Offset`
+    - Description: The anchor point for an info window, relative to the icon's dimensions.
+- `debug`
+    - Type: `Boolean`
+    - Description: If `true`, a debug frame is drawn around the icon's canvas.
 
 ### Abstract Functions
 
@@ -269,16 +362,23 @@ protected abstract fun drawMarkerFill(
 ```
 
 **Parameters:**
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `canvas` | `Canvas` | The canvas to draw on. |
-| `path` | `Path` | The path defining the marker's shape. |
-| `canvasSize` | `Float` | The total size of the drawing area for the marker. |
-| `iconScale` | `Float` | The current scale of the icon. |
+- `canvas`
+    - Type: `Canvas`
+    - Description: The canvas to draw on.
+- `path`
+    - Type: `Path`
+    - Description: The path defining the marker's shape.
+- `canvasSize`
+    - Type: `Float`
+    - Description: The total size of the drawing area for the marker.
+- `iconScale`
+    - Type: `Float`
+    - Description: The current scale of the icon.
 
 #### `getUniqueProperties`
 
-Returns an object representing the unique properties of the subclass. This is used for `equals` and `hashCode` implementations to ensure correct caching and comparison.
+Returns an object representing the unique properties of the subclass. This is used for `equals` and
+`hashCode` implementations to ensure correct caching and comparison.
 
 **Signature:**
 ```kotlin
@@ -286,4 +386,5 @@ protected abstract fun getUniqueProperties(): Any
 ```
 
 **Returns:**
-- `Any`: An object (e.g., a `Color`, a `Bitmap` hash) that uniquely identifies the state of the subclass.
+- `Any`: An object (e.g., a `Color`, a `Bitmap` hash) that uniquely identifies the state of the
+  subclass.

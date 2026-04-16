@@ -1,12 +1,11 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
----
-
 # MapCameraPosition
 
-The `MapCameraPosition` class is an immutable representation of the map's camera state. It encapsulates all the visual properties of the map's viewpoint, such as its geographical location, zoom level, bearing (rotation), and tilt (pitch).
+The `MapCameraPosition` class is an immutable representation of the map's camera state. It
+encapsulates all the visual properties of the map's viewpoint, such as its geographical location,
+zoom level, bearing (rotation), and tilt (pitch).
 
-This class is essential for controlling and inspecting the map's current view. You can use it to programmatically move the map to a specific state or to retrieve the current camera parameters.
+This class is essential for controlling and inspecting the map's current view. You can use it to
+programmatically move the map to a specific state or to retrieve the current camera parameters.
 
 ## Constructor
 
@@ -25,35 +24,63 @@ MapCameraPosition(
 
 ### Description
 
-Creates a new `MapCameraPosition` instance. While `position` is required, other parameters are optional and have sensible defaults.
+Creates a new `MapCameraPosition` instance. While `position` is required, other parameters are
+optional and have sensible defaults.
 
 ### Parameters
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `position` | `GeoPointInterface` | The geographical coordinate (`latitude`, `longitude`) at the center of the camera's view. |
-| `zoom` | `Double` | **Optional.** The zoom level of the camera. Higher values are more zoomed in. Defaults to `0.0`. |
-| `bearing` | `Double` | **Optional.** The camera's orientation, in degrees, clockwise from North. Defaults to `0.0`. |
-| `tilt` | `Double` | **Optional.** The camera's tilt angle, in degrees, from the nadir (straight down). Defaults to `0.0`. |
-| `paddings` | `MapPaddingsInterface?` | **Optional.** The padding applied to the map view, which affects the apparent center. Defaults to zero padding. |
-| `visibleRegion` | `VisibleRegion?` | **Optional.** The geographic region currently visible on the screen. Defaults to `null`. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographical coordinate (`latitude`, `longitude`) at the center of the
+      camera's view.
+- `zoom`
+    - Type: `Double`
+    - Description: **Optional.** The zoom level of the camera. Higher values are more zoomed in.
+      Defaults to `0.0`.
+- `bearing`
+    - Type: `Double`
+    - Description: **Optional.** The camera's orientation, in degrees, clockwise from North.
+      Defaults to `0.0`.
+- `tilt`
+    - Type: `Double`
+    - Description: **Optional.** The camera's tilt angle, in degrees, from the nadir (straight
+      down). Defaults to `0.0`.
+- `paddings`
+    - Type: `MapPaddingsInterface?`
+    - Description: **Optional.** The padding applied to the map view, which affects the apparent
+      center. Defaults to zero padding.
+- `visibleRegion`
+    - Type: `VisibleRegion?`
+    - Description: **Optional.** The geographic region currently visible on the screen. Defaults to
+      `null`.
 
 ## Properties
 
-| Property | Type | Description |
-| --- | --- | --- |
-| `position` | `GeoPoint` | The geographical coordinate at the center of the camera's view. |
-| `zoom` | `Double` | The zoom level of the camera. |
-| `bearing` | `Double` | The camera's orientation, in degrees, clockwise from North. |
-| `tilt` | `Double` | The camera's tilt angle, in degrees, from the nadir. |
-| `paddings` | `MapPaddingsInterface?` | The padding applied to the map view. |
-| `visibleRegion` | `VisibleRegion?` | The geographic region currently visible on the screen. |
+- `position`
+    - Type: `GeoPoint`
+    - Description: The geographical coordinate at the center of the camera's view.
+- `zoom`
+    - Type: `Double`
+    - Description: The zoom level of the camera.
+- `bearing`
+    - Type: `Double`
+    - Description: The camera's orientation, in degrees, clockwise from North.
+- `tilt`
+    - Type: `Double`
+    - Description: The camera's tilt angle, in degrees, from the nadir.
+- `paddings`
+    - Type: `MapPaddingsInterface?`
+    - Description: The padding applied to the map view.
+- `visibleRegion`
+    - Type: `VisibleRegion?`
+    - Description: The geographic region currently visible on the screen.
 
 ## Companion Object
 
 ### Default
 
-Provides a default `MapCameraPosition` instance, centered at latitude/longitude `(0,0)` with `0.0` zoom, bearing, and tilt.
+Provides a default `MapCameraPosition` instance, centered at latitude/longitude `(0,0)` with `0.0`
+zoom, bearing, and tilt.
 
 #### Signature
 
@@ -72,7 +99,9 @@ map.setCameraPosition(MapCameraPosition.Default)
 
 ### equals
 
-Compares this `MapCameraPosition` with another for equality. This method uses a small tolerance (`1e-2`) when comparing `zoom`, `bearing`, and `tilt` values to account for floating-point inaccuracies. The `position` is compared exactly.
+Compares this `MapCameraPosition` with another for equality. This method uses a small tolerance
+(`1e-2`) when comparing `zoom`, `bearing`, and `tilt` values to account for floating-point
+inaccuracies. The `position` is compared exactly.
 
 #### Signature
 
@@ -82,13 +111,14 @@ fun equals(other: MapCameraPositionInterface): Boolean
 
 #### Parameters
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `other` | `MapCameraPositionInterface` | The other camera position to compare against. |
+- `other`
+    - Type: `MapCameraPositionInterface`
+    - Description: The other camera position to compare against.
 
 #### Returns
 
-`Boolean` - `true` if the positions are considered equal within the defined tolerance, `false` otherwise.
+`Boolean` - `true` if the positions are considered equal within the defined tolerance, `false`
+otherwise.
 
 #### Example
 
@@ -108,7 +138,9 @@ println("position1 equals position3: $areEqual2") // false
 
 ### copy
 
-Creates a new `MapCameraPosition` instance by copying the current object's properties and optionally overriding specified values. This is useful for creating a modified state from an existing one without altering the original immutable object.
+Creates a new `MapCameraPosition` instance by copying the current object's properties and optionally
+overriding specified values. This is useful for creating a modified state from an existing one
+without altering the original immutable object.
 
 #### Signature
 
@@ -125,14 +157,26 @@ fun copy(
 
 #### Parameters
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `position` | `GeoPointInterface?` | **Optional.** A new geographical coordinate for the camera. If `null`, the current `position` is used. |
-| `zoom` | `Double?` | **Optional.** A new zoom level. If `null`, the current `zoom` is used. |
-| `bearing` | `Double?` | **Optional.** A new bearing. If `null`, the current `bearing` is used. |
-| `tilt` | `Double?` | **Optional.** A new tilt angle. If `null`, the current `tilt` is used. |
-| `paddings` | `MapPaddingsInterface?` | **Optional.** New map paddings. If `null`, the current `paddings` are used. |
-| `visibleRegion` | `VisibleRegion?` | **Optional.** A new visible region. If `null`, the current `visibleRegion` is used. |
+- `position`
+    - Type: `GeoPointInterface?`
+    - Description: **Optional.** A new geographical coordinate for the camera. If `null`, the
+      current `position` is used.
+- `zoom`
+    - Type: `Double?`
+    - Description: **Optional.** A new zoom level. If `null`, the current `zoom` is used.
+- `bearing`
+    - Type: `Double?`
+    - Description: **Optional.** A new bearing. If `null`, the current `bearing` is used.
+- `tilt`
+    - Type: `Double?`
+    - Description: **Optional.** A new tilt angle. If `null`, the current `tilt` is used.
+- `paddings`
+    - Type: `MapPaddingsInterface?`
+    - Description: **Optional.** New map paddings. If `null`, the current `paddings` are used.
+- `visibleRegion`
+    - Type: `VisibleRegion?`
+    - Description: **Optional.** A new visible region. If `null`, the current `visibleRegion` is
+      used.
 
 #### Returns
 

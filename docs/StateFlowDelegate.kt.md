@@ -1,6 +1,7 @@
 # StateFlowDelegate<T>
 
-A property delegate that backs a `var` property with a `kotlinx.coroutines.flow.MutableStateFlow`, allowing property changes to be observed reactively.
+A property delegate that backs a `var` property with a `kotlinx.coroutines.flow.MutableStateFlow`,
+allowing property changes to be observed reactively.
 
 ## Signature
 
@@ -12,31 +13,41 @@ class StateFlowDelegate<T>(
 
 ## Description
 
-`StateFlowDelegate` is a property delegate that seamlessly integrates a standard mutable property (`var`) with the power of Kotlin's `StateFlow`. When you delegate a property to `StateFlowDelegate`, any assignment to that property automatically updates the value of an internal `MutableStateFlow` and emits the new value to all its collectors.
+`StateFlowDelegate` is a property delegate that seamlessly integrates a standard mutable property
+(`var`) with the power of Kotlin's `StateFlow`. When you delegate a property to `StateFlowDelegate`,
+any assignment to that property automatically updates the value of an internal `MutableStateFlow`
+and emits the new value to all its collectors.
 
-This class implements the `ReadWriteProperty` interface, allowing it to be used with the `by` keyword. The `getValue` and `setValue` methods are invoked by the Kotlin compiler upon property access and assignment.
+This class implements the `ReadWriteProperty` interface, allowing it to be used with the `by`
+keyword. The `getValue` and `setValue` methods are invoked by the Kotlin compiler upon property
+access and assignment.
 
-This delegate is ideal for state management in application architectures like MVVM or MVI, where you need to expose observable state from a ViewModel or a repository to the UI layer or other consumers.
+This delegate is ideal for state management in application architectures like MVVM or MVI, where you
+need to expose observable state from a ViewModel or a repository to the UI layer or other consumers.
 
 ## Constructor
 
 ### `StateFlowDelegate(initialValue: T)`
 
-Creates a new instance of the delegate, initializing the internal `StateFlow` with the provided value.
+Creates a new instance of the delegate, initializing the internal `StateFlow` with the provided
+value.
 
 #### Parameters
 
-| Parameter      | Type | Description                        |
-|----------------|------|------------------------------------|
-| `initialValue` | `T`  | The initial value of the property. |
+- `initialValue`
+    - Type: `T`
+    - Description: The initial value of the property.
 
 ## Methods
 
 ### `asStateFlow()`
 
-Exposes the underlying `MutableStateFlow` that backs the property. This allows consumers to observe changes to the property's value by collecting from the returned flow.
+Exposes the underlying `MutableStateFlow` that backs the property. This allows consumers to observe
+changes to the property's value by collecting from the returned flow.
 
-While the method returns a `MutableStateFlow`, it is a common and recommended practice for consumers to treat it as a read-only `StateFlow` to maintain unidirectional data flow and prevent external modifications.
+While the method returns a `MutableStateFlow`, it is a common and recommended practice for consumers
+to treat it as a read-only `StateFlow` to maintain unidirectional data flow and prevent external
+modifications.
 
 #### Signature
 
@@ -46,13 +57,13 @@ fun asStateFlow(): MutableStateFlow<T>
 
 #### Returns
 
-| Type                  | Description                               |
-|-----------------------|-------------------------------------------|
-| `MutableStateFlow<T>` | The backing `MutableStateFlow` instance.  |
+- Type: `MutableStateFlow<T>`
+- Description: The backing `MutableStateFlow` instance.
 
 ## Example
 
-The following example demonstrates how to use `StateFlowDelegate` in a `UserViewModel` to manage and observe a user's status.
+The following example demonstrates how to use `StateFlowDelegate` in a `UserViewModel` to manage and
+observe a user's status.
 
 ```kotlin
 import com.mapconductor.core.StateFlowDelegate

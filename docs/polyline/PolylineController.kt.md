@@ -1,22 +1,22 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
----
-
 # PolylineController<ActualPolyline>
 
 ## Description
 
-An abstract base class responsible for managing the lifecycle of polyline overlays on a map. It acts as a coordinator between the data state (`PolylineState`), the state management logic (`PolylineManager`), and the platform-specific rendering (`PolylineOverlayRenderer`).
+An abstract base class responsible for managing the lifecycle of polyline overlays on a map. It acts
+as a coordinator between the data state (`PolylineState`), the state management logic
+(`PolylineManager`), and the platform-specific rendering (`PolylineOverlayRenderer`).
 
-All public methods that modify the state of polylines (`add`, `update`, `clear`) are thread-safe, using a semaphore to ensure that operations are executed sequentially and prevent race conditions.
+All public methods that modify the state of polylines (`add`, `update`, `clear`) are thread-safe,
+using a semaphore to ensure that operations are executed sequentially and prevent race conditions.
 
-This class is designed to be extended by a concrete implementation specific to a map provider (e.g., `GoogleMapPolylineController`).
+This class is designed to be extended by a concrete implementation specific to a map provider (e.g.,
+`GoogleMapPolylineController`).
 
 ### Generic Type Parameters
 
-| Parameter | Description |
-| :--- | :--- |
-| `ActualPolyline` | The platform-specific polyline object type (e.g., `com.google.android.gms.maps.model.Polyline`). |
+- `ActualPolyline`
+    - Description: The platform-specific polyline object type (e.g.,
+      `com.google.android.gms.maps.model.Polyline`).
 
 ## Constructor
 
@@ -32,26 +32,38 @@ Creates a new instance of `PolylineController`.
 
 ### Parameters
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `polylineManager` | `PolylineManagerInterface<ActualPolyline>` | The manager responsible for storing and querying polyline entities. |
-| `renderer` | `PolylineOverlayRendererInterface<ActualPolyline>` | The renderer responsible for drawing and updating polylines on the map. |
-| `clickListener` | `OnPolylineEventHandler?` | An optional global listener that is invoked when any polyline managed by this controller is clicked. Defaults to `null`. |
+- `polylineManager`
+    - Type: `PolylineManagerInterface<ActualPolyline>`
+    - Description: The manager responsible for storing and querying polyline entities.
+- `renderer`
+    - Type: `PolylineOverlayRendererInterface<ActualPolyline>`
+    - Description: The renderer responsible for drawing and updating polylines on the map.
+- `clickListener`
+    - Type: `OnPolylineEventHandler?`
+    - Description: An optional global listener that is invoked when any polyline managed by this
+      controller is clicked. Defaults to `null`.
 
 ## Properties
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `polylineManager` | `PolylineManagerInterface<ActualPolyline>` | The manager for polyline state. |
-| `renderer` | `PolylineOverlayRendererInterface<ActualPolyline>` | The renderer for drawing polylines. |
-| `clickListener` | `OnPolylineEventHandler?` | A global click listener for all polylines managed by this controller. |
-| `zIndex` | `Int` | The z-index for the polyline layer, fixed at `5`. |
+- `polylineManager`
+    - Type: `PolylineManagerInterface<ActualPolyline>`
+    - Description: The manager for polyline state.
+- `renderer`
+    - Type: `PolylineOverlayRendererInterface<ActualPolyline>`
+    - Description: The renderer for drawing polylines.
+- `clickListener`
+    - Type: `OnPolylineEventHandler?`
+    - Description: A global click listener for all polylines managed by this controller.
+- `zIndex`
+    - Type: `Int`
+    - Description: The z-index for the polyline layer, fixed at `5`.
 
 ## Methods
 
 ### dispatchClick
 
-Dispatches a click event. This method triggers both the polyline-specific `onClick` handler (defined in `PolylineState`) and the controller's global `clickListener`.
+Dispatches a click event. This method triggers both the polyline-specific `onClick` handler (defined
+in `PolylineState`) and the controller's global `clickListener`.
 
 **Signature**
 ```kotlin
@@ -60,13 +72,16 @@ fun dispatchClick(event: PolylineEvent)
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `event` | `PolylineEvent` | The polyline event object containing details about the click. |
+- `event`
+    - Type: `PolylineEvent`
+    - Description: The polyline event object containing details about the click.
 
 ### add
 
-Adds, updates, or removes polylines to synchronize the map with the provided list of `PolylineState`. The method performs a diff against the current polylines and efficiently applies only the necessary changes (additions, updates, removals) via the `renderer`. This operation is thread-safe.
+Adds, updates, or removes polylines to synchronize the map with the provided list of
+`PolylineState`. The method performs a diff against the current polylines and efficiently applies
+only the necessary changes (additions, updates, removals) via the `renderer`. This operation is
+thread-safe.
 
 **Signature**
 ```kotlin
@@ -75,13 +90,15 @@ override suspend fun add(data: List<PolylineState>)
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<PolylineState>` | The complete list of polyline states that should be displayed on the map. |
+- `data`
+    - Type: `List<PolylineState>`
+    - Description: The complete list of polyline states that should be displayed on the map.
 
 ### update
 
-Updates a single existing polyline based on the new `PolylineState`. For efficiency, it first checks if the state has actually changed using a fingerprint comparison. If there are changes, it delegates the update to the `renderer`. This operation is thread-safe.
+Updates a single existing polyline based on the new `PolylineState`. For efficiency, it first checks
+if the state has actually changed using a fingerprint comparison. If there are changes, it delegates
+the update to the `renderer`. This operation is thread-safe.
 
 **Signature**
 ```kotlin
@@ -90,13 +107,14 @@ override suspend fun update(state: PolylineState)
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `PolylineState` | The new state for the polyline to be updated. |
+- `state`
+    - Type: `PolylineState`
+    - Description: The new state for the polyline to be updated.
 
 ### clear
 
-Removes all polylines currently managed by this controller from the map. This operation is thread-safe.
+Removes all polylines currently managed by this controller from the map. This operation is
+thread-safe.
 
 **Signature**
 ```kotlin
@@ -105,7 +123,8 @@ override suspend fun clear()
 
 ### find
 
-Finds the topmost polyline entity at a given geographic coordinate. The search tolerance may depend on the current map camera position (e.g., zoom level).
+Finds the topmost polyline entity at a given geographic coordinate. The search tolerance may depend
+on the current map camera position (e.g., zoom level).
 
 **Signature**
 ```kotlin
@@ -114,19 +133,20 @@ override fun find(position: GeoPointInterface): PolylineEntityInterface<ActualPo
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `position` | `GeoPointInterface` | The geographic coordinates to search at. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic coordinates to search at.
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `PolylineEntityInterface<ActualPolyline>?` | The found polyline entity, or `null` if no polyline is found at the specified position. |
+- Type: `PolylineEntityInterface<ActualPolyline>?`
+- Description: The found polyline entity, or `null` if no polyline is found at the specified
+  position.
 
 ### findWithClosestPoint
 
-Performs a hit test at the given geographic coordinate and returns a detailed result, including the polyline entity and the closest point on that polyline to the given coordinate.
+Performs a hit test at the given geographic coordinate and returns a detailed result, including the
+polyline entity and the closest point on that polyline to the given coordinate.
 
 **Signature**
 ```kotlin
@@ -135,19 +155,20 @@ fun findWithClosestPoint(position: GeoPointInterface): PolylineHitResult<ActualP
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `position` | `GeoPointInterface` | The geographic coordinates to search at. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic coordinates to search at.
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `PolylineHitResult<ActualPolyline>?` | A `PolylineHitResult` object containing the entity and closest point, or `null` if no polyline is found. |
+- Type: `PolylineHitResult<ActualPolyline>?`
+- Description: A `PolylineHitResult` object containing the entity and closest point, or `null` if no
+  polyline is found.
 
 ### onCameraChanged
 
-Callback method invoked when the map's camera position changes. The controller stores this position to use in calculations for other methods, such as `find`.
+Callback method invoked when the map's camera position changes. The controller stores this position
+to use in calculations for other methods, such as `find`.
 
 **Signature**
 ```kotlin
@@ -156,13 +177,14 @@ override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition)
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `mapCameraPosition` | `MapCameraPosition` | The new camera position of the map. |
+- `mapCameraPosition`
+    - Type: `MapCameraPosition`
+    - Description: The new camera position of the map.
 
 ### destroy
 
-Cleans up resources used by the controller. In this base implementation, this method is empty as there are no specific native resources to release.
+Cleans up resources used by the controller. In this base implementation, this method is empty as
+there are no specific native resources to release.
 
 **Signature**
 ```kotlin
@@ -171,7 +193,8 @@ override fun destroy()
 
 ## Example
 
-The following example demonstrates how to create a concrete implementation of `PolylineController` and use it to manage polylines on a map.
+The following example demonstrates how to create a concrete implementation of `PolylineController`
+and use it to manage polylines on a map.
 
 ```kotlin
 // Assume MyMapPolyline is the platform-specific polyline class

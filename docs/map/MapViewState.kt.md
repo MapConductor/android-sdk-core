@@ -1,10 +1,7 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
----
-
 # SDK Documentation
 
-This document provides detailed information about the core map interfaces, classes, and enums for the Map Conductor SDK.
+This document provides detailed information about the core map interfaces, classes, and enums for
+the Map Conductor SDK.
 
 ## `InitState`
 
@@ -16,18 +13,24 @@ enum class InitState
 
 ### Description
 
-Represents the various initialization states of the map SDK and its components. This enum is used to track the progress of the map setup, from the initial state to a fully rendered map or a failure state.
+Represents the various initialization states of the map SDK and its components. This enum is used to
+track the progress of the map setup, from the initial state to a fully rendered map or a failure
+state.
 
 ### Enum Values
 
-| Value            | Description                                                              |
-| ---------------- | ------------------------------------------------------------------------ |
-| `NotStarted`     | The initialization process has not yet begun.                            |
-| `Initializing`   | The SDK is currently in the process of initializing.                     |
-| `SdkInitialized` | The core SDK has been successfully initialized.                          |
-| `MapViewCreated` | The underlying native map view has been created.                         |
-| `MapCreated`     | The map object is fully created and ready for interaction.               |
-| `Failed`         | An error occurred at some point during the initialization process.       |
+- `NotStarted`
+    - Description: The initialization process has not yet begun.
+- `Initializing`
+    - Description: The SDK is currently in the process of initializing.
+- `SdkInitialized`
+    - Description: The core SDK has been successfully initialized.
+- `MapViewCreated`
+    - Description: The underlying native map view has been created.
+- `MapCreated`
+    - Description: The map object is fully created and ready for interaction.
+- `Failed`
+    - Description: An error occurred at some point during the initialization process.
 
 ---
 
@@ -41,21 +44,26 @@ interface MapViewStateInterface<ActualMapDesignType>
 
 ### Description
 
-Defines the contract for managing the state of a map view. This includes properties like camera position and map style, as well as methods for manipulating the camera. It is a generic interface that allows for different types of map designs or styles.
+Defines the contract for managing the state of a map view. This includes properties like camera
+position and map style, as well as methods for manipulating the camera. It is a generic interface
+that allows for different types of map designs or styles.
 
 ### Type Parameters
 
-| Name                  | Description                                                                 |
-| --------------------- | --------------------------------------------------------------------------- |
-| `ActualMapDesignType` | The generic type representing the specific map design or style being used. |
+- `ActualMapDesignType`
+    - Description: The generic type representing the specific map design or style being used.
 
 ### Properties
 
-| Property         | Type                    | Description                                                              |
-| ---------------- | ----------------------- | ------------------------------------------------------------------------ |
-| `id`             | `String`                | A unique identifier for the map view state.                              |
-| `cameraPosition` | `MapCameraPosition`     | The current position of the map's camera (location, zoom, tilt, bearing). |
-| `mapDesignType`  | `ActualMapDesignType`   | The current design or style applied to the map.                          |
+- `id`
+    - Type: `String`
+    - Description: A unique identifier for the map view state.
+- `cameraPosition`
+    - Type: `MapCameraPosition`
+    - Description: The current position of the map's camera (location, zoom, tilt, bearing).
+- `mapDesignType`
+    - Type: `ActualMapDesignType`
+    - Description: The current design or style applied to the map.
 
 ### Methods
 
@@ -76,10 +84,14 @@ Moves the map camera to a specified `MapCameraPosition` over a given duration.
 
 ##### Parameters
 
-| Parameter        | Type                | Default | Description                                                              |
-| ---------------- | ------------------- | ------- | ------------------------------------------------------------------------ |
-| `cameraPosition` | `MapCameraPosition` | -       | The target camera position, including coordinates, zoom, tilt, and bearing. |
-| `durationMillis` | `Long?`             | `0`     | The duration of the camera animation in milliseconds. A value of `0` results in an instantaneous move. |
+- `cameraPosition`
+    - Type: `MapCameraPosition`
+    - Description: The target camera position, including coordinates, zoom, tilt, and bearing.
+- `durationMillis`
+    - Type: `Long?`
+    - Default: `0`
+    - Description: The duration of the camera animation in milliseconds. A value of `0` results in
+      an instantaneous move.
 
 #### `moveCameraTo(position)`
 
@@ -94,14 +106,19 @@ fun moveCameraTo(
 
 ##### Description
 
-Moves the map camera to a specific geographical coordinate (`GeoPoint`), preserving the current zoom, tilt, and bearing.
+Moves the map camera to a specific geographical coordinate (`GeoPoint`), preserving the current
+zoom, tilt, and bearing.
 
 ##### Parameters
 
-| Parameter        | Type      | Default | Description                                                              |
-| ---------------- | --------- | ------- | ------------------------------------------------------------------------ |
-| `position`       | `GeoPoint`| -       | The target geographical coordinates (latitude and longitude).            |
-| `durationMillis` | `Long?`   | `0`     | The duration of the camera animation in milliseconds. A value of `0` results in an instantaneous move. |
+- `position`
+    - Type: `GeoPoint`
+    - Description: The target geographical coordinates (latitude and longitude).
+- `durationMillis`
+    - Type: `Long?`
+    - Default: `0`
+    - Description: The duration of the camera animation in milliseconds. A value of `0` results in
+      an instantaneous move.
 
 #### `getMapViewHolder()`
 
@@ -113,13 +130,13 @@ fun getMapViewHolder(): MapViewHolderInterface<*, *>?
 
 ##### Description
 
-Retrieves the `MapViewHolderInterface` associated with this map view state. The view holder is responsible for managing the lifecycle of the actual map view UI component.
+Retrieves the `MapViewHolderInterface` associated with this map view state. The view holder is
+responsible for managing the lifecycle of the actual map view UI component.
 
 ##### Returns
 
-| Type                             | Description                                                              |
-| -------------------------------- | ------------------------------------------------------------------------ |
-| `MapViewHolderInterface<*, *>?`  | The associated map view holder, or `null` if it is not available.        |
+- Type: `MapViewHolderInterface<*, *>?`
+- Description: The associated map view holder, or `null` if it is not available.
 
 ---
 
@@ -133,13 +150,13 @@ abstract class MapViewState<ActualMapDesignType> : MapViewStateInterface<ActualM
 
 ### Description
 
-An abstract base class that provides a partial implementation of the `MapViewStateInterface`. It is intended to be subclassed by concrete map state implementations.
+An abstract base class that provides a partial implementation of the `MapViewStateInterface`. It is
+intended to be subclassed by concrete map state implementations.
 
 ### Type Parameters
 
-| Name                  | Description                                                                 |
-| --------------------- | --------------------------------------------------------------------------- |
-| `ActualMapDesignType` | The generic type representing the specific map design or style being used. |
+- `ActualMapDesignType`
+    - Description: The generic type representing the specific map design or style being used.
 
 ---
 
@@ -153,19 +170,20 @@ interface MapOverlayInterface<DataType>
 
 ### Description
 
-Defines the contract for a map overlay. An overlay is a layer of custom data that can be rendered on top of the map. This interface is generic, allowing overlays to handle any type of data.
+Defines the contract for a map overlay. An overlay is a layer of custom data that can be rendered on
+top of the map. This interface is generic, allowing overlays to handle any type of data.
 
 ### Type Parameters
 
-| Name       | Description                                                                 |
-| ---------- | --------------------------------------------------------------------------- |
-| `DataType` | The type of data objects that this overlay will manage and render.          |
+- `DataType`
+    - Description: The type of data objects that this overlay will manage and render.
 
 ### Properties
 
-| Property | Type                                     | Description                                                                                             |
-| -------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `flow`   | `StateFlow<MutableMap<String, DataType>>` | A `StateFlow` that emits the current state of the overlay data, keyed by a unique `String` identifier. |
+- `flow`
+    - Type: `StateFlow<MutableMap<String, DataType>>`
+    - Description: A `StateFlow` that emits the current state of the overlay data, keyed by a unique
+      `String` identifier.
 
 ### Methods
 
@@ -182,14 +200,17 @@ suspend fun render(
 
 ##### Description
 
-A suspend function responsible for rendering the provided data onto the map. This function is called when the overlay needs to be drawn or updated.
+A suspend function responsible for rendering the provided data onto the map. This function is called
+when the overlay needs to be drawn or updated.
 
 ##### Parameters
 
-| Parameter    | Type                         | Description                                                              |
-| ------------ | ---------------------------- | ------------------------------------------------------------------------ |
-| `data`       | `MutableMap<String, DataType>` | The map of data items to be rendered, where the key is a unique ID for each item. |
-| `controller` | `MapViewControllerInterface` | The controller for the map view, used to perform drawing operations.     |
+- `data`
+    - Type: `MutableMap<String, DataType>`
+    - Description: The map of data items to be rendered, where the key is a unique ID for each item.
+- `controller`
+    - Type: `MapViewControllerInterface`
+    - Description: The controller for the map view, used to perform drawing operations.
 
 ---
 
@@ -203,7 +224,8 @@ class MapOverlayRegistry
 
 ### Description
 
-A singleton-like registry responsible for managing all `MapOverlayInterface` instances. It allows for the registration of new overlays and provides a way to retrieve all registered overlays.
+A singleton-like registry responsible for managing all `MapOverlayInterface` instances. It allows
+for the registration of new overlays and provides a way to retrieve all registered overlays.
 
 ### Methods
 
@@ -217,13 +239,14 @@ fun register(overlay: MapOverlayInterface<*>)
 
 ##### Description
 
-Registers a new map overlay with the registry. If the overlay has already been registered, the method does nothing.
+Registers a new map overlay with the registry. If the overlay has already been registered, the
+method does nothing.
 
 ##### Parameters
 
-| Parameter | Type                     | Description                               |
-| --------- | ------------------------ | ----------------------------------------- |
-| `overlay` | `MapOverlayInterface<*>` | The map overlay instance to register.     |
+- `overlay`
+    - Type: `MapOverlayInterface<*>`
+    - Description: The map overlay instance to register.
 
 #### `getAll`
 
@@ -239,9 +262,8 @@ Retrieves a list of all currently registered map overlays.
 
 ##### Returns
 
-| Type                           | Description                               |
-| ------------------------------ | ----------------------------------------- |
-| `List<MapOverlayInterface<*>>` | An immutable list of all registered overlays. |
+- Type: `List<MapOverlayInterface<*>>`
+- Description: An immutable list of all registered overlays.
 
 ### Example
 

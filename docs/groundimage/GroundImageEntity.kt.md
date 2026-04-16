@@ -1,8 +1,4 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
-***
-
-## GroundImageEntityInterface<ActualGroundImage>
+# GroundImageEntityInterface<ActualGroundImage>
 
 ### Signature
 ```kotlin
@@ -10,14 +6,23 @@ interface GroundImageEntityInterface<ActualGroundImage>
 ```
 
 ### Description
-Defines a contract for a ground image entity. This interface provides a standardized way to access the core properties of a ground image, including the image object itself, its current state, and a unique fingerprint derived from that state.
+Defines a contract for a ground image entity. This interface provides a standardized way to access
+the core properties of a ground image, including the image object itself, its current state, and a
+unique fingerprint derived from that state.
 
 ### Properties
-| Property      | Type                      | Description                                                                                             |
-|---------------|---------------------------|---------------------------------------------------------------------------------------------------------|
-| `groundImage` | `ActualGroundImage`       | The underlying ground image object. The specific type is determined by the generic parameter.           |
-| `state`       | `GroundImageState`        | Represents the current state and configuration of the ground image (e.g., opacity, visibility, position). |
-| `fingerPrint` | `GroundImageFingerPrint`  | A unique identifier derived from the ground image's state, used for tracking changes and comparisons.    |
+- `groundImage`
+    - Type: `ActualGroundImage`
+    - Description: The underlying ground image object. The specific type is determined by the
+      generic parameter.
+- `state`
+    - Type: `GroundImageState`
+    - Description: Represents the current state and configuration of the ground image (e.g.,
+      opacity, visibility, position).
+- `fingerPrint`
+    - Type: `GroundImageFingerPrint`
+    - Description: A unique identifier derived from the ground image's state, used for tracking
+      changes and comparisons.
 
 ---
 
@@ -32,24 +37,33 @@ data class GroundImageEntity<ActualGroundImage>(
 ```
 
 ### Description
-A data class that provides a concrete implementation of `GroundImageEntityInterface`. It encapsulates a ground image object and its associated state. The class automatically generates a `fingerPrint` by calling the `fingerPrint()` method on the provided `state` object.
+A data class that provides a concrete implementation of `GroundImageEntityInterface`. It
+encapsulates a ground image object and its associated state. The class automatically generates a
+`fingerPrint` by calling the `fingerPrint()` method on the provided `state` object.
 
 ### Parameters
 This table describes the parameters for the `GroundImageEntity` constructor.
 
-| Parameter     | Type                | Description                                                                 |
-|---------------|---------------------|-----------------------------------------------------------------------------|
-| `groundImage` | `ActualGroundImage` | The underlying ground image object to be encapsulated.                      |
-| `state`       | `GroundImageState`  | The state object that describes the ground image's properties and configuration. |
+- `groundImage`
+    - Type: `ActualGroundImage`
+    - Description: The underlying ground image object to be encapsulated.
+- `state`
+    - Type: `GroundImageState`
+    - Description: The state object that describes the ground image's properties and configuration.
 
 ### Properties
 This table describes the properties available on an instance of `GroundImageEntity`.
 
-| Property      | Type                      | Description                                                                                             |
-|---------------|---------------------------|---------------------------------------------------------------------------------------------------------|
-| `groundImage` | `ActualGroundImage`       | The underlying ground image object.                                                                     |
-| `state`       | `GroundImageState`        | The state object describing the ground image's properties.                                              |
-| `fingerPrint` | `GroundImageFingerPrint`  | A unique fingerprint automatically calculated from the `state` object by calling its `fingerPrint()` method. |
+- `groundImage`
+    - Type: `ActualGroundImage`
+    - Description: The underlying ground image object.
+- `state`
+    - Type: `GroundImageState`
+    - Description: The state object describing the ground image's properties.
+- `fingerPrint`
+    - Type: `GroundImageFingerPrint`
+    - Description: A unique fingerprint automatically calculated from the `state` object by calling
+      its `fingerPrint()` method.
 
 ### Example
 This example demonstrates how to create and use a `GroundImageEntity`.

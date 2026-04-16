@@ -1,23 +1,24 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
----
-
 # Polyline
 
-The `Polyline` composable adds a line or a series of connected line segments to the map. It is a flexible overlay that can be used to represent paths, routes, or boundaries.
+The `Polyline` composable adds a line or a series of connected line segments to the map. It is a
+flexible overlay that can be used to represent paths, routes, or boundaries.
 
 This function must be called within the scope of a `MapView` composable.
 
 There are three overloads for creating a `Polyline`:
-1.  [From a list of points](#polyline-from-a-list-of-points): The primary method for creating a polyline from an ordered list of geographical coordinates.
-2.  [From a bounding box](#polyline-from-a-bounding-box): A convenience method to draw a rectangular outline from a `GeoRectBounds` object.
-3.  [From a state object](#polyline-from-a-state-object): A lower-level method that uses a `PolylineState` object for more advanced state management.
+1.  [From a list of points](#polyline-from-a-list-of-points): The primary method for creating a
+polyline from an ordered list of geographical coordinates.
+2.  [From a bounding box](#polyline-from-a-bounding-box): A convenience method to draw a rectangular
+outline from a `GeoRectBounds` object.
+3.  [From a state object](#polyline-from-a-state-object): A lower-level method that uses a
+`PolylineState` object for more advanced state management.
 
 ---
 
 ## Polyline (from a list of points)
 
-This composable draws a polyline on the map by connecting an ordered list of `GeoPointInterface` vertices.
+This composable draws a polyline on the map by connecting an ordered list of `GeoPointInterface`
+vertices.
 
 ### Signature
 ```kotlin
@@ -35,19 +36,42 @@ fun MapViewScope.Polyline(
 ```
 
 ### Description
-This is the primary function for creating a polyline. You provide a list of geographical points, and it renders a line connecting them in the specified order. You can customize the appearance (color, width), behavior (geodesic), and interactivity (click handler) of the polyline.
+This is the primary function for creating a polyline. You provide a list of geographical points, and
+it renders a line connecting them in the specified order. You can customize the appearance (color,
+width), behavior (geodesic), and interactivity (click handler) of the polyline.
 
 ### Parameters
-| Parameter     | Type                      | Description                                                                                                                            |
-|---------------|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `points`      | `List<GeoPointInterface>` | **Required.** An ordered list of `GeoPointInterface` objects that define the vertices of the polyline.                                  |
-| `id`          | `String?`                 | An optional unique identifier for the polyline. This can be useful for finding or managing the polyline later. Defaults to `null`.        |
-| `strokeColor` | `Color`                   | The color of the polyline. Defaults to `Color.Black`.                                                                                  |
-| `strokeWidth` | `Dp`                      | The width of the polyline stroke in density-independent pixels (`Dp`). Defaults to `1.dp`.                                             |
-| `geodesic`    | `Boolean`                 | If `true`, the segments of the polyline are drawn as geodesic curves that follow the curvature of the Earth. Defaults to `false`.        |
-| `zIndex`      | `Int`                     | The stacking order of this polyline relative to other map overlays. Polylines with higher `zIndex` values are drawn on top. Defaults to `0`. |
-| `extra`       | `Serializable?`           | Optional, extra serializable data to associate with the polyline. This can be retrieved in event handlers. Defaults to `null`.          |
-| `onClick`     | `OnPolylineEventHandler?` | A callback lambda that is invoked when the user clicks on the polyline. Defaults to `null`.                                            |
+- `points`
+    - Type: `List<GeoPointInterface>`
+    - Description: **Required.** An ordered list of `GeoPointInterface` objects that define the
+      vertices of the polyline.
+- `id`
+    - Type: `String?`
+    - Description: An optional unique identifier for the polyline. This can be useful for finding or
+      managing the polyline later. Defaults to `null`.
+- `strokeColor`
+    - Type: `Color`
+    - Description: The color of the polyline. Defaults to `Color.Black`.
+- `strokeWidth`
+    - Type: `Dp`
+    - Description: The width of the polyline stroke in density-independent pixels (`Dp`). Defaults
+      to `1.dp`.
+- `geodesic`
+    - Type: `Boolean`
+    - Description: If `true`, the segments of the polyline are drawn as geodesic curves that follow
+      the curvature of the Earth. Defaults to `false`.
+- `zIndex`
+    - Type: `Int`
+    - Description: The stacking order of this polyline relative to other map overlays. Polylines
+      with higher `zIndex` values are drawn on top. Defaults to `0`.
+- `extra`
+    - Type: `Serializable?`
+    - Description: Optional, extra serializable data to associate with the polyline. This can be
+      retrieved in event handlers. Defaults to `null`.
+- `onClick`
+    - Type: `OnPolylineEventHandler?`
+    - Description: A callback lambda that is invoked when the user clicks on the polyline. Defaults
+      to `null`.
 
 ### Example
 ```kotlin
@@ -82,7 +106,8 @@ MapView {
 
 ## Polyline (from a bounding box)
 
-This composable is a convenience function that draws a rectangular polyline outlining a given `GeoRectBounds`.
+This composable is a convenience function that draws a rectangular polyline outlining a given
+`GeoRectBounds`.
 
 ### Signature
 ```kotlin
@@ -100,19 +125,40 @@ fun MapViewScope.Polyline(
 ```
 
 ### Description
-This function simplifies the process of drawing a rectangle on the map. It takes a `GeoRectBounds` object and automatically generates the five points (four corners and a closing point) needed to draw a closed rectangular polyline.
+This function simplifies the process of drawing a rectangle on the map. It takes a `GeoRectBounds`
+object and automatically generates the five points (four corners and a closing point) needed to draw
+a closed rectangular polyline.
 
 ### Parameters
-| Parameter     | Type                      | Description                                                                                                                            |
-|---------------|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `bounds`      | `GeoRectBounds`           | **Required.** The geographical bounding box to be outlined by the polyline.                                                            |
-| `id`          | `String?`                 | An optional unique identifier for the polyline. Defaults to `null`.                                                                    |
-| `strokeColor` | `Color`                   | The color of the polyline. Defaults to `Color.Black`.                                                                                  |
-| `strokeWidth` | `Dp`                      | The width of the polyline stroke in density-independent pixels (`Dp`). Defaults to `1.dp`.                                             |
-| `geodesic`    | `Boolean`                 | If `true`, the segments of the polyline are drawn as geodesic curves. Defaults to `false`.                                             |
-| `zIndex`      | `Int`                     | The stacking order of this polyline relative to other map overlays. Polylines with higher `zIndex` values are drawn on top. Defaults to `0`. |
-| `extra`       | `Serializable?`           | Optional, extra serializable data to associate with the polyline. Defaults to `null`.                                                  |
-| `onClick`     | `OnPolylineEventHandler?` | A callback lambda that is invoked when the user clicks on the polyline. Defaults to `null`.                                            |
+- `bounds`
+    - Type: `GeoRectBounds`
+    - Description: **Required.** The geographical bounding box to be outlined by the polyline.
+- `id`
+    - Type: `String?`
+    - Description: An optional unique identifier for the polyline. Defaults to `null`.
+- `strokeColor`
+    - Type: `Color`
+    - Description: The color of the polyline. Defaults to `Color.Black`.
+- `strokeWidth`
+    - Type: `Dp`
+    - Description: The width of the polyline stroke in density-independent pixels (`Dp`). Defaults
+      to `1.dp`.
+- `geodesic`
+    - Type: `Boolean`
+    - Description: If `true`, the segments of the polyline are drawn as geodesic curves. Defaults to
+      `false`.
+- `zIndex`
+    - Type: `Int`
+    - Description: The stacking order of this polyline relative to other map overlays. Polylines
+      with higher `zIndex` values are drawn on top. Defaults to `0`.
+- `extra`
+    - Type: `Serializable?`
+    - Description: Optional, extra serializable data to associate with the polyline. Defaults to
+      `null`.
+- `onClick`
+    - Type: `OnPolylineEventHandler?`
+    - Description: A callback lambda that is invoked when the user clicks on the polyline. Defaults
+      to `null`.
 
 ### Example
 ```kotlin
@@ -152,12 +198,16 @@ fun MapViewScope.Polyline(state: PolylineState)
 ```
 
 ### Description
-This function is intended for more advanced use cases where you need to manage the entire state of a polyline as a single object. It handles the lifecycle of the polyline on the map, adding it when the composable enters the composition and removing it upon disposal. For most common scenarios, the other `Polyline` overloads are recommended.
+This function is intended for more advanced use cases where you need to manage the entire state of a
+polyline as a single object. It handles the lifecycle of the polyline on the map, adding it when the
+composable enters the composition and removing it upon disposal. For most common scenarios, the
+other `Polyline` overloads are recommended.
 
 ### Parameters
-| Parameter | Type          | Description                                                                                             |
-|-----------|---------------|---------------------------------------------------------------------------------------------------------|
-| `state`   | `PolylineState` | **Required.** A state object that encapsulates all properties of the polyline, including its geometry, appearance, and event handlers. |
+- `state`
+    - Type: `PolylineState`
+    - Description: **Required.** A state object that encapsulates all properties of the polyline,
+      including its geometry, appearance, and event handlers.
 
 ### Example
 ```kotlin

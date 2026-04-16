@@ -1,34 +1,44 @@
-Of course. Here is the high-quality SDK documentation for the provided code snippet.
+# `MarkerEntityInterface<ActualMarker>`
 
----
-
-### `MarkerEntityInterface<ActualMarker>`
-
-#### Signature
+## Signature
 
 ```kotlin
 interface MarkerEntityInterface<ActualMarker>
 ```
 
-#### Description
+## Description
 
-Defines the contract for a marker entity within the map system. This generic interface acts as a wrapper around a platform-specific marker object (`ActualMarker`), providing a consistent way to manage its state and lifecycle.
+Defines the contract for a marker entity within the map system. This generic interface acts as a
+wrapper around a platform-specific marker object (`ActualMarker`), providing a consistent way to
+manage its state and lifecycle.
 
-#### Properties
+## Properties
 
-| Property      | Type                  | Description                                                                                                                                    |
-| :------------ | :-------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
-| `marker`      | `ActualMarker?`       | The underlying, platform-specific marker object (e.g., a Google Maps `Marker`). It is `null` if the marker has not been created or has been removed. |
-| `state`       | `MarkerState`         | An immutable object representing the desired state of the marker, including its position, icon, anchor, etc.                                     |
-| `fingerPrint` | `MarkerFingerPrint`   | A unique identifier derived from the `state`. It is used internally to efficiently detect changes and optimize rendering.                         |
-| `visible`     | `Boolean`             | Controls the visibility of the marker on the map. Setting this to `false` hides the marker, and `true` shows it.                                 |
-| `isRendered`  | `Boolean`             | A flag indicating whether the marker is currently rendered on the map canvas.                                                                  |
+- `marker`
+    - Type: `ActualMarker?`
+    - Description: The underlying, platform-specific marker object (e.g., a Google Maps `Marker`).
+      It is `null` if the marker has not been created or has been removed.
+- `state`
+    - Type: `MarkerState`
+    - Description: An immutable object representing the desired state of the marker, including its
+      position, icon, anchor, etc.
+- `fingerPrint`
+    - Type: `MarkerFingerPrint`
+    - Description: A unique identifier derived from the `state`. It is used internally to
+      efficiently detect changes and optimize rendering.
+- `visible`
+    - Type: `Boolean`
+    - Description: Controls the visibility of the marker on the map. Setting this to `false` hides
+      the marker, and `true` shows it.
+- `isRendered`
+    - Type: `Boolean`
+    - Description: A flag indicating whether the marker is currently rendered on the map canvas.
 
 ---
 
-### `MarkerEntity<ActualMarker>`
+# `MarkerEntity<ActualMarker>`
 
-#### Signature
+## Signature
 
 ```kotlin
 class MarkerEntity<ActualMarker>(
@@ -39,22 +49,33 @@ class MarkerEntity<ActualMarker>(
 ) : MarkerEntityInterface<ActualMarker>
 ```
 
-#### Description
+## Description
 
-The default implementation of `MarkerEntityInterface`. This class encapsulates all the information required to manage a single marker on the map, including its platform-specific instance, its desired state, and its current visibility and render status.
+The default implementation of `MarkerEntityInterface`. This class encapsulates all the information
+required to manage a single marker on the map, including its platform-specific instance, its desired
+state, and its current visibility and render status.
 
-#### Parameters
+## Parameters
 
-| Parameter    | Type            | Description                                                                                                                            |
-| :----------- | :-------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
-| `marker`     | `ActualMarker?` | The actual marker object from the underlying map SDK. Can be `null` if the marker hasn't been instantiated yet.                          |
-| `state`      | `MarkerState`   | The state object containing all configuration for the marker (e.g., position, icon). The `fingerPrint` is automatically generated from this state. |
-| `visible`    | `Boolean`       | (Optional) The initial visibility of the marker. Defaults to `true`.                                                                   |
-| `isRendered` | `Boolean`       | (Optional) The initial rendered state of the marker. Defaults to `false`.                                                              |
+- `marker`
+    - Type: `ActualMarker?`
+    - Description: The actual marker object from the underlying map SDK. Can be `null` if the marker
+      hasn't been instantiated yet.
+- `state`
+    - Type: `MarkerState`
+    - Description: The state object containing all configuration for the marker (e.g., position,
+      icon). The `fingerPrint` is automatically generated from this state.
+- `visible`
+    - Type: `Boolean`
+    - Description: (Optional) The initial visibility of the marker. Defaults to `true`.
+- `isRendered`
+    - Type: `Boolean`
+    - Description: (Optional) The initial rendered state of the marker. Defaults to `false`.
 
-#### Example
+## Example
 
-This example demonstrates how to create and use a `MarkerEntity`. We'll assume the existence of `MapboxMarker` as our platform-specific marker type and a `MarkerState` object.
+This example demonstrates how to create and use a `MarkerEntity`. We'll assume the existence of
+`MapboxMarker` as our platform-specific marker type and a `MarkerState` object.
 
 ```kotlin
 // Assume these classes exist for context

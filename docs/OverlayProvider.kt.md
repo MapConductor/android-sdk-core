@@ -1,18 +1,18 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet, incorporating the feedback to add a comprehensive example and maintain a professional tone.
-
-***
-
-### `MapViewScope`
+# `MapViewScope`
 
 A scope that provides a declarative, composable context for defining map overlays.
 
-`MapViewScope` acts as a receiver for a content lambda within a map composable. It is responsible for collecting the state of all declared child overlays (such as markers, polylines, and polygons) and making them available for rendering.
+`MapViewScope` acts as a receiver for a content lambda within a map composable. It is responsible
+for collecting the state of all declared child overlays (such as markers, polylines, and polygons)
+and making them available for rendering.
 
 #### Methods
 
 ##### `buildRegistry()`
 
-Creates and configures a `MapOverlayRegistry` containing all the overlay states collected within this scope. This registry is the central collection of all declared overlays and is essential for rendering them on the map.
+Creates and configures a `MapOverlayRegistry` containing all the overlay states collected within
+this scope. This registry is the central collection of all declared overlays and is essential for
+rendering them on the map.
 
 **Signature**
 ```kotlin
@@ -20,19 +20,23 @@ fun buildRegistry(): MapOverlayRegistry
 ```
 
 **Returns**
-| Type | Description |
-| :--- | :--- |
-| `MapOverlayRegistry` | An object containing flows for each type of map overlay, ready to be consumed by `CollectAndRenderOverlays`. |
+- Type: `MapOverlayRegistry`
+- Description: An object containing flows for each type of map overlay, ready to be consumed by
+  `CollectAndRenderOverlays`.
 
 ***
 
 ### `CollectAndRenderOverlays`
 
-A composable function that bridges the declarative overlay definitions with the imperative map controller.
+A composable function that bridges the declarative overlay definitions with the imperative map
+controller.
 
-This function observes the state of all overlays registered in the `MapOverlayRegistry`. When an overlay's state changes, it uses the provided `MapViewControllerInterface` to execute the necessary rendering commands (add, update, or remove) on the underlying native map view.
+This function observes the state of all overlays registered in the `MapOverlayRegistry`. When an
+overlay's state changes, it uses the provided `MapViewControllerInterface` to execute the necessary
+rendering commands (add, update, or remove) on the underlying native map view.
 
-It should be placed within the same composable that hosts the native map view and manages the `MapViewControllerInterface`.
+It should be placed within the same composable that hosts the native map view and manages the
+`MapViewControllerInterface`.
 
 **Signature**
 ```kotlin
@@ -45,18 +49,25 @@ fun CollectAndRenderOverlays(
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `registry` | `MapOverlayRegistry` | The registry of all declared overlays, typically obtained by calling `MapViewScope.buildRegistry()`. |
-| `controller` | `MapViewControllerInterface` | The controller that interacts with the underlying native map view to perform rendering operations. |
+- `registry`
+    - Type: `MapOverlayRegistry`
+    - Description: The registry of all declared overlays, typically obtained by calling
+      `MapViewScope.buildRegistry()`.
+- `controller`
+    - Type: `MapViewControllerInterface`
+    - Description: The controller that interacts with the underlying native map view to perform
+      rendering operations.
 
 ***
 
 ### Example
 
-The following example demonstrates how to use `MapViewScope` and `CollectAndRenderOverlays` together to create a declarative map component.
+The following example demonstrates how to use `MapViewScope` and `CollectAndRenderOverlays` together
+to create a declarative map component.
 
-First, we define a wrapper composable, `MapView`, which sets up the scope and handles rendering. Users of this component can then declaratively add overlays like `Marker` and `Polyline` inside its content lambda.
+First, we define a wrapper composable, `MapView`, which sets up the scope and handles rendering.
+Users of this component can then declaratively add overlays like `Marker` and `Polyline` inside its
+content lambda.
 
 ```kotlin
 import androidx.compose.runtime.Composable
@@ -96,10 +107,10 @@ fun MapView(
         factory = { context ->
             // Create and configure the native MapView from the map SDK
             val nativeMapView = com.google.android.gms.maps.MapView(context)
-            
+
             // Attach the controller to the native view
             // mapController.attach(nativeMapView)
-            
+
             nativeMapView
         },
         update = { /* Handle view updates if necessary */ }

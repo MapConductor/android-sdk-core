@@ -1,8 +1,4 @@
-Excellent! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
----
-
-### `debounceBatch<T>`
+# `debounceBatch<T>`
 
 **Signature**
 ```kotlin
@@ -15,30 +11,38 @@ fun <T> Flow<T>.debounceBatch(
 
 **Description**
 
-Collects items from the source `Flow` and emits them as batches (lists). This operator is an extension function on `Flow<T>`.
+Collects items from the source `Flow` and emits them as batches (lists). This operator is an
+extension function on `Flow<T>`.
 
 A batch is emitted when either of these two conditions is met:
 1.  A time window of `window` duration passes without any new items being received.
 2.  The number of collected items in the current batch reaches `maxSize`.
 
-This is particularly useful for improving efficiency by grouping a burst of frequent emissions into a single, larger chunk before performing an operation like a network request or a database write.
+This is particularly useful for improving efficiency by grouping a burst of frequent emissions into
+a single, larger chunk before performing an operation like a network request or a database write.
 
-If the source flow completes, any remaining buffered items are emitted as a final batch before the downstream flow completes.
+If the source flow completes, any remaining buffered items are emitted as a final batch before the
+downstream flow completes.
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `window` | `Duration` | The duration of inactivity after which the current batch of items is emitted. |
-| `maxSize` | `Int` | The maximum number of items to collect in a batch. When the batch size reaches this limit, it is emitted immediately. Must be greater than 0. |
+- `window`
+    - Type: `Duration`
+    - Description: The duration of inactivity after which the current batch of items is emitted.
+- `maxSize`
+    - Type: `Int`
+    - Description: The maximum number of items to collect in a batch. When the batch size reaches
+      this limit, it is emitted immediately. Must be greater than 0.
 
 **Returns**
 
-A `Flow<List<T>>` that emits lists of items, where each list represents a batch collected from the source flow.
+A `Flow<List<T>>` that emits lists of items, where each list represents a batch collected from the
+source flow.
 
 **Example**
 
-The following example demonstrates how `debounceBatch` groups items based on both the time `window` and the `maxSize`.
+The following example demonstrates how `debounceBatch` groups items based on both the time `window`
+and the `maxSize`.
 
 ```kotlin
 import kotlinx.coroutines.*

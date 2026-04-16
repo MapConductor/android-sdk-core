@@ -2,9 +2,13 @@
 
 ### Description
 
-An abstract base class that provides a foundational implementation for rendering and managing polyline overlays on a map. This class implements the core logic for handling add, change, and remove operations by delegating the platform-specific rendering details to its subclasses.
+An abstract base class that provides a foundational implementation for rendering and managing
+polyline overlays on a map. This class implements the core logic for handling add, change, and
+remove operations by delegating the platform-specific rendering details to its subclasses.
 
-Developers should extend this class to create a concrete renderer for a specific map provider (e.g., Google Maps, Mapbox). Subclasses are required to implement the abstract methods for creating, updating, and removing the actual polyline objects on the map.
+Developers should extend this class to create a concrete renderer for a specific map provider (e.g.,
+Google Maps, Mapbox). Subclasses are required to implement the abstract methods for creating,
+updating, and removing the actual polyline objects on the map.
 
 ### Signature
 
@@ -16,10 +20,13 @@ abstract class AbstractPolylineOverlayRenderer<ActualPolyline> : PolylineOverlay
 
 Subclasses must provide implementations for the following properties.
 
-| Property | Type | Description |
-|---|---|---|
-| `holder` | `MapViewHolderInterface<*, *>` | The map view holder instance that this renderer is associated with. |
-| `coroutine` | `CoroutineScope` | The coroutine scope used for launching suspend functions and managing their lifecycle. |
+- `holder`
+    - Type: `MapViewHolderInterface<*, *>`
+    - Description: The map view holder instance that this renderer is associated with.
+- `coroutine`
+    - Type: `CoroutineScope`
+    - Description: The coroutine scope used for launching suspend functions and managing their
+      lifecycle.
 
 ---
 
@@ -37,14 +44,13 @@ abstract suspend fun createPolyline(state: PolylineState): ActualPolyline?
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|---|---|---|
-| `state` | `PolylineState` | The initial state (e.g., points, color, width) for the new polyline. |
+- `state`
+    - Type: `PolylineState`
+    - Description: The initial state (e.g., points, color, width) for the new polyline.
 
 **Returns**
-| Type | Description |
-|---|---|
-| `ActualPolyline?` | The newly created platform-specific polyline object, or `null` if creation fails. |
+- Type: `ActualPolyline?`
+- Description: The newly created platform-specific polyline object, or `null` if creation fails.
 
 ---
 
@@ -62,16 +68,19 @@ abstract suspend fun updatePolylineProperties(
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|---|---|---|
-| `polyline` | `ActualPolyline` | The native polyline object to be updated. |
-| `current` | `PolylineEntityInterface<ActualPolyline>` | The entity containing the new, updated state of the polyline. |
-| `prev` | `PolylineEntityInterface<ActualPolyline>` | The entity containing the previous state of the polyline, for comparison. |
+- `polyline`
+    - Type: `ActualPolyline`
+    - Description: The native polyline object to be updated.
+- `current`
+    - Type: `PolylineEntityInterface<ActualPolyline>`
+    - Description: The entity containing the new, updated state of the polyline.
+- `prev`
+    - Type: `PolylineEntityInterface<ActualPolyline>`
+    - Description: The entity containing the previous state of the polyline, for comparison.
 
 **Returns**
-| Type | Description |
-|---|---|
-| `ActualPolyline?` | The updated polyline object, or `null` if the update fails. |
+- Type: `ActualPolyline?`
+- Description: The updated polyline object, or `null` if the update fails.
 
 ---
 
@@ -85,9 +94,10 @@ abstract suspend fun removePolyline(entity: PolylineEntityInterface<ActualPolyli
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|---|---|---|
-| `entity` | `PolylineEntityInterface<ActualPolyline>` | The polyline entity to be removed. Its `polyline` property contains the native object to remove. |
+- `entity`
+    - Type: `PolylineEntityInterface<ActualPolyline>`
+    - Description: The polyline entity to be removed. Its `polyline` property contains the native
+      object to remove.
 
 ---
 
@@ -95,7 +105,9 @@ abstract suspend fun removePolyline(entity: PolylineEntityInterface<ActualPolyli
 
 #### onPostProcess
 
-A lifecycle hook called after a batch of add, change, or remove operations has been processed. This method can be overridden to perform custom actions, such as refreshing the map view. The default implementation is empty.
+A lifecycle hook called after a batch of add, change, or remove operations has been processed. This
+method can be overridden to perform custom actions, such as refreshing the map view. The default
+implementation is empty.
 
 **Signature**
 ```kotlin
@@ -106,7 +118,8 @@ override suspend fun onPostProcess()
 
 #### onAdd
 
-Handles the addition of new polylines. This method iterates through the list of `AddParamsInterface` and calls the abstract `createPolyline` method for each item.
+Handles the addition of new polylines. This method iterates through the list of `AddParamsInterface`
+and calls the abstract `createPolyline` method for each item.
 
 **Signature**
 ```kotlin
@@ -116,20 +129,21 @@ override suspend fun onAdd(
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|---|---|---|
-| `data` | `List<PolylineOverlayRendererInterface.AddParamsInterface>` | A list of parameters for the polylines to be added. |
+- `data`
+    - Type: `List<PolylineOverlayRendererInterface.AddParamsInterface>`
+    - Description: A list of parameters for the polylines to be added.
 
 **Returns**
-| Type | Description |
-|---|---|
-| `List<ActualPolyline?>` | A list containing the newly created `ActualPolyline` objects, with `null` for any that failed to be created. |
+- Type: `List<ActualPolyline?>`
+- Description: A list containing the newly created `ActualPolyline` objects, with `null` for any
+  that failed to be created.
 
 ---
 
 #### onChange
 
-Handles changes to existing polylines. This method iterates through the list of `ChangeParamsInterface` and calls the abstract `updatePolylineProperties` method for each item.
+Handles changes to existing polylines. This method iterates through the list of
+`ChangeParamsInterface` and calls the abstract `updatePolylineProperties` method for each item.
 
 **Signature**
 ```kotlin
@@ -139,20 +153,21 @@ override suspend fun onChange(
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|---|---|---|
-| `data` | `List<PolylineOverlayRendererInterface.ChangeParamsInterface<ActualPolyline>>` | A list of parameters describing the changes for each polyline. |
+- `data`
+    - Type: `List<PolylineOverlayRendererInterface.ChangeParamsInterface<ActualPolyline>>`
+    - Description: A list of parameters describing the changes for each polyline.
 
 **Returns**
-| Type | Description |
-|---|---|
-| `List<ActualPolyline?>` | A list containing the updated `ActualPolyline` objects, with `null` for any that failed to be updated. |
+- Type: `List<ActualPolyline?>`
+- Description: A list containing the updated `ActualPolyline` objects, with `null` for any that
+  failed to be updated.
 
 ---
 
 #### onRemove
 
-Handles the removal of polylines. This method iterates through the list of `PolylineEntityInterface` and calls the abstract `removePolyline` method for each item.
+Handles the removal of polylines. This method iterates through the list of `PolylineEntityInterface`
+and calls the abstract `removePolyline` method for each item.
 
 **Signature**
 ```kotlin
@@ -160,15 +175,16 @@ override suspend fun onRemove(data: List<PolylineEntityInterface<ActualPolyline>
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|---|---|---|
-| `data` | `List<PolylineEntityInterface<ActualPolyline>>` | A list of polyline entities to be removed from the map. |
+- `data`
+    - Type: `List<PolylineEntityInterface<ActualPolyline>>`
+    - Description: A list of polyline entities to be removed from the map.
 
 ---
 
 ### Example
 
-Here is an example of how to create a concrete renderer for a hypothetical `CustomMapPolyline` object.
+Here is an example of how to create a concrete renderer for a hypothetical `CustomMapPolyline`
+object.
 
 ```kotlin
 // Assume CustomMapPolyline is the native polyline class for a specific map SDK

@@ -1,12 +1,4 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
-***
-
-## Package `com.mapconductor.core`
-
-This document provides an overview of utility functions available in the `com.mapconductor.core` package.
-
-### `printPoints`
+# `printPoints`
 
 #### Signature
 ```kotlin
@@ -17,13 +9,18 @@ fun printPoints(
 ```
 
 #### Description
-Logs a list of geographic points to the Android Logcat for debugging purposes. It first logs a separator line, then iterates through the provided list. Each point is converted to its URL-safe string representation using `GeoPoint.from(point).toUrlValue()` before being logged with a `DEBUG` level.
+Logs a list of geographic points to the Android Logcat for debugging purposes. It first logs a
+separator line, then iterates through the provided list. Each point is converted to its URL-safe
+string representation using `GeoPoint.from(point).toUrlValue()` before being logged with a `DEBUG`
+level.
 
 #### Parameters
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `tag` | `String` | The tag to use for the log messages in Logcat. |
-| `points` | `List<GeoPointInterface>` | A list of geographic point objects to be printed. |
+- `tag`
+    - Type: `String`
+    - Description: The tag to use for the log messages in Logcat.
+- `points`
+    - Type: `List<GeoPointInterface>`
+    - Description: A list of geographic point objects to be printed.
 
 #### Returns
 This function does not return a value.
@@ -55,19 +52,21 @@ fun calculateZIndex(geoPointBase: GeoPointInterface): Int
 ```
 
 #### Description
-Calculates a Z-index integer value for a geographic point. The calculation is designed to create a visual sense of depth on a 2D map, where points further south appear "in front" (higher Z-index) and points further north appear "in the back" (lower Z-index). For points at the same latitude, points further west are given priority (a higher Z-index) to appear in front.
+Calculates a Z-index integer value for a geographic point. The calculation is designed to create a
+visual sense of depth on a 2D map, where points further south appear "in front" (higher Z-index) and
+points further north appear "in the back" (lower Z-index). For points at the same latitude, points
+further west are given priority (a higher Z-index) to appear in front.
 
 The formula used is: `(-latitude * 1,000,000 - longitude).roundToInt()`
 
 #### Parameters
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `geoPointBase` | `GeoPointInterface` | The geographic point for which to calculate the Z-index. |
+- `geoPointBase`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point for which to calculate the Z-index.
 
 #### Returns
-| Type | Description |
-| :--- | :--- |
-| `Int` | The calculated Z-index value. |
+- Type: `Int`
+- Description: The calculated Z-index value.
 
 #### Example
 ```kotlin
@@ -77,7 +76,7 @@ val point = GeoPoint(latitude = 35.681236, longitude = 139.767125)
 val zIndex = calculateZIndex(point)
 
 // zIndex will be -35821003
-println(zIndex) 
+println(zIndex)
 ```
 
 ### `normalizeLng`
@@ -88,17 +87,18 @@ fun normalizeLng(lng: Double): Double
 ```
 
 #### Description
-Normalizes a given longitude value to ensure it falls within the standard geographical range of `[-180.0, 180.0]`. This is useful for correcting longitude values that may have wrapped around during map panning or other calculations.
+Normalizes a given longitude value to ensure it falls within the standard geographical range of
+`[-180.0, 180.0]`. This is useful for correcting longitude values that may have wrapped around
+during map panning or other calculations.
 
 #### Parameters
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `lng` | `Double` | The longitude value to be normalized. |
+- `lng`
+    - Type: `Double`
+    - Description: The longitude value to be normalized.
 
 #### Returns
-| Type | Description |
-| :--- | :--- |
-| `Double` | The normalized longitude value, guaranteed to be within the range `[-180.0, 180.0]`. |
+- Type: `Double`
+- Description: The normalized longitude value, guaranteed to be within the range `[-180.0, 180.0]`.
 
 #### Example
 ```kotlin

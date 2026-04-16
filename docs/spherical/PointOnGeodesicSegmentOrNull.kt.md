@@ -13,22 +13,36 @@ fun pointOnGeodesicSegmentOrNull(
 
 ## Description
 
-Calculates the closest point on a geodesic line segment to a given reference point. The geodesic path is determined on the WGS84 ellipsoid.
+Calculates the closest point on a geodesic line segment to a given reference point. The geodesic
+path is determined on the WGS84 ellipsoid.
 
-The function identifies the point on the segment (between `from` and `to`) that is nearest to the `position`. If the distance from `position` to this nearest point is within the specified `thresholdMeters`, the function returns a `Pair` containing the calculated point and the distance in meters.
+The function identifies the point on the segment (between `from` and `to`) that is nearest to the
+`position`. If the distance from `position` to this nearest point is within the specified
+`thresholdMeters`, the function returns a `Pair` containing the calculated point and the distance in
+meters.
 
-If the minimum distance to the segment is greater than `thresholdMeters`, the function returns `null`.
+If the minimum distance to the segment is greater than `thresholdMeters`, the function returns
+`null`.
 
-The altitude of the resulting point is linearly interpolated based on its fractional distance along the segment. If altitude is only available for one endpoint, that altitude is used. If neither endpoint has an altitude, it defaults to `0.0`.
+The altitude of the resulting point is linearly interpolated based on its fractional distance along
+the segment. If altitude is only available for one endpoint, that altitude is used. If neither
+endpoint has an altitude, it defaults to `0.0`.
 
 ## Parameters
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `from` | `GeoPointInterface` | The starting point of the geodesic segment. |
-| `to` | `GeoPointInterface` | The ending point of the geodesic segment. |
-| `position` | `GeoPointInterface` | The reference point from which to find the closest point on the segment. |
-| `thresholdMeters` | `Double` | The maximum allowed distance in meters. If the closest point is further than this value, the function returns `null`. |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting point of the geodesic segment.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending point of the geodesic segment.
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The reference point from which to find the closest point on the segment.
+- `thresholdMeters`
+    - Type: `Double`
+    - Description: The maximum allowed distance in meters. If the closest point is further than this
+      value, the function returns `null`.
 
 ## Returns
 

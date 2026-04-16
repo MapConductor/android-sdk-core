@@ -1,4 +1,4 @@
-### `expandBounds`
+# `expandBounds`
 
 #### Signature
 
@@ -8,22 +8,28 @@ fun expandBounds(bounds: GeoRectBounds, margin: Double): GeoRectBounds
 
 #### Description
 
-Calculates a new `GeoRectBounds` by expanding the given `bounds` by a specified margin factor. The expansion is proportional to the original dimensions (latitude and longitude span) and is applied outward from the center of the bounds.
+Calculates a new `GeoRectBounds` by expanding the given `bounds` by a specified margin factor. The
+expansion is proportional to the original dimensions (latitude and longitude span) and is applied
+outward from the center of the bounds.
 
-If the input `bounds` are empty or if their center or span cannot be determined, the original `bounds` object is returned unmodified.
+If the input `bounds` are empty or if their center or span cannot be determined, the original
+`bounds` object is returned unmodified.
 
 #### Parameters
 
-| Parameter | Type            | Description                                                                                                                            |
-|-----------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `bounds`  | `GeoRectBounds` | The original rectangular geographic bounds to expand.                                                                                  |
-| `margin`  | `Double`        | The proportional factor to expand the bounds. For example, a value of `0.1` increases the total width and height by 10% (5% on each side). |
+- `bounds`
+    - Type: `GeoRectBounds`
+    - Description: The original rectangular geographic bounds to expand.
+- `margin`
+    - Type: `Double`
+    - Description: The proportional factor to expand the bounds. For example, a value of `0.1`
+      increases the total width and height by 10% (5% on each side).
 
 #### Returns
 
-| Type            | Description                                                                                                                            |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `GeoRectBounds` | A new `GeoRectBounds` instance representing the expanded area, or the original `bounds` if they could not be expanded (e.g., if empty). |
+- Type: `GeoRectBounds`
+- Description: A new `GeoRectBounds` instance representing the expanded area, or the original
+  `bounds` if they could not be expanded (e.g., if empty).
 
 #### Example
 

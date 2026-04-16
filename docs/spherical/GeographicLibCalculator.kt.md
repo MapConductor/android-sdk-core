@@ -1,10 +1,10 @@
-# SDK Documentation: GeographicLibCalculator
-
-## `GeographicLibCalculator`
+# `GeographicLibCalculator`
 
 ### Description
 
-A utility object that provides geodesic calculations using the GeographicLib library, based on the WGS84 ellipsoid. It offers methods for computing distances and interpolating points along a geodesic path.
+A utility object that provides geodesic calculations using the GeographicLib library, based on the
+WGS84 ellipsoid. It offers methods for computing distances and interpolating points along a geodesic
+path.
 
 ---
 
@@ -27,10 +27,12 @@ Calculates the shortest distance (geodesic) between two geographical points on t
 
 #### Parameters
 
-| Parameter | Type                | Description                  |
-| :-------- | :------------------ | :--------------------------- |
-| `from`    | `GeoPointInterface` | The starting geographical point. |
-| `to`      | `GeoPointInterface` | The ending geographical point.   |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting geographical point.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending geographical point.
 
 #### Returns
 
@@ -71,7 +73,8 @@ fun interpolate(
 
 #### Description
 
-Calculates an intermediate point along the geodesic line between two given points. The position of the intermediate point is determined by a fraction of the total distance.
+Calculates an intermediate point along the geodesic line between two given points. The position of
+the intermediate point is determined by a fraction of the total distance.
 
 The altitude of the resulting point is interpolated as follows:
 - If both `from` and `to` have an altitude, the new altitude is linearly interpolated.
@@ -80,17 +83,23 @@ The altitude of the resulting point is interpolated as follows:
 
 #### Parameters
 
-| Parameter  | Type                | Description                                                                                             |
-| :--------- | :------------------ | :------------------------------------------------------------------------------------------------------ |
-| `from`     | `GeoPointInterface` | The starting geographical point.                                                                        |
-| `to`       | `GeoPointInterface` | The ending geographical point.                                                                          |
-| `fraction` | `Double`            | The fractional distance from the `from` point towards the `to` point. A value of `0.0` returns the `from` point, and `1.0` returns the `to` point. |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting geographical point.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending geographical point.
+- `fraction`
+    - Type: `Double`
+    - Description: The fractional distance from the `from` point towards the `to` point. A value of
+      `0.0` returns the `from` point, and `1.0` returns the `to` point.
 
 #### Returns
 
 **`GeoPoint`**
 
-A new `GeoPoint` object representing the interpolated point, including the calculated latitude, longitude, and altitude.
+A new `GeoPoint` object representing the interpolated point, including the calculated latitude,
+longitude, and altitude.
 
 #### Example
 

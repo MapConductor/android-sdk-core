@@ -1,10 +1,8 @@
-Excellent. Here is the high-quality SDK documentation for the provided code snippet.
-
-***
-
 # Polygon SDK Documentation
 
-This document provides detailed documentation for the `PolygonState` class and its related components, which are used to manage and display polygons on a map within the MapConductor ecosystem.
+This document provides detailed documentation for the `PolygonState` class and its related
+components, which are used to manage and display polygons on a map within the MapConductor
+ecosystem.
 
 ## `PolygonState`
 
@@ -14,25 +12,63 @@ class PolygonState(...) : ComponentState
 ```
 
 ### Description
-The `PolygonState` class is a state holder that defines the properties and behavior of a single polygon on the map. It is designed to be used in a reactive environment like Jetpack Compose, where changes to its properties will automatically trigger UI updates.
+The `PolygonState` class is a state holder that defines the properties and behavior of a single
+polygon on the map. It is designed to be used in a reactive environment like Jetpack Compose, where
+changes to its properties will automatically trigger UI updates.
 
-This class encapsulates all aspects of a polygon, including its geometry (vertices and holes), visual appearance (colors and stroke width), and interactivity (click handling).
+This class encapsulates all aspects of a polygon, including its geometry (vertices and holes),
+visual appearance (colors and stroke width), and interactivity (click handling).
 
 ### Parameters
 The `PolygonState` is initialized with the following parameters:
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `points` | `List<GeoPointInterface>` | - | A list of geographical points that define the outer boundary of the polygon. The list should represent a closed loop (the first and last points should be the same). |
-| `holes` | `List<List<GeoPointInterface>>` | `emptyList()` | A list of inner boundaries (holes). Each inner list represents a separate hole and must be a closed loop of points. |
-| `id` | `String?` | `null` | An optional unique identifier for the polygon. If `null`, a stable ID is automatically generated based on the polygon's properties. |
-| `strokeColor` | `Color` | `Color.Black` | The color of the polygon's outline. |
-| `strokeWidth` | `Dp` | `2.dp` | The width of the polygon's outline. |
-| `fillColor` | `Color` | `Color.Transparent` | The color used to fill the area of the polygon. |
-| `geodesic` | `Boolean` | `false` | If `true`, the polygon's edges are drawn as geodesic lines, which follow the curvature of the Earth. If `false`, edges are drawn as straight lines on the map's 2D projection. |
-| `zIndex` | `Int` | `0` | The drawing order of the polygon relative to other map overlays. Polygons with a higher `zIndex` are drawn on top of those with a lower `zIndex`. |
-| `extra` | `Serializable?` | `null` | Optional, user-defined data that can be associated with the polygon. This data must be serializable. |
-| `onClick` | `OnPolygonEventHandler?` | `null` | A callback lambda function that is invoked when the user clicks on the polygon. It receives a `PolygonEvent` object. |
+- `points`
+    - Type: `List<GeoPointInterface>`
+    - Description: A list of geographical points that define the outer boundary of the polygon. The
+      list should represent a closed loop (the first and last points should be the same).
+- `holes`
+    - Type: `List<List<GeoPointInterface>>`
+    - Default: `emptyList()`
+    - Description: A list of inner boundaries (holes). Each inner list represents a separate hole
+      and must be a closed loop of points.
+- `id`
+    - Type: `String?`
+    - Default: `null`
+    - Description: An optional unique identifier for the polygon. If `null`, a stable ID is
+      automatically generated based on the polygon's properties.
+- `strokeColor`
+    - Type: `Color`
+    - Default: `Color.Black`
+    - Description: The color of the polygon's outline.
+- `strokeWidth`
+    - Type: `Dp`
+    - Default: `2.dp`
+    - Description: The width of the polygon's outline.
+- `fillColor`
+    - Type: `Color`
+    - Default: `Color.Transparent`
+    - Description: The color used to fill the area of the polygon.
+- `geodesic`
+    - Type: `Boolean`
+    - Default: `false`
+    - Description: If `true`, the polygon's edges are drawn as geodesic lines, which follow the
+      curvature of the Earth. If `false`, edges are drawn as straight lines on the map's 2D
+      projection.
+- `zIndex`
+    - Type: `Int`
+    - Default: `0`
+    - Description: The drawing order of the polygon relative to other map overlays. Polygons with a
+      higher `zIndex` are drawn on top of those with a lower `zIndex`.
+- `extra`
+    - Type: `Serializable?`
+    - Default: `null`
+    - Description: Optional, user-defined data that can be associated with the polygon. This data
+      must be serializable.
+- `onClick`
+    - Type: `OnPolygonEventHandler?`
+    - Default: `null`
+    - Description: A callback lambda function that is invoked when the user clicks on the polygon.
+      It receives a `PolygonEvent` object.
 
 ---
 
@@ -58,7 +94,9 @@ fun copy(
 ```
 
 #### Description
-This function creates a shallow copy of the `PolygonState` object. You can override any of the existing properties by providing new values as arguments. This is useful for creating a new state based on an existing one without modifying the original.
+This function creates a shallow copy of the `PolygonState` object. You can override any of the
+existing properties by providing new values as arguments. This is useful for creating a new state
+based on an existing one without modifying the original.
 
 #### Returns
 A new `PolygonState` instance with the updated properties.
@@ -74,7 +112,10 @@ fun asFlow(): Flow<PolygonFingerPrint>
 ```
 
 #### Description
-This function provides a reactive stream of the polygon's state. It returns a `Flow` that emits a `PolygonFingerPrint` whenever any property of the `PolygonState` changes. The flow is configured with `distinctUntilChanged()`, ensuring that emissions only occur when the fingerprint is actually different from the previous one. This is highly efficient for observing state changes.
+This function provides a reactive stream of the polygon's state. It returns a `Flow` that emits a
+`PolygonFingerPrint` whenever any property of the `PolygonState` changes. The flow is configured
+with `distinctUntilChanged()`, ensuring that emissions only occur when the fingerprint is actually
+different from the previous one. This is highly efficient for observing state changes.
 
 #### Returns
 A `Flow<PolygonFingerPrint>` that emits a new value upon a state change.
@@ -95,10 +136,13 @@ data class PolygonEvent(
 ```
 
 #### Properties
-| Property | Type | Description |
-|---|---|---|
-| `state` | `PolygonState` | The `PolygonState` of the polygon that was clicked. |
-| `clicked` | `GeoPointInterface` | The specific geographical coordinate (`GeoPointInterface`) on the polygon where the click occurred. |
+- `state`
+    - Type: `PolygonState`
+    - Description: The `PolygonState` of the polygon that was clicked.
+- `clicked`
+    - Type: `GeoPointInterface`
+    - Description: The specific geographical coordinate (`GeoPointInterface`) on the polygon where
+      the click occurred.
 
 ---
 
@@ -111,7 +155,8 @@ typealias OnPolygonEventHandler = (PolygonEvent) -> Unit
 ```
 
 #### Description
-This defines the signature for a function that handles polygon click events. It takes a single `PolygonEvent` parameter and returns `Unit`.
+This defines the signature for a function that handles polygon click events. It takes a single
+`PolygonEvent` parameter and returns `Unit`.
 
 ---
 
@@ -134,13 +179,16 @@ data class PolygonFingerPrint(
 ```
 
 #### Description
-This class holds a collection of hash codes representing the properties of a `PolygonState`. It is used internally by the `asFlow()` method to efficiently determine if the polygon's state has changed. Developers typically do not need to interact with this class directly.
+This class holds a collection of hash codes representing the properties of a `PolygonState`. It is
+used internally by the `asFlow()` method to efficiently determine if the polygon's state has
+changed. Developers typically do not need to interact with this class directly.
 
 ---
 
 ## Example
 
-The following example demonstrates how to create a `PolygonState`, handle click events, and use the `copy()` method to create a modified version.
+The following example demonstrates how to create a `PolygonState`, handle click events, and use the
+`copy()` method to create a modified version.
 
 ```kotlin
 import androidx.compose.ui.graphics.Color

@@ -1,6 +1,8 @@
 # SDK Documentation
 
-This document provides details on the `CompositionLocal` providers available within the MapConductor SDK for Jetpack Compose. These locals are essential for interacting with the map and its components from within your custom composables.
+This document provides details on the `CompositionLocal` providers available within the MapConductor
+SDK for Jetpack Compose. These locals are essential for interacting with the map and its components
+from within your custom composables.
 
 ---
 
@@ -16,19 +18,23 @@ val LocalMapOverlayRegistry: CompositionLocal<MapOverlayRegistry>
 
 ### Description
 
-This `CompositionLocal` provides access to the `MapOverlayRegistry` instance associated with the current `MapView`. The registry is the primary mechanism for adding, removing, and managing map overlays (like markers, polylines, and polygons) declaratively within your composable hierarchy.
+This `CompositionLocal` provides access to the `MapOverlayRegistry` instance associated with the
+current `MapView`. The registry is the primary mechanism for adding, removing, and managing map
+overlays (like markers, polylines, and polygons) declaratively within your composable hierarchy.
 
-**Important:** Any composable that accesses `LocalMapOverlayRegistry.current` must be a descendant of a `<MapView />` component in the UI tree. Accessing it outside of a `MapView`'s composition scope will throw a runtime `error`.
+**Important:** Any composable that accesses `LocalMapOverlayRegistry.current` must be a descendant
+of a `<MapView />` component in the UI tree. Accessing it outside of a `MapView`'s composition scope
+will throw a runtime `error`.
 
 ### Returns
 
-| Type | Description |
-| --- | --- |
-| `MapOverlayRegistry` | The `MapOverlayRegistry` instance for the current map scope. |
+- Type: `MapOverlayRegistry`
+- Description: The `MapOverlayRegistry` instance for the current map scope.
 
 ### Example
 
-The following example demonstrates how to create a custom composable that accesses the `MapOverlayRegistry` to add a new overlay to the map.
+The following example demonstrates how to create a custom composable that accesses the
+`MapOverlayRegistry` to add a new overlay to the map.
 
 ```kotlin
 import androidx.compose.runtime.Composable
@@ -74,19 +80,23 @@ val LocalMapViewController: CompositionLocal<MapViewControllerInterface>
 
 ### Description
 
-This `CompositionLocal` provides access to the `MapViewControllerInterface` for the current `MapView`. The controller is used to programmatically manipulate the map's view, such as animating the camera to a new location, changing the zoom level, or updating the map's tilt and bearing.
+This `CompositionLocal` provides access to the `MapViewControllerInterface` for the current
+`MapView`. The controller is used to programmatically manipulate the map's view, such as animating
+the camera to a new location, changing the zoom level, or updating the map's tilt and bearing.
 
-**Important:** This local must be accessed from within the composition scope of a `<MapView />` component. Attempting to access `LocalMapViewController.current` elsewhere will result in a runtime `error`.
+**Important:** This local must be accessed from within the composition scope of a `<MapView />`
+component. Attempting to access `LocalMapViewController.current` elsewhere will result in a runtime
+`error`.
 
 ### Returns
 
-| Type | Description |
-| --- | --- |
-| `MapViewControllerInterface` | The controller instance for manipulating the current map view. |
+- Type: `MapViewControllerInterface`
+- Description: The controller instance for manipulating the current map view.
 
 ### Example
 
-This example shows a button that, when clicked, uses the `MapViewControllerInterface` to animate the map camera to a specific geographic coordinate.
+This example shows a button that, when clicked, uses the `MapViewControllerInterface` to animate the
+map camera to a specific geographic coordinate.
 
 ```kotlin
 import androidx.compose.material.Button

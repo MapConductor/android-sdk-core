@@ -1,10 +1,9 @@
-Of course! Here is the high-quality SDK documentation for the provided `MarkerManager` class.
-
 # MarkerManager SDK Documentation
 
 ## `MarkerManagerStats` Data Class
 
-Provides memory usage statistics for a `MarkerManager` instance, useful for debugging and performance optimization.
+Provides memory usage statistics for a `MarkerManager` instance, useful for debugging and
+performance optimization.
 
 ### Signature
 ```kotlin
@@ -18,26 +17,38 @@ data class MarkerManagerStats(
 
 ### Parameters
 
-| Parameter                 | Type    | Description                                                                 |
-| ------------------------- | ------- | --------------------------------------------------------------------------- |
-| `entityCount`             | `Int`   | The total number of marker entities currently stored in the manager.        |
-| `hasSpatialIndex`         | `Boolean` | `true` if the spatial index has been created, `false` otherwise.            |
-| `spatialIndexInitialized` | `Boolean` | An alias for `hasSpatialIndex`.                                             |
-| `estimatedMemoryKB`       | `Long`  | A rough estimation of the memory consumed by the manager in kilobytes (KB). |
+- `entityCount`
+    - Type: `Int`
+    - Description: The total number of marker entities currently stored in the manager.
+- `hasSpatialIndex`
+    - Type: `Boolean`
+    - Description: `true` if the spatial index has been created, `false` otherwise.
+- `spatialIndexInitialized`
+    - Type: `Boolean`
+    - Description: An alias for `hasSpatialIndex`.
+- `estimatedMemoryKB`
+    - Type: `Long`
+    - Description: A rough estimation of the memory consumed by the manager in kilobytes (KB).
 
 ---
 
 ## `MarkerManager<ActualMarker>` Class
 
-A generic, thread-safe manager for collections of marker entities. It provides efficient storage and spatial querying capabilities.
+A generic, thread-safe manager for collections of marker entities. It provides efficient storage and
+spatial querying capabilities.
 
 ### Description
 
-`MarkerManager` is designed to handle a large number of markers on a map. It employs a performance optimization strategy: for small datasets (fewer than `minMarkerCount`), it uses simple brute-force searches. For larger datasets, it automatically creates and uses a spatial index (`HexCellRegistry`) to perform fast spatial queries like finding the nearest marker or markers within a specific area.
+`MarkerManager` is designed to handle a large number of markers on a map. It employs a performance
+optimization strategy: for small datasets (fewer than `minMarkerCount`), it uses simple brute-force
+searches. For larger datasets, it automatically creates and uses a spatial index (`HexCellRegistry`)
+to perform fast spatial queries like finding the nearest marker or markers within a specific area.
 
-This lazy initialization of the spatial index saves memory for use cases with a small number of markers. All operations that modify or access the internal collections are thread-safe.
+This lazy initialization of the spatial index saves memory for use cases with a small number of
+markers. All operations that modify or access the internal collections are thread-safe.
 
-The class is generic, where `ActualMarker` represents the concrete marker type of the specific map provider (e.g., `GoogleMap.Marker`, `Mapbox.Marker`).
+The class is generic, where `ActualMarker` represents the concrete marker type of the specific map
+provider (e.g., `GoogleMap.Marker`, `Mapbox.Marker`).
 
 ### Signature
 
@@ -50,10 +61,13 @@ open class MarkerManager<ActualMarker>(
 
 ### Parameters
 
-| Parameter        | Type                  | Description                                                                                                                            |
-| ---------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `geocell`        | `HexGeocellInterface` | The hexagonal geocelling system to use for the spatial index.                                                                          |
-| `minMarkerCount` | `Int`                 | The threshold for creating the spatial index. Spatial queries will use the index only if the number of entities exceeds this value. |
+- `geocell`
+    - Type: `HexGeocellInterface`
+    - Description: The hexagonal geocelling system to use for the spatial index.
+- `minMarkerCount`
+    - Type: `Int`
+    - Description: The threshold for creating the spatial index. Spatial queries will use the index
+      only if the number of entities exceeds this value.
 
 ---
 
@@ -73,10 +87,13 @@ companion object {
 ```
 
 #### Parameters
-| Parameter        | Type                  | Description                                                                                                                            |
-| ---------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `geocell`        | `HexGeocellInterface?` | The geocelling system to use. If `null`, `HexGeocell.defaultGeocell()` is used.                                                        |
-| `minMarkerCount` | `Int`                 | The entity count threshold to trigger the use of the spatial index. Defaults to `2000`.                                                |
+- `geocell`
+    - Type: `HexGeocellInterface?`
+    - Description: The geocelling system to use. If `null`, `HexGeocell.defaultGeocell()` is used.
+- `minMarkerCount`
+    - Type: `Int`
+    - Description: The entity count threshold to trigger the use of the spatial index. Defaults to
+      `2000`.
 
 #### Returns
 A new `MarkerManager<ActualMarker>` instance.
@@ -88,9 +105,11 @@ val markerManager = MarkerManager.defaultManager<MyMapMarker>()
 ```
 
 ### `lock`
-Acquires a write lock on the manager, preventing other threads from reading or writing. This is useful for performing bulk operations atomically.
+Acquires a write lock on the manager, preventing other threads from reading or writing. This is
+useful for performing bulk operations atomically.
 
-> **Note:** You must call `unlock()` to release the lock. Failing to do so will result in a deadlock.
+> **Note:** You must call `unlock()` to release the lock. Failing to do so will result in a
+deadlock.
 
 #### Signature
 ```kotlin
@@ -106,7 +125,8 @@ fun unlock()
 ```
 
 ### `registerEntity`
-Adds a new marker entity to the manager. The operation is thread-safe. If the spatial index has been initialized, the new entity is also added to it.
+Adds a new marker entity to the manager. The operation is thread-safe. If the spatial index has been
+initialized, the new entity is also added to it.
 
 #### Signature
 ```kotlin
@@ -114,12 +134,13 @@ open fun registerEntity(entity: MarkerEntityInterface<ActualMarker>)
 ```
 
 #### Parameters
-| Parameter | Type                                | Description                               |
-| --------- | ----------------------------------- | ----------------------------------------- |
-| `entity`  | `MarkerEntityInterface<ActualMarker>` | The marker entity to add to the manager. |
+- `entity`
+    - Type: `MarkerEntityInterface<ActualMarker>`
+    - Description: The marker entity to add to the manager.
 
 ### `updateEntity`
-Updates an existing entity in the manager. If the entity does not exist, it will be added. This operation is thread-safe.
+Updates an existing entity in the manager. If the entity does not exist, it will be added. This
+operation is thread-safe.
 
 #### Signature
 ```kotlin
@@ -127,9 +148,9 @@ open fun updateEntity(entity: MarkerEntityInterface<ActualMarker>)
 ```
 
 #### Parameters
-| Parameter | Type                                | Description                               |
-| --------- | ----------------------------------- | ----------------------------------------- |
-| `entity`  | `MarkerEntityInterface<ActualMarker>` | The marker entity to update or register. |
+- `entity`
+    - Type: `MarkerEntityInterface<ActualMarker>`
+    - Description: The marker entity to update or register.
 
 ### `removeEntity`
 Removes a marker entity from the manager by its unique ID.
@@ -140,9 +161,9 @@ open fun removeEntity(id: String): MarkerEntityInterface<ActualMarker>?
 ```
 
 #### Parameters
-| Parameter | Type     | Description                          |
-| --------- | -------- | ------------------------------------ |
-| `id`      | `String` | The unique ID of the entity to remove. |
+- `id`
+    - Type: `String`
+    - Description: The unique ID of the entity to remove.
 
 #### Returns
 The removed `MarkerEntityInterface<ActualMarker>` if it was found, otherwise `null`.
@@ -156,9 +177,9 @@ open fun getEntity(id: String): MarkerEntityInterface<ActualMarker>?
 ```
 
 #### Parameters
-| Parameter | Type     | Description                           |
-| --------- | -------- | ------------------------------------- |
-| `id`      | `String` | The unique ID of the entity to retrieve. |
+- `id`
+    - Type: `String`
+    - Description: The unique ID of the entity to retrieve.
 
 #### Returns
 The `MarkerEntityInterface<ActualMarker>` if found, otherwise `null`.
@@ -172,18 +193,21 @@ open fun hasEntity(id: String): Boolean
 ```
 
 #### Parameters
-| Parameter | Type     | Description                               |
-| --------- | -------- | ----------------------------------------- |
-| `id`      | `String` | The unique ID of the entity to check for. |
+- `id`
+    - Type: `String`
+    - Description: The unique ID of the entity to check for.
 
 #### Returns
 `true` if the entity exists, `false` otherwise.
 
 ### `findNearest`
-Finds the marker entity closest to a given geographic position. This method automatically chooses the most efficient search strategy.
+Finds the marker entity closest to a given geographic position. This method automatically chooses
+the most efficient search strategy.
 
-- **Spatial Index:** If the number of entities is greater than `minMarkerCount`, a spatial index is used for a fast search.
-- **Brute Force:** If the number of entities is small, a simple and efficient brute-force search is performed.
+- **Spatial Index:** If the number of entities is greater than `minMarkerCount`, a spatial index is
+  used for a fast search.
+- **Brute Force:** If the number of entities is small, a simple and efficient brute-force search is
+  performed.
 
 #### Signature
 ```kotlin
@@ -191,15 +215,16 @@ open fun findNearest(position: GeoPointInterface): MarkerEntityInterface<ActualM
 ```
 
 #### Parameters
-| Parameter  | Type                | Description                               |
-| ---------- | ------------------- | ----------------------------------------- |
-| `position` | `GeoPointInterface` | The geographic point to search around. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point to search around.
 
 #### Returns
 The nearest `MarkerEntityInterface<ActualMarker>` or `null` if the manager is empty.
 
 ### `findMarkersInBounds`
-Finds all marker entities that fall within a given geographic bounding box. This method also uses the spatial index for large datasets and brute-force for smaller ones to ensure optimal performance.
+Finds all marker entities that fall within a given geographic bounding box. This method also uses
+the spatial index for large datasets and brute-force for smaller ones to ensure optimal performance.
 
 #### Signature
 ```kotlin
@@ -209,9 +234,9 @@ fun findMarkersInBounds(
 ```
 
 #### Parameters
-| Parameter | Type                                         | Description                               |
-| --------- | -------------------------------------------- | ----------------------------------------- |
-| `bounds`  | `com.mapconductor.core.features.GeoRectBounds` | The rectangular geographic area to search within. |
+- `bounds`
+    - Type: `com.mapconductor.core.features.GeoRectBounds`
+    - Description: The rectangular geographic area to search within.
 
 #### Returns
 A `List` of all `MarkerEntityInterface<ActualMarker>` instances found inside the bounds.
@@ -236,9 +261,12 @@ open fun clear()
 ```
 
 ### `destroy`
-Releases all resources held by the `MarkerManager`, including clearing all entities and destroying the spatial index.
+Releases all resources held by the `MarkerManager`, including clearing all entities and destroying
+the spatial index.
 
-> **CRITICAL:** This method **must** be called when the `MarkerManager` is no longer needed to prevent memory leaks. After `destroy()` is called, any other method call will throw an `IllegalStateException`.
+> **CRITICAL:** This method **must** be called when the `MarkerManager` is no longer needed to
+prevent memory leaks. After `destroy()` is called, any other method call will throw an
+`IllegalStateException`.
 
 #### Signature
 ```kotlin
@@ -254,10 +282,12 @@ fun getMemoryStats(): MarkerManagerStats
 ```
 
 #### Returns
-A `MarkerManagerStats` object containing details about entity count, spatial index state, and estimated memory usage.
+A `MarkerManagerStats` object containing details about entity count, spatial index state, and
+estimated memory usage.
 
 ### `metersPerPixel`
-A utility function to calculate the approximate distance in meters that one pixel represents on the map at a given latitude, zoom level, and screen density.
+A utility function to calculate the approximate distance in meters that one pixel represents on the
+map at a given latitude, zoom level, and screen density.
 
 #### Signature
 ```kotlin
@@ -270,12 +300,18 @@ open fun metersPerPixel(
 ```
 
 #### Parameters
-| Parameter  | Type                | Description                                                              |
-| ---------- | ------------------- | ------------------------------------------------------------------------ |
-| `position` | `GeoPointInterface` | The geographic position (latitude is used for cosine correction).        |
-| `zoom`     | `Double`            | The current zoom level of the map.                                       |
-| `pixels`   | `Double`            | The number of pixels for which to calculate the distance.                |
-| `tileSize` | `Int`               | The size of the map tiles in pixels (usually 256 or 512). Defaults to 256. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic position (latitude is used for cosine correction).
+- `zoom`
+    - Type: `Double`
+    - Description: The current zoom level of the map.
+- `pixels`
+    - Type: `Double`
+    - Description: The number of pixels for which to calculate the distance.
+- `tileSize`
+    - Type: `Int`
+    - Description: The size of the map tiles in pixels (usually 256 or 512). Defaults to 256.
 
 #### Returns
 The calculated distance in meters.
@@ -283,7 +319,8 @@ The calculated distance in meters.
 ### `findByIdPrefix`
 Searches the spatial index for `HexCell`s that match a given ID prefix.
 
-> **Note:** This method will only return results if the spatial index has been initialized (i.e., when the entity count has exceeded `minMarkerCount`). Otherwise, it returns an empty list.
+> **Note:** This method will only return results if the spatial index has been initialized (i.e.,
+when the entity count has exceeded `minMarkerCount`). Otherwise, it returns an empty list.
 
 #### Signature
 ```kotlin
@@ -291,9 +328,10 @@ open fun findByIdPrefix(prefix: String): List<HexCell>
 ```
 
 #### Parameters
-| Parameter | Type     | Description                               |
-| --------- | -------- | ----------------------------------------- |
-| `prefix`  | `String` | The `HexCell` ID prefix to search for. |
+- `prefix`
+    - Type: `String`
+    - Description: The `HexCell` ID prefix to search for.
 
 #### Returns
-A `List` of matching `HexCell`s, or an empty list if the index is not active or no matches are found.
+A `List` of matching `HexCell`s, or an empty list if the index is not active or no matches are
+found.

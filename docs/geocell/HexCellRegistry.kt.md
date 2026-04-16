@@ -1,7 +1,3 @@
-Of course! Here is the high-quality SDK documentation for the provided `HexCellRegistry` code snippet.
-
----
-
 # HexCellRegistry<ActualMarker>
 
 ## Table of Contents
@@ -30,9 +26,12 @@ Of course! Here is the high-quality SDK documentation for the provided `HexCellR
 
 ## Class: HexCellRegistry<ActualMarker>
 
-A thread-safe class for managing a collection of hexagonal grid cells. It provides efficient spatial indexing and querying using an internal KDTree.
+A thread-safe class for managing a collection of hexagonal grid cells. It provides efficient spatial
+indexing and querying using an internal KDTree.
 
-The registry maps entities (like map markers) to the hexagonal cells they occupy at a specific zoom level. It is designed for performance-critical applications, featuring lazy rebuilding of its spatial index to optimize write operations. All public methods are thread-safe.
+The registry maps entities (like map markers) to the hexagonal cells they occupy at a specific zoom
+level. It is designed for performance-critical applications, featuring lazy rebuilding of its
+spatial index to optimize write operations. All public methods are thread-safe.
 
 ### Constructor
 
@@ -48,10 +47,12 @@ class HexCellRegistry<ActualMarker>(
 
 **Parameters**
 
-| Parameter | Type                  | Description                                            |
-| :-------- | :-------------------- | :----------------------------------------------------- |
-| `geocell` | `HexGeocellInterface` | The hexagonal geocell system used for coordinate logic. |
-| `zoom`    | `Double`              | The map zoom level this registry is responsible for.   |
+- `geocell`
+    - Type: `HexGeocellInterface`
+    - Description: The hexagonal geocell system used for coordinate logic.
+- `zoom`
+    - Type: `Double`
+    - Description: The map zoom level this registry is responsible for.
 
 <br/>
 
@@ -59,7 +60,8 @@ class HexCellRegistry<ActualMarker>(
 
 ### getCell
 
-Calculates and returns the `HexCell` that would contain a given entity, without adding the entity to the registry. This is a pure calculation method and does not modify the registry's state.
+Calculates and returns the `HexCell` that would contain a given entity, without adding the entity to
+the registry. This is a pure calculation method and does not modify the registry's state.
 
 **Signature**
 ```kotlin
@@ -68,9 +70,9 @@ fun getCell(entity: MarkerEntityInterface<ActualMarker>): HexCell
 
 **Parameters**
 
-| Parameter | Type                                  | Description                                  |
-| :-------- | :------------------------------------ | :------------------------------------------- |
-| `entity`  | `MarkerEntityInterface<ActualMarker>` | The entity for which to calculate the cell. |
+- `entity`
+    - Type: `MarkerEntityInterface<ActualMarker>`
+    - Description: The entity for which to calculate the cell.
 
 **Returns**
 
@@ -87,7 +89,9 @@ println("Entity belongs in cell: ${correspondingCell.id}")
 
 ### setPoint
 
-Registers a new entity or updates the position of an existing one. If the entity was previously registered in a different cell, it is automatically moved. This operation marks the internal spatial index as needing a rebuild, which will occur on the next spatial query.
+Registers a new entity or updates the position of an existing one. If the entity was previously
+registered in a different cell, it is automatically moved. This operation marks the internal spatial
+index as needing a rebuild, which will occur on the next spatial query.
 
 **Signature**
 ```kotlin
@@ -96,9 +100,9 @@ fun setPoint(entity: MarkerEntityInterface<ActualMarker>): HexCell
 
 **Parameters**
 
-| Parameter | Type                                  | Description                               |
-| :-------- | :------------------------------------ | :---------------------------------------- |
-| `entity`  | `MarkerEntityInterface<ActualMarker>` | The entity to add or update in the registry. |
+- `entity`
+    - Type: `MarkerEntityInterface<ActualMarker>`
+    - Description: The entity to add or update in the registry.
 
 **Returns**
 
@@ -124,9 +128,9 @@ fun contains(hexId: String): Boolean
 
 **Parameters**
 
-| Parameter | Type     | Description                          |
-| :-------- | :------- | :----------------------------------- |
-| `hexId`   | `String` | The unique ID of the hexagonal cell. |
+- `hexId`
+    - Type: `String`
+    - Description: The unique ID of the hexagonal cell.
 
 **Returns**
 
@@ -143,7 +147,8 @@ if (hexRegistry.contains("8c2a1072b59ffff")) {
 
 ### removePoint
 
-Removes an entity from the registry. If the cell containing the entity becomes empty after its removal, the cell itself is also removed from the registry.
+Removes an entity from the registry. If the cell containing the entity becomes empty after its
+removal, the cell itself is also removed from the registry.
 
 **Signature**
 ```kotlin
@@ -152,9 +157,9 @@ fun removePoint(entity: MarkerEntityInterface<ActualMarker>): Boolean
 
 **Parameters**
 
-| Parameter | Type                                  | Description                      |
-| :-------- | :------------------------------------ | :------------------------------- |
-| `entity`  | `MarkerEntityInterface<ActualMarker>` | The entity to remove. |
+- `entity`
+    - Type: `MarkerEntityInterface<ActualMarker>`
+    - Description: The entity to remove.
 
 **Returns**
 
@@ -173,7 +178,8 @@ if (wasRemoved) {
 
 ### clear
 
-Removes all entities and cells from the registry, effectively resetting it to an empty state. The internal spatial index is also cleared.
+Removes all entities and cells from the registry, effectively resetting it to an empty state. The
+internal spatial index is also cleared.
 
 **Signature**
 ```kotlin
@@ -191,7 +197,8 @@ println("Registry has been cleared. Total cells: ${hexRegistry.getStats().totalC
 
 ### findNearest
 
-Finds the single nearest registered `HexCell` to a given geographic point. This method may trigger a rebuild of the spatial index if the registry has been modified since the last query.
+Finds the single nearest registered `HexCell` to a given geographic point. This method may trigger a
+rebuild of the spatial index if the registry has been modified since the last query.
 
 **Signature**
 ```kotlin
@@ -200,9 +207,9 @@ fun findNearest(point: GeoPointInterface): HexCell?
 
 **Parameters**
 
-| Parameter | Type                | Description                               |
-| :-------- | :------------------ | :---------------------------------------- |
-| `point`   | `GeoPointInterface` | The geographic point to search from. |
+- `point`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point to search from.
 
 **Returns**
 
@@ -221,7 +228,8 @@ nearestCell?.let {
 
 ### findNearestWithDistance
 
-Finds the single nearest registered `HexCell` to a given point and also returns the distance to it. The distance is calculated in the projected coordinate system (e.g., meters).
+Finds the single nearest registered `HexCell` to a given point and also returns the distance to it.
+The distance is calculated in the projected coordinate system (e.g., meters).
 
 **Signature**
 ```kotlin
@@ -230,13 +238,14 @@ fun findNearestWithDistance(point: GeoPointInterface): HexCellWithDistance?
 
 **Parameters**
 
-| Parameter | Type                | Description                               |
-| :-------- | :------------------ | :---------------------------------------- |
-| `point`   | `GeoPointInterface` | The geographic point to search from. |
+- `point`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point to search from.
 
 **Returns**
 
-`HexCellWithDistance?` - An object containing the nearest cell and the distance, or `null` if the registry is empty.
+`HexCellWithDistance?` - An object containing the nearest cell and the distance, or `null` if the
+registry is empty.
 
 **Example**
 ```kotlin
@@ -263,14 +272,17 @@ fun findNearestKWithDistance(
 
 **Parameters**
 
-| Parameter | Type                | Description                                  |
-| :-------- | :------------------ | :------------------------------------------- |
-| `point`   | `GeoPointInterface` | The geographic point to search from.      |
-| `k`       | `Int`               | The maximum number of nearest cells to find. |
+- `point`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point to search from.
+- `k`
+    - Type: `Int`
+    - Description: The maximum number of nearest cells to find.
 
 **Returns**
 
-`List<HexCellWithDistance>` - A list of up to `k` cells with their distances, sorted from nearest to farthest. The list will be empty if the registry is empty.
+`List<HexCellWithDistance>` - A list of up to `k` cells with their distances, sorted from nearest to
+farthest. The list will be empty if the registry is empty.
 
 **Example**
 ```kotlin
@@ -286,7 +298,8 @@ nearestFive.forEach {
 
 ### findWithinRadiusWithDistance
 
-Finds all registered `HexCell` objects within a specified radius of a given point. The radius is interpreted in the units of the projected coordinate system (e.g., meters).
+Finds all registered `HexCell` objects within a specified radius of a given point. The radius is
+interpreted in the units of the projected coordinate system (e.g., meters).
 
 **Signature**
 ```kotlin
@@ -298,14 +311,17 @@ fun findWithinRadiusWithDistance(
 
 **Parameters**
 
-| Parameter | Type                | Description                                                              |
-| :-------- | :------------------ | :----------------------------------------------------------------------- |
-| `point`   | `GeoPointInterface` | The center point of the search area.                                     |
-| `radius`  | `Double`            | The search radius, in projected units (typically meters). |
+- `point`
+    - Type: `GeoPointInterface`
+    - Description: The center point of the search area.
+- `radius`
+    - Type: `Double`
+    - Description: The search radius, in projected units (typically meters).
 
 **Returns**
 
-`List<HexCellWithDistance>` - A list of all cells found within the radius, along with their respective distances from the center point.
+`List<HexCellWithDistance>` - A list of all cells found within the radius, along with their
+respective distances from the center point.
 
 **Example**
 ```kotlin
@@ -349,13 +365,14 @@ fun getEntryIDsByHexCell(hexCell: HexCell): Set<String>?
 
 **Parameters**
 
-| Parameter | Type      | Description                               |
-| :-------- | :-------- | :---------------------------------------- |
-| `hexCell` | `HexCell` | The cell for which to retrieve entity IDs. |
+- `hexCell`
+    - Type: `HexCell`
+    - Description: The cell for which to retrieve entity IDs.
 
 **Returns**
 
-`Set<String>?` - An immutable set of entity IDs within the given cell, or `null` if the cell is not registered or contains no entities.
+`Set<String>?` - An immutable set of entity IDs within the given cell, or `null` if the cell is not
+registered or contains no entities.
 
 **Example**
 ```kotlin
@@ -370,9 +387,11 @@ entityIds?.let {
 
 ### metersPerPixel
 
-A utility function to calculate the approximate real-world distance in meters that corresponds to a given number of pixels on a map display.
+A utility function to calculate the approximate real-world distance in meters that corresponds to a
+given number of pixels on a map display.
 
-**Note:** This calculation assumes the `HexGeocellInterface` projection returns coordinates in meters.
+**Note:** This calculation assumes the `HexGeocellInterface` projection returns coordinates in
+meters.
 
 **Signature**
 ```kotlin
@@ -386,12 +405,18 @@ fun metersPerPixel(
 
 **Parameters**
 
-| Parameter  | Type                | Description                                                              |
-| :--------- | :------------------ | :----------------------------------------------------------------------- |
-| `position` | `GeoPointInterface` | The geographic location (latitude/longitude) for the calculation.        |
-| `zoom`     | `Double`            | The current map zoom level.                                              |
-| `pixels`   | `Double`            | The number of pixels for which to calculate the corresponding distance.  |
-| `tileSize` | `Int`               | (Optional) The size of the map tiles in pixels. Defaults to `256`.       |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic location (latitude/longitude) for the calculation.
+- `zoom`
+    - Type: `Double`
+    - Description: The current map zoom level.
+- `pixels`
+    - Type: `Double`
+    - Description: The number of pixels for which to calculate the corresponding distance.
+- `tileSize`
+    - Type: `Int`
+    - Description: (Optional) The size of the map tiles in pixels. Defaults to `256`.
 
 **Returns**
 
@@ -409,7 +434,9 @@ println("At zoom $currentZoom, 100 pixels is approx. $distanceFor100Pixels meter
 
 ### findWithinPixelRadius
 
-A convenience method to find all `HexCell` objects within a given pixel radius of a point on the screen. It internally converts the pixel radius to meters using `metersPerPixel` and then performs a spatial search.
+A convenience method to find all `HexCell` objects within a given pixel radius of a point on the
+screen. It internally converts the pixel radius to meters using `metersPerPixel` and then performs a
+spatial search.
 
 **Signature**
 ```kotlin
@@ -423,16 +450,23 @@ fun findWithinPixelRadius(
 
 **Parameters**
 
-| Parameter  | Type                | Description                                                              |
-| :--------- | :------------------ | :----------------------------------------------------------------------- |
-| `position` | `GeoPointInterface` | The center point of the search area.                                     |
-| `zoom`     | `Double`            | The current map zoom level.                                              |
-| `pixels`   | `Double`            | The search radius in pixels.                                             |
-| `tileSize` | `Int`               | (Optional) The size of the map tiles in pixels. Defaults to `256`.       |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The center point of the search area.
+- `zoom`
+    - Type: `Double`
+    - Description: The current map zoom level.
+- `pixels`
+    - Type: `Double`
+    - Description: The search radius in pixels.
+- `tileSize`
+    - Type: `Int`
+    - Description: (Optional) The size of the map tiles in pixels. Defaults to `256`.
 
 **Returns**
 
-`List<HexCellWithDistance>` - A list of all cells found within the pixel radius, along with their distances.
+`List<HexCellWithDistance>` - A list of all cells found within the pixel radius, along with their
+distances.
 
 **Example**
 ```kotlin
@@ -447,7 +481,8 @@ println("Found ${cellsNearTap.size} cells within a 50px radius of the tap.")
 
 ### findByIdPrefix
 
-Finds all registered cells whose IDs start with the given prefix. This is useful for querying groups of cells in hierarchical grid systems (e.g., finding all child cells within a parent region).
+Finds all registered cells whose IDs start with the given prefix. This is useful for querying groups
+of cells in hierarchical grid systems (e.g., finding all child cells within a parent region).
 
 **Signature**
 ```kotlin
@@ -456,9 +491,9 @@ fun findByIdPrefix(prefix: String): List<HexCell>
 
 **Parameters**
 
-| Parameter | Type     | Description                               |
-| :-------- | :------- | :---------------------------------------- |
-| `prefix`  | `String` | The cell ID prefix to search for. Must not be empty. |
+- `prefix`
+    - Type: `String`
+    - Description: The cell ID prefix to search for. Must not be empty.
 
 **Returns**
 
@@ -476,7 +511,8 @@ println("Found ${cellsInRegion.size} cells in region $regionPrefix.")
 
 ### getStats
 
-Retrieves diagnostic statistics about the current state of the registry. This is useful for debugging and monitoring performance.
+Retrieves diagnostic statistics about the current state of the registry. This is useful for
+debugging and monitoring performance.
 
 **Signature**
 ```kotlin
@@ -515,9 +551,16 @@ data class RegistryStats(
 
 ### Properties
 
-| Property       | Type      | Description                                                              |
-| :------------- | :-------- | :----------------------------------------------------------------------- |
-| `totalCells`   | `Int`     | The total number of unique hexagonal cells currently in the registry.    |
-| `totalEntries` | `Int`     | The total number of entities (e.g., markers) registered across all cells. |
-| `kdTreeBuilt`  | `Boolean` | `true` if the KDTree spatial index has been built, `false` otherwise.    |
-| `needsRebuild` | `Boolean` | `true` if the registry has been modified and the KDTree needs to be rebuilt on the next spatial query. |
+- `totalCells`
+    - Type: `Int`
+    - Description: The total number of unique hexagonal cells currently in the registry.
+- `totalEntries`
+    - Type: `Int`
+    - Description: The total number of entities (e.g., markers) registered across all cells.
+- `kdTreeBuilt`
+    - Type: `Boolean`
+    - Description: `true` if the KDTree spatial index has been built, `false` otherwise.
+- `needsRebuild`
+    - Type: `Boolean`
+    - Description: `true` if the registry has been modified and the KDTree needs to be rebuilt on
+      the next spatial query.

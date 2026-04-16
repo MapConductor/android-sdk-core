@@ -1,12 +1,10 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
----
-
 # KDTree
 
 ## `KDTree` Class
 
-A K-D Tree (K-dimensional tree) implementation optimized for efficient 2D spatial queries on `HexCell` objects. This class partitions a set of points (the centers of hex cells) in a 2-dimensional space, allowing for fast searches.
+A K-D Tree (K-dimensional tree) implementation optimized for efficient 2D spatial queries on
+`HexCell` objects. This class partitions a set of points (the centers of hex cells) in a
+2-dimensional space, allowing for fast searches.
 
 It supports the following query types:
 *   **Nearest Neighbor:** Find the single closest point to a given location.
@@ -21,13 +19,15 @@ class KDTree(points: List<HexCell>)
 
 ### Description
 
-Constructs a `KDTree` by recursively partitioning the provided list of `HexCell` points. The tree is balanced by alternating the splitting axis (X and Y) at each level of depth. If the input list is empty, an empty tree is created.
+Constructs a `KDTree` by recursively partitioning the provided list of `HexCell` points. The tree is
+balanced by alternating the splitting axis (X and Y) at each level of depth. If the input list is
+empty, an empty tree is created.
 
 ### Parameters
 
-| Parameter | Type             | Description                               |
-| :-------- | :--------------- | :---------------------------------------- |
-| `points`  | `List<HexCell>`  | A list of `HexCell` objects to build the tree from. |
+- `points`
+    - Type: `List<HexCell>`
+    - Description: A list of `HexCell` objects to build the tree from.
 
 ### Example
 
@@ -65,13 +65,14 @@ fun nearest(query: Offset): HexCell?
 
 #### Description
 
-Performs a nearest neighbor search to find the `HexCell` in the tree whose center is closest to the specified `query` point.
+Performs a nearest neighbor search to find the `HexCell` in the tree whose center is closest to the
+specified `query` point.
 
 #### Parameters
 
-| Parameter | Type     | Description                                  |
-| :-------- | :------- | :------------------------------------------- |
-| `query`   | `Offset` | The coordinate point to search from.         |
+- `query`
+    - Type: `Offset`
+    - Description: The coordinate point to search from.
 
 #### Returns
 
@@ -93,7 +94,8 @@ if (nearestCell != null) {
 
 ### `nearestWithDistance`
 
-Finds the single nearest `HexCell` to a query point and returns it along with the calculated distance.
+Finds the single nearest `HexCell` to a query point and returns it along with the calculated
+distance.
 
 #### Signature
 
@@ -103,17 +105,19 @@ fun nearestWithDistance(query: Offset): HexCellWithDistance?
 
 #### Description
 
-This method extends the `nearest` search by packaging the resulting `HexCell` and its Euclidean distance from the `query` point into a `HexCellWithDistance` object.
+This method extends the `nearest` search by packaging the resulting `HexCell` and its Euclidean
+distance from the `query` point into a `HexCellWithDistance` object.
 
 #### Parameters
 
-| Parameter | Type     | Description                                  |
-| :-------- | :------- | :------------------------------------------- |
-| `query`   | `Offset` | The coordinate point to search from.         |
+- `query`
+    - Type: `Offset`
+    - Description: The coordinate point to search from.
 
 #### Returns
 
-A `HexCellWithDistance` object containing the nearest cell and the distance, or `null` if the tree is empty.
+A `HexCellWithDistance` object containing the nearest cell and the distance, or `null` if the tree
+is empty.
 
 #### Example
 
@@ -144,18 +148,22 @@ fun nearestKWithDistance(query: Offset, k: Int): List<HexCellWithDistance>
 
 #### Description
 
-Performs a k-nearest neighbors (k-NN) search. It returns a list of the `k` closest `HexCell`s to the `query` point, sorted by distance in ascending order.
+Performs a k-nearest neighbors (k-NN) search. It returns a list of the `k` closest `HexCell`s to the
+`query` point, sorted by distance in ascending order.
 
 #### Parameters
 
-| Parameter | Type     | Description                                  |
-| :-------- | :------- | :------------------------------------------- |
-| `query`   | `Offset` | The coordinate point to search from.         |
-| `k`       | `Int`    | The number of nearest neighbors to find. Must be a positive integer. |
+- `query`
+    - Type: `Offset`
+    - Description: The coordinate point to search from.
+- `k`
+    - Type: `Int`
+    - Description: The number of nearest neighbors to find. Must be a positive integer.
 
 #### Returns
 
-A `List<HexCellWithDistance>` containing the `k` nearest cells and their distances, sorted from nearest to farthest. Returns an empty list if the tree is empty.
+A `List<HexCellWithDistance>` containing the `k` nearest cells and their distances, sorted from
+nearest to farthest. Returns an empty list if the tree is empty.
 
 #### Example
 
@@ -189,18 +197,22 @@ fun withinRadiusWithDistance(query: Offset, radius: Double): List<HexCellWithDis
 
 #### Description
 
-Performs a radius search to find all `HexCell`s whose centers fall within the given `radius` of the `query` point. The results include the distance to each cell and are sorted by distance.
+Performs a radius search to find all `HexCell`s whose centers fall within the given `radius` of the
+`query` point. The results include the distance to each cell and are sorted by distance.
 
 #### Parameters
 
-| Parameter | Type     | Description                                  |
-| :-------- | :------- | :------------------------------------------- |
-| `query`   | `Offset` | The center point of the search circle.       |
-| `radius`  | `Double` | The radius of the search area. Must be non-negative. |
+- `query`
+    - Type: `Offset`
+    - Description: The center point of the search circle.
+- `radius`
+    - Type: `Double`
+    - Description: The radius of the search area. Must be non-negative.
 
 #### Returns
 
-A `List<HexCellWithDistance>` of all cells found within the radius, sorted by distance. Returns an empty list if no cells are within the radius or if the tree is empty.
+A `List<HexCellWithDistance>` of all cells found within the radius, sorted by distance. Returns an
+empty list if no cells are within the radius or if the tree is empty.
 
 #### Example
 
@@ -233,7 +245,9 @@ fun getStats(): KDTreeStats
 
 #### Description
 
-Provides metrics about the constructed tree, which can be useful for debugging or performance analysis. It returns the total number of nodes, the maximum depth of the tree, and a flag indicating if the tree is empty.
+Provides metrics about the constructed tree, which can be useful for debugging or performance
+analysis. It returns the total number of nodes, the maximum depth of the tree, and a flag indicating
+if the tree is empty.
 
 #### Returns
 
@@ -272,8 +286,12 @@ data class KDTreeStats(
 
 ### Properties
 
-| Property    | Type      | Description                                       |
-| :---------- | :-------- | :------------------------------------------------ |
-| `nodeCount` | `Int`     | The total number of nodes (cells) in the tree.    |
-| `maxDepth`  | `Int`     | The maximum depth from the root to any leaf node. |
-| `isEmpty`   | `Boolean` | `true` if the tree contains no nodes, otherwise `false`. |
+- `nodeCount`
+    - Type: `Int`
+    - Description: The total number of nodes (cells) in the tree.
+- `maxDepth`
+    - Type: `Int`
+    - Description: The maximum depth from the root to any leaf node.
+- `isEmpty`
+    - Type: `Boolean`
+    - Description: `true` if the tree contains no nodes, otherwise `false`.

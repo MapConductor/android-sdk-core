@@ -1,8 +1,12 @@
 # HexGeocellInterface
 
-The `HexGeocellInterface` defines the contract for a hexagonal geocelling system. It provides a comprehensive set of methods for converting between geographic coordinates (latitude/longitude) and hexagonal grid coordinates. This interface is fundamental for spatial indexing, data aggregation, and performing grid-based analysis on a map.
+The `HexGeocellInterface` defines the contract for a hexagonal geocelling system. It provides a
+comprehensive set of methods for converting between geographic coordinates (latitude/longitude) and
+hexagonal grid coordinates. This interface is fundamental for spatial indexing, data aggregation,
+and performing grid-based analysis on a map.
 
-Implementations of this interface manage the projection logic and grid calculations required to partition a map into a discrete hexagonal grid at various zoom levels.
+Implementations of this interface manage the projection logic and grid calculations required to
+partition a map into a discrete hexagonal grid at various zoom levels.
 
 ## Properties
 
@@ -15,7 +19,8 @@ val projection: ProjectionInterface
 ```
 
 ### baseHexSideLength
-The side length, in projected units, of a base hexagon at a reference zoom level. This value is used as a basis for scaling hexagons at different zoom levels.
+The side length, in projected units, of a base hexagon at a reference zoom level. This value is used
+as a basis for scaling hexagons at different zoom levels.
 
 **Signature**
 ```kotlin
@@ -27,7 +32,8 @@ val baseHexSideLength: Int
 ## Methods
 
 ### latLngToHexCoord
-Converts a geographic coordinate (latitude/longitude) to its corresponding hexagonal grid coordinate at a given zoom level.
+Converts a geographic coordinate (latitude/longitude) to its corresponding hexagonal grid coordinate
+at a given zoom level.
 
 **Signature**
 ```kotlin
@@ -39,10 +45,12 @@ fun latLngToHexCoord(
 
 **Parameters**
 
-| Parameter  | Type                | Description                                    |
-|------------|---------------------|------------------------------------------------|
-| `position` | `GeoPointInterface` | The geographic point to convert.               |
-| `zoom`     | `Double`            | The map zoom level for the conversion.         |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point to convert.
+- `zoom`
+    - Type: `Double`
+    - Description: The map zoom level for the conversion.
 
 **Returns**
 
@@ -51,7 +59,8 @@ fun latLngToHexCoord(
 ---
 
 ### latLngToHexCell
-Converts a geographic coordinate to a `HexCell` object, which encapsulates the hexagonal coordinate and its associated zoom level.
+Converts a geographic coordinate to a `HexCell` object, which encapsulates the hexagonal coordinate
+and its associated zoom level.
 
 **Signature**
 ```kotlin
@@ -63,10 +72,12 @@ fun latLngToHexCell(
 
 **Parameters**
 
-| Parameter  | Type                | Description                                    |
-|------------|---------------------|------------------------------------------------|
-| `position` | `GeoPointInterface` | The geographic point to convert.               |
-| `zoom`     | `Double`            | The map zoom level for the conversion.         |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point to convert.
+- `zoom`
+    - Type: `Double`
+    - Description: The map zoom level for the conversion.
 
 **Returns**
 
@@ -88,11 +99,15 @@ fun hexToLatLngCenter(
 
 **Parameters**
 
-| Parameter | Type       | Description                                                                    |
-|-----------|------------|--------------------------------------------------------------------------------|
-| `coord`   | `HexCoord` | The hexagonal coordinate to convert.                                           |
-| `latHint` | `Double`   | A latitude hint to improve the accuracy of the inverse projection.             |
-| `zoom`    | `Double`   | The map zoom level at which the `HexCoord` was originally calculated.          |
+- `coord`
+    - Type: `HexCoord`
+    - Description: The hexagonal coordinate to convert.
+- `latHint`
+    - Type: `Double`
+    - Description: A latitude hint to improve the accuracy of the inverse projection.
+- `zoom`
+    - Type: `Double`
+    - Description: The map zoom level at which the `HexCoord` was originally calculated.
 
 **Returns**
 
@@ -101,7 +116,8 @@ fun hexToLatLngCenter(
 ---
 
 ### hexToCellId
-Generates a unique, stable string identifier for a hexagonal cell based on its coordinate and zoom level. This ID is suitable for use as a key in hashmaps or for database storage.
+Generates a unique, stable string identifier for a hexagonal cell based on its coordinate and zoom
+level. This ID is suitable for use as a key in hashmaps or for database storage.
 
 **Signature**
 ```kotlin
@@ -113,10 +129,12 @@ fun hexToCellId(
 
 **Parameters**
 
-| Parameter | Type       | Description                        |
-|-----------|------------|------------------------------------|
-| `coord`   | `HexCoord` | The hexagonal coordinate of the cell. |
-| `zoom`    | `Double`   | The zoom level of the cell.        |
+- `coord`
+    - Type: `HexCoord`
+    - Description: The hexagonal coordinate of the cell.
+- `zoom`
+    - Type: `Double`
+    - Description: The zoom level of the cell.
 
 **Returns**
 
@@ -125,7 +143,8 @@ fun hexToCellId(
 ---
 
 ### hexToPolygonLatLng
-Calculates the geographic coordinates of the six vertices that form the boundary of a hexagonal cell. The vertices are returned in a list, which can be used to draw the hexagon on a map.
+Calculates the geographic coordinates of the six vertices that form the boundary of a hexagonal
+cell. The vertices are returned in a list, which can be used to draw the hexagon on a map.
 
 **Signature**
 ```kotlin
@@ -138,20 +157,26 @@ fun hexToPolygonLatLng(
 
 **Parameters**
 
-| Parameter | Type       | Description                                                                    |
-|-----------|------------|--------------------------------------------------------------------------------|
-| `coord`   | `HexCoord` | The hexagonal coordinate of the cell.                                          |
-| `latHint` | `Double`   | A latitude hint for improving the accuracy of the inverse projection.          |
-| `zoom`    | `Double`   | The map zoom level of the cell.                                                |
+- `coord`
+    - Type: `HexCoord`
+    - Description: The hexagonal coordinate of the cell.
+- `latHint`
+    - Type: `Double`
+    - Description: A latitude hint for improving the accuracy of the inverse projection.
+- `zoom`
+    - Type: `Double`
+    - Description: The map zoom level of the cell.
 
 **Returns**
 
-`List<GeoPointInterface>` - A list of six `GeoPointInterface` objects representing the vertices of the hexagon.
+`List<GeoPointInterface>` - A list of six `GeoPointInterface` objects representing the vertices of
+the hexagon.
 
 ---
 
 ### enclosingCellOf
-Determines the single hexagonal cell at a specified zoom level that completely encloses all the given points. This is useful for finding a common parent cell for a cluster of markers.
+Determines the single hexagonal cell at a specified zoom level that completely encloses all the
+given points. This is useful for finding a common parent cell for a cluster of markers.
 
 **Signature**
 ```kotlin
@@ -163,10 +188,12 @@ fun enclosingCellOf(
 
 **Parameters**
 
-| Parameter | Type                | Description                                                              |
-|-----------|---------------------|--------------------------------------------------------------------------|
-| `points`  | `List<MarkerState>` | A list of marker states, each containing a geographic position.          |
-| `zoom`    | `Double`            | The target zoom level for the enclosing cell.                            |
+- `points`
+    - Type: `List<MarkerState>`
+    - Description: A list of marker states, each containing a geographic position.
+- `zoom`
+    - Type: `Double`
+    - Description: The target zoom level for the enclosing cell.
 
 **Returns**
 
@@ -175,7 +202,9 @@ fun enclosingCellOf(
 ---
 
 ### hexCellsForPointsWithId
-Converts a list of points (represented as `MarkerState` objects) into a set of unique hexagonal cells at a given zoom level. Each cell in the returned set is an `IdentifiedHexCell`, which includes its coordinate, zoom level, and a unique ID.
+Converts a list of points (represented as `MarkerState` objects) into a set of unique hexagonal
+cells at a given zoom level. Each cell in the returned set is an `IdentifiedHexCell`, which includes
+its coordinate, zoom level, and a unique ID.
 
 **Signature**
 ```kotlin
@@ -187,19 +216,23 @@ fun hexCellsForPointsWithId(
 
 **Parameters**
 
-| Parameter | Type                | Description                                                              |
-|-----------|---------------------|--------------------------------------------------------------------------|
-| `points`  | `List<MarkerState>` | A list of marker states to be placed into hex cells.                     |
-| `zoom`    | `Double`            | The map zoom level to use for creating the cells.                        |
+- `points`
+    - Type: `List<MarkerState>`
+    - Description: A list of marker states to be placed into hex cells.
+- `zoom`
+    - Type: `Double`
+    - Description: The map zoom level to use for creating the cells.
 
 **Returns**
 
-`Set<IdentifiedHexCell>` - A set of unique `IdentifiedHexCell` objects corresponding to the locations of the input points.
+`Set<IdentifiedHexCell>` - A set of unique `IdentifiedHexCell` objects corresponding to the
+locations of the input points.
 
 ---
 
 ### hexDistance
-Calculates the grid distance between two hexagonal coordinates. The distance is defined as the minimum number of cells one must traverse to get from cell `a` to cell `b`.
+Calculates the grid distance between two hexagonal coordinates. The distance is defined as the
+minimum number of cells one must traverse to get from cell `a` to cell `b`.
 
 **Signature**
 ```kotlin
@@ -211,10 +244,12 @@ fun hexDistance(
 
 **Parameters**
 
-| Parameter | Type       | Description                      |
-|-----------|------------|----------------------------------|
-| `a`       | `HexCoord` | The starting hexagonal coordinate. |
-| `b`       | `HexCoord` | The ending hexagonal coordinate.   |
+- `a`
+    - Type: `HexCoord`
+    - Description: The starting hexagonal coordinate.
+- `b`
+    - Type: `HexCoord`
+    - Description: The ending hexagonal coordinate.
 
 **Returns**
 
@@ -223,7 +258,8 @@ fun hexDistance(
 ---
 
 ### hexRange
-Finds all hexagonal coordinates within a specified radius from a central coordinate, forming a larger hexagonal area.
+Finds all hexagonal coordinates within a specified radius from a central coordinate, forming a
+larger hexagonal area.
 
 **Signature**
 ```kotlin
@@ -235,20 +271,25 @@ fun hexRange(
 
 **Parameters**
 
-| Parameter | Type       | Description                                                                                             |
-|-----------|------------|---------------------------------------------------------------------------------------------------------|
-| `center`  | `HexCoord` | The central hexagonal coordinate.                                                                       |
-| `radius`  | `Int`      | The radius in number of cells. A radius of `0` returns just the center cell. A radius of `1` returns the center and its 6 immediate neighbors. |
+- `center`
+    - Type: `HexCoord`
+    - Description: The central hexagonal coordinate.
+- `radius`
+    - Type: `Int`
+    - Description: The radius in number of cells. A radius of `0` returns just the center cell. A
+      radius of `1` returns the center and its 6 immediate neighbors.
 
 **Returns**
 
-`List<HexCoord>` - A list of all `HexCoord` objects within the specified range, including the center.
+`List<HexCoord>` - A list of all `HexCoord` objects within the specified range, including the
+center.
 
 ---
 
 ## Example
 
-The following conceptual example demonstrates a common workflow using an implementation of `HexGeocellInterface`.
+The following conceptual example demonstrates a common workflow using an implementation of
+`HexGeocellInterface`.
 
 ```kotlin
 // Assume 'hexGeocell' is an initialized instance of a class

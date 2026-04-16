@@ -10,18 +10,23 @@ enum class MarkerAnimation
 
 ## Description
 
-The `MarkerAnimation` enum specifies the animation to be played when a marker is added to the map or when its state is updated. These animations provide visual feedback to the user, enhancing the user experience by drawing attention to marker placement or changes.
+The `MarkerAnimation` enum specifies the animation to be played when a marker is added to the map or
+when its state is updated. These animations provide visual feedback to the user, enhancing the user
+experience by drawing attention to marker placement or changes.
 
 ## Enum Values
 
-| Value    | Description                                                                                                |
-| :------- | :--------------------------------------------------------------------------------------------------------- |
-| `Drop`   | The marker appears to drop from the top of the screen to its final position on the map.                      |
-| `Bounce` | The marker plays a continuous bouncing animation at its position. This is useful for highlighting a marker. |
+- `Drop`
+    - Description: The marker appears to drop from the top of the screen to its final position on
+      the map.
+- `Bounce`
+    - Description: The marker plays a continuous bouncing animation at its position. This is useful
+      for highlighting a marker.
 
 ## Example
 
-The following example demonstrates how to set a `Drop` animation for a new marker using a hypothetical `MarkerOptions` builder.
+The following example demonstrates how to set a `Drop` animation for a new marker using a
+hypothetical `MarkerOptions` builder.
 
 ```kotlin
 // Create a new marker with a drop animation

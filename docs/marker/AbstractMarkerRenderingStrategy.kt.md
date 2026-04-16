@@ -8,19 +8,26 @@ abstract class AbstractMarkerRenderingStrategy<ActualMarker>(
 ```
 
 ## Description
-`AbstractMarkerRenderingStrategy` is a base class for implementing custom marker rendering logic. It provides a foundational structure, including default no-op implementations for `onAdd` and `onUpdate` methods and a concrete implementation for `clear`.
+`AbstractMarkerRenderingStrategy` is a base class for implementing custom marker rendering logic. It
+provides a foundational structure, including default no-op implementations for `onAdd` and
+`onUpdate` methods and a concrete implementation for `clear`.
 
-This class is designed to be extended by concrete strategy implementations (e.g., a clustering strategy, a simple rendering strategy). Subclasses are required to provide their own `MarkerManager` instance, which handles the low-level interaction with the map's marker objects. The `Semaphore` in the constructor is intended to help manage concurrency during rendering operations.
+This class is designed to be extended by concrete strategy implementations (e.g., a clustering
+strategy, a simple rendering strategy). Subclasses are required to provide their own `MarkerManager`
+instance, which handles the low-level interaction with the map's marker objects. The `Semaphore` in
+the constructor is intended to help manage concurrency during rendering operations.
 
 ## Generic Type Parameters
-| Name | Description |
-| :--- | :--- |
-| `ActualMarker` | The platform-specific marker object type (e.g., `com.google.android.gms.maps.model.Marker`). |
+- `ActualMarker`
+    - Description: The platform-specific marker object type (e.g.,
+      `com.google.android.gms.maps.model.Marker`).
 
 ## Properties
 
 ### markerManager
-An abstract property that must be implemented by subclasses. It provides a `MarkerManager` instance responsible for the low-level creation, deletion, and management of the actual marker objects on the map.
+An abstract property that must be implemented by subclasses. It provides a `MarkerManager` instance
+responsible for the low-level creation, deletion, and management of the actual marker objects on the
+map.
 
 **Signature**
 ```kotlin
@@ -30,7 +37,8 @@ abstract override val markerManager: MarkerManager<ActualMarker>
 ## Methods
 
 ### clear
-Removes all markers managed by this strategy from the map. This is achieved by delegating the call to `markerManager.clear()`.
+Removes all markers managed by this strategy from the map. This is achieved by delegating the call
+to `markerManager.clear()`.
 
 **Signature**
 ```kotlin
@@ -38,9 +46,11 @@ override fun clear()
 ```
 
 ### onAdd
-A suspendable lifecycle method called when a collection of markers should be processed and potentially added to the map. The base implementation is a no-op and immediately returns `false`.
+A suspendable lifecycle method called when a collection of markers should be processed and
+potentially added to the map. The base implementation is a no-op and immediately returns `false`.
 
-Subclasses should override this method to implement their specific logic for adding markers, such as filtering based on the viewport, clustering, or custom rendering logic.
+Subclasses should override this method to implement their specific logic for adding markers, such as
+filtering based on the viewport, clustering, or custom rendering logic.
 
 **Signature**
 ```kotlin
@@ -53,22 +63,28 @@ override suspend fun onAdd(
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<MarkerState>` | A list of marker data objects to be potentially rendered. |
-| `viewport` | `GeoRectBounds` | The current visible geographical area of the map. |
-| `renderer` | `MarkerOverlayRendererInterface<ActualMarker>` | The renderer interface used to perform the actual drawing operations on the map. |
+- `data`
+    - Type: `List<MarkerState>`
+    - Description: A list of marker data objects to be potentially rendered.
+- `viewport`
+    - Type: `GeoRectBounds`
+    - Description: The current visible geographical area of the map.
+- `renderer`
+    - Type: `MarkerOverlayRendererInterface<ActualMarker>`
+    - Description: The renderer interface used to perform the actual drawing operations on the map.
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `Boolean` | Returns `true` if the strategy handled the event, `false` otherwise. The base implementation always returns `false`. |
+- Type: `Boolean`
+- Description: Returns `true` if the strategy handled the event, `false` otherwise. The base
+  implementation always returns `false`.
 
 ### onUpdate
-A suspendable lifecycle method called when a single marker's state has been updated. The base implementation is a no-op and immediately returns `false`.
+A suspendable lifecycle method called when a single marker's state has been updated. The base
+implementation is a no-op and immediately returns `false`.
 
-Subclasses should override this to handle updates to individual markers, such as changing their position, icon, or other properties.
+Subclasses should override this to handle updates to individual markers, such as changing their
+position, icon, or other properties.
 
 **Signature**
 ```kotlin
@@ -81,21 +97,27 @@ override suspend fun onUpdate(
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `MarkerState` | The updated state of the marker. |
-| `viewport` | `GeoRectBounds` | The current visible geographical area of the map. |
-| `renderer` | `MarkerOverlayRendererInterface<ActualMarker>` | The renderer interface used to perform the actual drawing operations on the map. |
+- `state`
+    - Type: `MarkerState`
+    - Description: The updated state of the marker.
+- `viewport`
+    - Type: `GeoRectBounds`
+    - Description: The current visible geographical area of the map.
+- `renderer`
+    - Type: `MarkerOverlayRendererInterface<ActualMarker>`
+    - Description: The renderer interface used to perform the actual drawing operations on the map.
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `Boolean` | Returns `true` if the strategy handled the event, `false` otherwise. The base implementation always returns `false`. |
+- Type: `Boolean`
+- Description: Returns `true` if the strategy handled the event, `false` otherwise. The base
+  implementation always returns `false`.
 
 ## Example
 
-Since `AbstractMarkerRenderingStrategy` is an abstract class, you cannot instantiate it directly. Instead, you must extend it to create a concrete strategy. The following example demonstrates how to create a simple rendering strategy that adds all markers to the map.
+Since `AbstractMarkerRenderingStrategy` is an abstract class, you cannot instantiate it directly.
+Instead, you must extend it to create a concrete strategy. The following example demonstrates how to
+create a simple rendering strategy that adds all markers to the map.
 
 ```kotlin
 import com.mapconductor.core.marker.*

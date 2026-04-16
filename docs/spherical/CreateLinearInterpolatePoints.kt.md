@@ -9,23 +9,33 @@ fun createLinearInterpolatePoints(
 ```
 
 ### Description
-Generates a new list of points by performing linear interpolation along the path defined by a given list of geographic points. This function effectively "densifies" a polyline by adding intermediate points between each pair of consecutive vertices. The original vertices from the input list are preserved and included in the output.
+Generates a new list of points by performing linear interpolation along the path defined by a given
+list of geographic points. This function effectively "densifies" a polyline by adding intermediate
+points between each pair of consecutive vertices. The original vertices from the input list are
+preserved and included in the output.
 
-The density of the new points is controlled by the `fractionStep` parameter. For each segment between two consecutive points, the function adds new points at intervals of `fractionStep` along the great-circle path.
+The density of the new points is controlled by the `fractionStep` parameter. For each segment
+between two consecutive points, the function adds new points at intervals of `fractionStep` along
+the great-circle path.
 
 ### Parameters
-| Parameter      | Type                      | Description                                                                                                                                                           |
-|----------------|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `points`       | `List<GeoPointInterface>` | A list of two or more `GeoPointInterface` objects representing the vertices of the path to be densified.                                                              |
-| `fractionStep` | `Double`                  | The fractional increment used for interpolation between each pair of points. Must be > 0.0 and <= 1.0. A smaller value creates a denser path. Defaults to `0.01`. |
+- `points`
+    - Type: `List<GeoPointInterface>`
+    - Description: A list of two or more `GeoPointInterface` objects representing the vertices of
+      the path to be densified.
+- `fractionStep`
+    - Type: `Double`
+    - Description: The fractional increment used for interpolation between each pair of points. Must
+      be > 0.0 and <= 1.0. A smaller value creates a denser path. Defaults to `0.01`.
 
 ### Returns
-| Type                      | Description                                                                                             |
-|---------------------------|---------------------------------------------------------------------------------------------------------|
-| `List<GeoPointInterface>` | A new list containing the original points and all the generated intermediate points in sequence.          |
+- Type: `List<GeoPointInterface>`
+- Description: A new list containing the original points and all the generated intermediate points
+  in sequence.
 
 ### Example
-Suppose you have a simple path defined by two points and you want to add a point at the halfway mark. You can achieve this by setting `fractionStep` to `0.5`.
+Suppose you have a simple path defined by two points and you want to add a point at the halfway
+mark. You can achieve this by setting `fractionStep` to `0.5`.
 
 ```kotlin
 // Assume GeoPoint is a data class implementing GeoPointInterface

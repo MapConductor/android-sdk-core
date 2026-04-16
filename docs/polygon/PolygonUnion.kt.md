@@ -1,8 +1,7 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
 # Polygon Hole Utilities
 
-This document provides details on extension functions for the `PolygonState` class, designed to merge and normalize the polygon's interior holes.
+This document provides details on extension functions for the `PolygonState` class, designed to
+merge and normalize the polygon's interior holes.
 
 ---
 
@@ -18,24 +17,33 @@ fun PolygonState.unionHoles(): PolygonState
 
 ### Description
 
-The `unionHoles()` function is a non-mutating operation that processes the `holes` of a `PolygonState` object. It identifies any overlapping holes and combines them into a new set of distinct, non-overlapping holes.
+The `unionHoles()` function is a non-mutating operation that processes the `holes` of a
+`PolygonState` object. It identifies any overlapping holes and combines them into a new set of
+distinct, non-overlapping holes.
 
-This operation is useful for cleaning up complex polygons that may have been generated with intersecting inner boundaries. The function returns a **new** `PolygonState` instance containing the merged holes, leaving the original object unmodified.
+This operation is useful for cleaning up complex polygons that may have been generated with
+intersecting inner boundaries. The function returns a **new** `PolygonState` instance containing the
+merged holes, leaving the original object unmodified.
 
 Key characteristics:
-- **Planar Geometry**: The union calculation is performed on a 2D plane (longitude/latitude). For very large polygons or those near the Earth's poles, the results may differ from what would be expected with geodesic calculations.
-- **Winding Order**: The resulting holes are normalized to have a clockwise winding order, which is a common convention for polygon holes in many rendering systems.
-- **Error Handling**: If the polygon has one or zero holes, or if the union process fails for any reason, the function safely returns the original, unmodified `PolygonState` instance.
+- **Planar Geometry**: The union calculation is performed on a 2D plane (longitude/latitude). For
+  very large polygons or those near the Earth's poles, the results may differ from what would be
+  expected with geodesic calculations.
+- **Winding Order**: The resulting holes are normalized to have a clockwise winding order, which is
+  a common convention for polygon holes in many rendering systems.
+- **Error Handling**: If the polygon has one or zero holes, or if the union process fails for any
+  reason, the function safely returns the original, unmodified `PolygonState` instance.
 
 ### Parameters
 
-This is an extension function and does not take any direct parameters. It operates on the `PolygonState` instance it is called on.
+This is an extension function and does not take any direct parameters. It operates on the
+`PolygonState` instance it is called on.
 
 ### Returns
 
-| Type           | Description                                                                                                                                                           |
-|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `PolygonState` | A new `PolygonState` instance with merged holes. Returns the original `PolygonState` if it has fewer than two holes or if the union process fails for any reason. |
+- Type: `PolygonState`
+- Description: A new `PolygonState` instance with merged holes. Returns the original `PolygonState`
+  if it has fewer than two holes or if the union process fails for any reason.
 
 ### Example
 
@@ -73,7 +81,8 @@ fun PolygonState.union(): PolygonState
 
 ### Description
 
-This function is a convenient shorthand for `unionHoles()`. It offers the exact same functionality and behavior but with a shorter name for more readable callsites.
+This function is a convenient shorthand for `unionHoles()`. It offers the exact same functionality
+and behavior but with a shorter name for more readable callsites.
 
 ### Parameters
 
@@ -81,9 +90,9 @@ None.
 
 ### Returns
 
-| Type           | Description                                                                                                                                                           |
-|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `PolygonState` | A new `PolygonState` instance with merged holes. Returns the original `PolygonState` if it has fewer than two holes or if the union process fails for any reason. |
+- Type: `PolygonState`
+- Description: A new `PolygonState` instance with merged holes. Returns the original `PolygonState`
+  if it has fewer than two holes or if the union process fails for any reason.
 
 ### Example
 
@@ -113,11 +122,15 @@ fun PolygonState.unionHolesInPlace(): PolygonState
 
 ### Description
 
-This function provides an in-place, mutating alternative to `unionHoles()`. It calculates the union of any overlapping holes and then updates the `holes` property of the original `PolygonState` object with the result.
+This function provides an in-place, mutating alternative to `unionHoles()`. It calculates the union
+of any overlapping holes and then updates the `holes` property of the original `PolygonState` object
+with the result.
 
-This method is more memory-efficient if you do not need to preserve the polygon's original state, as it avoids allocating a new `PolygonState` object.
+This method is more memory-efficient if you do not need to preserve the polygon's original state, as
+it avoids allocating a new `PolygonState` object.
 
-**Note**: For this function to work as expected, the `holes` property of your `PolygonState` class must be a mutable variable (`var`).
+**Note**: For this function to work as expected, the `holes` property of your `PolygonState` class
+must be a mutable variable (`var`).
 
 ### Parameters
 
@@ -125,9 +138,9 @@ None.
 
 ### Returns
 
-| Type           | Description                                                                                                                            |
-|----------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `PolygonState` | The original, now-mutated `PolygonState` instance. Returns the same instance unmodified if there was nothing to union or if an error occurred. |
+- Type: `PolygonState`
+- Description: The original, now-mutated `PolygonState` instance. Returns the same instance
+  unmodified if there was nothing to union or if an error occurred.
 
 ### Example
 

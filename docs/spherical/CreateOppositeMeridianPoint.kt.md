@@ -1,10 +1,7 @@
-Of course! Here is the high-quality SDK documentation for the given Kotlin code snippet.
+# `createOppositeMeridianPoint`
 
-***
-
-### `createOppositeMeridianPoint`
-
-Creates a point on the opposite meridian (the 180° / -180° longitude line) while preserving the original point's latitude and altitude.
+Creates a point on the opposite meridian (the 180° / -180° longitude line) while preserving the
+original point's latitude and altitude.
 
 #### Signature
 
@@ -14,29 +11,34 @@ fun createOppositeMeridianPoint(point: GeoPointInterface): GeoPoint
 
 #### Description
 
-This function calculates and returns a new `GeoPoint` located on the antimeridian (the 180° or -180° longitude line). The new point will have the same latitude and altitude as the source `point`.
+This function calculates and returns a new `GeoPoint` located on the antimeridian (the 180° or -180°
+longitude line). The new point will have the same latitude and altitude as the source `point`.
 
 The longitude for the new point is determined based on the hemisphere of the input `point`:
 - If the input longitude is in the Eastern Hemisphere (>= 0°), the new longitude is set to -180.0°.
 - If the input longitude is in the Western Hemisphere (< 0°), the new longitude is set to 180.0°.
 
-This is useful for calculations and visualizations that involve wrapping around the globe at the International Date Line. If the source point's altitude is `null`, the resulting point's altitude will be `0.0`.
+This is useful for calculations and visualizations that involve wrapping around the globe at the
+International Date Line. If the source point's altitude is `null`, the resulting point's altitude
+will be `0.0`.
 
 #### Parameters
 
-| Parameter | Type                | Description                                                                            |
-|-----------|---------------------|----------------------------------------------------------------------------------------|
-| `point`   | `GeoPointInterface` | The original geographical point from which to create the opposite meridian equivalent. |
+- `point`
+    - Type: `GeoPointInterface`
+    - Description: The original geographical point from which to create the opposite meridian
+      equivalent.
 
 #### Returns
 
-| Type       | Description                                                                                                                            |
-|------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `GeoPoint` | A new `GeoPoint` instance on the opposite meridian with the same latitude and altitude as the input. Defaults to an altitude of `0.0` if the original is `null`. |
+- Type: `GeoPoint`
+- Description: A new `GeoPoint` instance on the opposite meridian with the same latitude and
+  altitude as the input. Defaults to an altitude of `0.0` if the original is `null`.
 
 #### Example
 
-The following example demonstrates how to use `createOppositeMeridianPoint` for points in both the Eastern and Western Hemispheres.
+The following example demonstrates how to use `createOppositeMeridianPoint` for points in both the
+Eastern and Western Hemispheres.
 
 ```kotlin
 // Assume GeoPoint and GeoPointInterface are defined as follows:

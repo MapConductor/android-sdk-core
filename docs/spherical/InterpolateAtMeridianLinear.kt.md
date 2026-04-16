@@ -1,6 +1,4 @@
-Excellent. Here is the high-quality SDK documentation for the provided code snippet.
-
-### `interpolateAtMeridianLinear`
+# `interpolateAtMeridianLinear`
 
 #### Signature
 ```kotlin
@@ -11,27 +9,40 @@ fun interpolateAtMeridianLinear(
 ```
 
 #### Description
-Performs linear interpolation to find the point where a line segment between two geographical points crosses the anti-meridian (180° or -180° longitude).
+Performs linear interpolation to find the point where a line segment between two geographical points
+crosses the anti-meridian (180° or -180° longitude).
 
-This function calculates the intersection by treating the coordinates as if they are on a simple 2D Cartesian plane (an Equirectangular projection). It determines the latitude at the meridian crossing by interpolating linearly based on the longitude difference.
+This function calculates the intersection by treating the coordinates as if they are on a simple 2D
+Cartesian plane (an Equirectangular projection). It determines the latitude at the meridian crossing
+by interpolating linearly based on the longitude difference.
 
-The altitude is also interpolated if both `from` and `to` points provide an altitude value. If only one point has an altitude, that value is used for the crossing point. If neither has an altitude, the altitude defaults to `0.0`.
+The altitude is also interpolated if both `from` and `to` points provide an altitude value. If only
+one point has an altitude, that value is used for the crossing point. If neither has an altitude,
+the altitude defaults to `0.0`.
 
-**Note:** This function assumes that the longitudes are "unwrapped," meaning they can extend beyond the standard `[-180, 180]` degree range to represent a continuous path. For example, a path from 170° longitude to -170° longitude should be represented with `to.longitude = 190` for the interpolation to be calculated correctly across the shortest path.
+**Note:** This function assumes that the longitudes are "unwrapped," meaning they can extend beyond
+the standard `[-180, 180]` degree range to represent a continuous path. For example, a path from
+170° longitude to -170° longitude should be represented with `to.longitude = 190` for the
+interpolation to be calculated correctly across the shortest path.
 
 #### Parameters
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `from` | `GeoPointInterface` | The starting point of the line segment. |
-| `to` | `GeoPointInterface` | The ending point of the line segment, potentially with an "unwrapped" longitude. |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting point of the line segment.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending point of the line segment, potentially with an "unwrapped" longitude.
 
 #### Returns
 **Type:** `GeoPoint`
 
-A new `GeoPoint` object representing the calculated intersection point on the anti-meridian. The longitude of the returned point will be either `180.0` or `-180.0`, depending on the direction of the crossing.
+A new `GeoPoint` object representing the calculated intersection point on the anti-meridian. The
+longitude of the returned point will be either `180.0` or `-180.0`, depending on the direction of
+the crossing.
 
 #### Example
-The following example demonstrates how to find the meridian crossing point for a path that goes from 170°E to 190°E (which is equivalent to -170°W).
+The following example demonstrates how to find the meridian crossing point for a path that goes from
+170°E to 190°E (which is equivalent to -170°W).
 
 ```kotlin
 import com.mapconductor.core.features.GeoPoint

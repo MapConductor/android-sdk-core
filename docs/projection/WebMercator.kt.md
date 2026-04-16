@@ -1,6 +1,8 @@
 # WebMercator
 
-The `WebMercator` object provides utility methods for converting between geographic coordinates (latitude and longitude) and the Web Mercator projection (EPSG:3857) coordinates. This projection is a standard for web-based mapping services.
+The `WebMercator` object provides utility methods for converting between geographic coordinates
+(latitude and longitude) and the Web Mercator projection (EPSG:3857) coordinates. This projection is
+a standard for web-based mapping services.
 
 This object implements the `ProjectionInterface`.
 
@@ -8,7 +10,8 @@ This object implements the `ProjectionInterface`.
 
 ## project
 
-Projects a geographic coordinate (latitude and longitude) into a 2D Cartesian coordinate (x, y) using the Web Mercator projection.
+Projects a geographic coordinate (latitude and longitude) into a 2D Cartesian coordinate (x, y)
+using the Web Mercator projection.
 
 ### Signature
 
@@ -18,13 +21,15 @@ fun project(position: GeoPointInterface): Offset
 
 ### Description
 
-This function takes a `GeoPointInterface` object, which represents a point on the Earth's surface with latitude and longitude, and converts it into a 2D planar coordinate `Offset`. This is essential for rendering geographic data on a flat map surface.
+This function takes a `GeoPointInterface` object, which represents a point on the Earth's surface
+with latitude and longitude, and converts it into a 2D planar coordinate `Offset`. This is essential
+for rendering geographic data on a flat map surface.
 
 ### Parameters
 
-| Parameter  | Type                | Description                                                  |
-|------------|---------------------|--------------------------------------------------------------|
-| `position` | `GeoPointInterface` | The geographic point to project, containing latitude and longitude. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic point to project, containing latitude and longitude.
 
 ### Returns
 
@@ -54,7 +59,8 @@ println("Projected Coordinates: x=${projectedOffset.x}, y=${projectedOffset.y}")
 
 ## unproject
 
-Converts a 2D Cartesian coordinate (x, y) from the Web Mercator projection back into a geographic coordinate (latitude and longitude).
+Converts a 2D Cartesian coordinate (x, y) from the Web Mercator projection back into a geographic
+coordinate (latitude and longitude).
 
 ### Signature
 
@@ -64,19 +70,22 @@ fun unproject(point: Offset): GeoPointInterface
 
 ### Description
 
-This function performs the inverse operation of `project`. It takes a 2D `Offset` in Web Mercator coordinates and converts it back to its corresponding geographic location represented by a `GeoPointInterface`.
+This function performs the inverse operation of `project`. It takes a 2D `Offset` in Web Mercator
+coordinates and converts it back to its corresponding geographic location represented by a
+`GeoPointInterface`.
 
 ### Parameters
 
-| Parameter | Type     | Description                                  |
-|-----------|----------|----------------------------------------------|
-| `point`   | `Offset` | The Cartesian point (x, y) in meters to unproject. |
+- `point`
+    - Type: `Offset`
+    - Description: The Cartesian point (x, y) in meters to unproject.
 
 ### Returns
 
 **Type:** `GeoPointInterface`
 
-A `GeoPointInterface` object representing the geographic coordinate (latitude, longitude). Note that the `altitude` of the returned point will always be `null`.
+A `GeoPointInterface` object representing the geographic coordinate (latitude, longitude). Note that
+the `altitude` of the returned point will always be `null`.
 
 ### Example
 

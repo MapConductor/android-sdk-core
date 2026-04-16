@@ -1,6 +1,8 @@
 # PolygonCapableInterface
 
-The `PolygonCapableInterface` defines a contract for components that can display and manage polygons on a map. It provides methods for adding, updating, checking, and handling interactions with polygons.
+The `PolygonCapableInterface` defines a contract for components that can display and manage polygons
+on a map. It provides methods for adding, updating, checking, and handling interactions with
+polygons.
 
 ---
 
@@ -8,7 +10,9 @@ The `PolygonCapableInterface` defines a contract for components that can display
 
 ### compositionPolygons
 
-Sets or replaces the entire collection of polygons displayed on the map. This function is asynchronous and should be called from a coroutine. Any polygons currently on the map that are not in the provided `data` list will be removed.
+Sets or replaces the entire collection of polygons displayed on the map. This function is
+asynchronous and should be called from a coroutine. Any polygons currently on the map that are not
+in the provided `data` list will be removed.
 
 #### Signature
 
@@ -18,9 +22,9 @@ suspend fun compositionPolygons(data: List<PolygonState>)
 
 #### Parameters
 
-| Parameter | Type                 | Description                                                  |
-| :-------- | :------------------- | :----------------------------------------------------------- |
-| `data`    | `List<PolygonState>` | A list of `PolygonState` objects to be displayed on the map. |
+- `data`
+    - Type: `List<PolygonState>`
+    - Description: A list of `PolygonState` objects to be displayed on the map.
 
 #### Returns
 
@@ -44,7 +48,9 @@ coroutineScope.launch {
 
 ### updatePolygon
 
-Updates the properties of a single, existing polygon on the map. The specific polygon to be updated is identified by an ID within the provided `PolygonState` object. If no polygon with the matching ID exists, the call may be ignored. This function is asynchronous.
+Updates the properties of a single, existing polygon on the map. The specific polygon to be updated
+is identified by an ID within the provided `PolygonState` object. If no polygon with the matching ID
+exists, the call may be ignored. This function is asynchronous.
 
 #### Signature
 
@@ -54,9 +60,9 @@ suspend fun updatePolygon(state: PolygonState)
 
 #### Parameters
 
-| Parameter | Type           | Description                                                              |
-| :-------- | :------------- | :----------------------------------------------------------------------- |
-| `state`   | `PolygonState` | The `PolygonState` object containing the updated properties for a polygon. |
+- `state`
+    - Type: `PolygonState`
+    - Description: The `PolygonState` object containing the updated properties for a polygon.
 
 #### Returns
 
@@ -82,9 +88,12 @@ coroutineScope.launch {
 
 ### setOnPolygonClickListener
 
-<p style="background-color: #FFF3CD; color: #664D03; border-left: 5px solid #FFC107; padding: 15px;">
-  <strong><span style="font-family: 'Courier New', Courier, monospace;">@Deprecated</span></strong><br>
-  This method is deprecated. Use the <code>onClick</code> lambda property within the <code>PolygonState</code> object for handling click events on a per-polygon basis.
+<p style="background-color: #FFF3CD; color: #664D03; border-left: 5px solid #FFC107; padding:
+15px;">
+  <strong><span style="font-family: 'Courier New', Courier,
+  monospace;">@Deprecated</span></strong><br>
+  This method is deprecated. Use the <code>onClick</code> lambda property within the
+  <code>PolygonState</code> object for handling click events on a per-polygon basis.
 </p>
 
 Sets a global listener for click events on any polygon.
@@ -97,9 +106,10 @@ fun setOnPolygonClickListener(listener: OnPolygonEventHandler?)
 
 #### Parameters
 
-| Parameter  | Type                    | Description                                                              |
-| :--------- | :---------------------- | :----------------------------------------------------------------------- |
-| `listener` | `OnPolygonEventHandler?` | The event handler to be invoked when a polygon is clicked. Pass `null` to remove the current listener. |
+- `listener`
+    - Type: `OnPolygonEventHandler?`
+    - Description: The event handler to be invoked when a polygon is clicked. Pass `null` to remove
+      the current listener.
 
 #### Returns
 
@@ -138,15 +148,15 @@ fun hasPolygon(state: PolygonState): Boolean
 
 #### Parameters
 
-| Parameter | Type           | Description                                                                                             |
-| :-------- | :------------- | :------------------------------------------------------------------------------------------------------ |
-| `state`   | `PolygonState` | The `PolygonState` object representing the polygon to check for. The check is typically based on the `id` property. |
+- `state`
+    - Type: `PolygonState`
+    - Description: The `PolygonState` object representing the polygon to check for. The check is
+      typically based on the `id` property.
 
 #### Returns
 
-| Type      | Description                                      |
-| :-------- | :----------------------------------------------- |
-| `Boolean` | Returns `true` if the polygon exists, `false` otherwise. |
+- Type: `Boolean`
+- Description: Returns `true` if the polygon exists, `false` otherwise.
 
 #### Example
 

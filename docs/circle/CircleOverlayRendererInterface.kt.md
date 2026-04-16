@@ -1,7 +1,3 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
----
-
 # CircleOverlayRendererInterface<ActualCircle>
 
 ## Signature
@@ -12,15 +8,19 @@ interface CircleOverlayRendererInterface<ActualCircle>
 
 ## Description
 
-The `CircleOverlayRendererInterface` defines a contract for rendering and managing the lifecycle of circle overlays on a map. Implement this interface to create a custom renderer that handles the addition, modification, and removal of circles based on state changes.
+The `CircleOverlayRendererInterface` defines a contract for rendering and managing the lifecycle of
+circle overlays on a map. Implement this interface to create a custom renderer that handles the
+addition, modification, and removal of circles based on state changes.
 
-The interface is generic, allowing it to work with different map SDKs by specifying the platform-specific circle object type for `ActualCircle` (e.g., `com.google.android.gms.maps.model.Circle` for Google Maps).
+The interface is generic, allowing it to work with different map SDKs by specifying the
+platform-specific circle object type for `ActualCircle` (e.g.,
+`com.google.android.gms.maps.model.Circle` for Google Maps).
 
 ## Type Parameters
 
-| Name           | Description                                                                                             |
-| :------------- | :------------------------------------------------------------------------------------------------------ |
-| `ActualCircle` | The platform-specific class representing a circle object on the map (e.g., `GoogleMap.Circle`). |
+- `ActualCircle`
+    - Description: The platform-specific class representing a circle object on the map (e.g.,
+      `GoogleMap.Circle`).
 
 ---
 
@@ -38,9 +38,10 @@ A data structure that holds the required information to add a new circle to the 
 
 **Properties**
 
-| Name    | Type          | Description                               |
-| :------ | :------------ | :---------------------------------------- |
-| `state` | `CircleState` | The state object containing all the properties for the new circle (e.g., center, radius, color). |
+- `state`
+    - Type: `CircleState`
+    - Description: The state object containing all the properties for the new circle (e.g., center,
+      radius, color).
 
 ### ChangeParamsInterface<ActualCircle>
 
@@ -50,20 +51,22 @@ interface ChangeParamsInterface<ActualCircle>
 ```
 
 **Description**
-A data structure that holds the information needed to update an existing circle. It provides both the previous and the new state of the circle entity.
+A data structure that holds the information needed to update an existing circle. It provides both
+the previous and the new state of the circle entity.
 
 **Type Parameters**
 
-| Name           | Description                                                                                             |
-| :------------- | :------------------------------------------------------------------------------------------------------ |
-| `ActualCircle` | The platform-specific class representing a circle object on the map. |
+- `ActualCircle`
+    - Description: The platform-specific class representing a circle object on the map.
 
 **Properties**
 
-| Name      | Type                                     | Description                                                              |
-| :-------- | :--------------------------------------- | :----------------------------------------------------------------------- |
-| `current` | `CircleEntityInterface<ActualCircle>`    | The circle entity containing the **new** state and properties to be applied. |
-| `prev`    | `CircleEntityInterface<ActualCircle>`    | The circle entity containing the **previous** state and properties.      |
+- `current`
+    - Type: `CircleEntityInterface<ActualCircle>`
+    - Description: The circle entity containing the **new** state and properties to be applied.
+- `prev`
+    - Type: `CircleEntityInterface<ActualCircle>`
+    - Description: The circle entity containing the **previous** state and properties.
 
 ---
 
@@ -77,17 +80,20 @@ suspend fun onAdd(data: List<AddParamsInterface>): List<ActualCircle?>
 ```
 
 **Description**
-Asynchronously adds a batch of new circles to the map. This method is called when new circle states are introduced.
+Asynchronously adds a batch of new circles to the map. This method is called when new circle states
+are introduced.
 
 **Parameters**
 
-| Name   | Type                           | Description                                                              |
-| :----- | :----------------------------- | :----------------------------------------------------------------------- |
-| `data` | `List<AddParamsInterface>`     | A list of `AddParamsInterface` objects, each describing a circle to be added. |
+- `data`
+    - Type: `List<AddParamsInterface>`
+    - Description: A list of `AddParamsInterface` objects, each describing a circle to be added.
 
 **Returns**
 
-`List<ActualCircle?>`: A list of the newly created, platform-specific `ActualCircle` objects. An element can be `null` if the creation of a specific circle failed. The order of the returned list must correspond to the order of the input `data` list.
+`List<ActualCircle?>`: A list of the newly created, platform-specific `ActualCircle` objects. An
+element can be `null` if the creation of a specific circle failed. The order of the returned list
+must correspond to the order of the input `data` list.
 
 ### onChange
 
@@ -97,17 +103,21 @@ suspend fun onChange(data: List<ChangeParamsInterface<ActualCircle>>): List<Actu
 ```
 
 **Description**
-Asynchronously updates a batch of existing circles on the map. This method is called when the properties of existing circles have changed.
+Asynchronously updates a batch of existing circles on the map. This method is called when the
+properties of existing circles have changed.
 
 **Parameters**
 
-| Name   | Type                                         | Description                                                              |
-| :----- | :------------------------------------------- | :----------------------------------------------------------------------- |
-| `data` | `List<ChangeParamsInterface<ActualCircle>>`  | A list of `ChangeParamsInterface` objects, each describing the changes for a circle. |
+- `data`
+    - Type: `List<ChangeParamsInterface<ActualCircle>>`
+    - Description: A list of `ChangeParamsInterface` objects, each describing the changes for a
+      circle.
 
 **Returns**
 
-`List<ActualCircle?>`: A list of the updated, platform-specific `ActualCircle` objects. An element can be `null` if the update failed. The order of the returned list must correspond to the order of the input `data` list.
+`List<ActualCircle?>`: A list of the updated, platform-specific `ActualCircle` objects. An element
+can be `null` if the update failed. The order of the returned list must correspond to the order of
+the input `data` list.
 
 ### onRemove
 
@@ -121,9 +131,9 @@ Asynchronously removes a batch of circles from the map.
 
 **Parameters**
 
-| Name   | Type                                      | Description                                                              |
-| :----- | :---------------------------------------- | :----------------------------------------------------------------------- |
-| `data` | `List<CircleEntityInterface<ActualCircle>>` | A list of `CircleEntityInterface` objects representing the circles to be removed. |
+- `data`
+    - Type: `List<CircleEntityInterface<ActualCircle>>`
+    - Description: A list of `CircleEntityInterface` objects representing the circles to be removed.
 
 ### onPostProcess
 
@@ -133,13 +143,16 @@ suspend fun onPostProcess()
 ```
 
 **Description**
-A lifecycle callback that is executed after a batch of `onAdd`, `onChange`, and `onRemove` operations has been completed. This method can be used for cleanup, final rendering adjustments, or other post-processing tasks.
+A lifecycle callback that is executed after a batch of `onAdd`, `onChange`, and `onRemove`
+operations has been completed. This method can be used for cleanup, final rendering adjustments, or
+other post-processing tasks.
 
 ---
 
 ## Example
 
-Here is a conceptual example of how to implement `CircleOverlayRendererInterface` for a hypothetical map SDK.
+Here is a conceptual example of how to implement `CircleOverlayRendererInterface` for a hypothetical
+map SDK.
 
 ```kotlin
 // Assume these are defined elsewhere in the map SDK

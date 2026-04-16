@@ -1,16 +1,19 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
 # Class: `CircleManager<ActualCircle>`
 
-A thread-safe manager for handling the lifecycle of circle entities on a map. It provides methods to add, remove, retrieve, and query circle objects. This class is responsible for maintaining a collection of `CircleEntityInterface` objects and uses a `ConcurrentHashMap` for its internal storage, ensuring safe concurrent access.
+A thread-safe manager for handling the lifecycle of circle entities on a map. It provides methods to
+add, remove, retrieve, and query circle objects. This class is responsible for maintaining a
+collection of `CircleEntityInterface` objects and uses a `ConcurrentHashMap` for its internal
+storage, ensuring safe concurrent access.
 
-The manager uses a generic type `ActualCircle` to represent the platform-specific circle implementation (e.g., a Google Maps `Circle` or a Mapbox circle annotation).
+The manager uses a generic type `ActualCircle` to represent the platform-specific circle
+implementation (e.g., a Google Maps `Circle` or a Mapbox circle annotation).
 
 ## Methods
 
 ### `registerEntity`
 
-Adds a new circle entity to the manager. If an entity with the same ID already exists, it will be replaced.
+Adds a new circle entity to the manager. If an entity with the same ID already exists, it will be
+replaced.
 
 **Signature**
 ```kotlin
@@ -18,12 +21,13 @@ fun registerEntity(entity: CircleEntityInterface<ActualCircle>)
 ```
 
 **Description**
-This method registers a given `CircleEntityInterface` with the manager, using the entity's ID as the unique key for storage.
+This method registers a given `CircleEntityInterface` with the manager, using the entity's ID as the
+unique key for storage.
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `entity` | `CircleEntityInterface<ActualCircle>` | The circle entity to register. |
+- `entity`
+    - Type: `CircleEntityInterface<ActualCircle>`
+    - Description: The circle entity to register.
 
 **Example**
 ```kotlin
@@ -36,7 +40,8 @@ circleManager.registerEntity(newCircle)
 
 ### `updateEntity`
 
-Updates an existing circle entity or adds it if it doesn't exist. This method functions as an alias for `registerEntity`.
+Updates an existing circle entity or adds it if it doesn't exist. This method functions as an alias
+for `registerEntity`.
 
 **Signature**
 ```kotlin
@@ -44,12 +49,13 @@ fun updateEntity(entity: CircleEntityInterface<ActualCircle>)
 ```
 
 **Description**
-This method adds or updates a circle entity in the manager. It is functionally identical to `registerEntity`.
+This method adds or updates a circle entity in the manager. It is functionally identical to
+`registerEntity`.
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `entity` | `CircleEntityInterface<ActualCircle>` | The circle entity to add or update. |
+- `entity`
+    - Type: `CircleEntityInterface<ActualCircle>`
+    - Description: The circle entity to add or update.
 
 **Example**
 ```kotlin
@@ -78,14 +84,14 @@ fun removeEntity(id: String): CircleEntityInterface<ActualCircle>?
 This method finds and removes the circle entity associated with the specified `id`.
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | `String` | The unique identifier of the circle entity to remove. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier of the circle entity to remove.
 
 **Returns**
-| Type | Description |
-|------|-------------|
-| `CircleEntityInterface<ActualCircle>?` | The removed circle entity if it was found, or `null` if no entity with the specified ID exists. |
+- Type: `CircleEntityInterface<ActualCircle>?`
+- Description: The removed circle entity if it was found, or `null` if no entity with the specified
+  ID exists.
 
 **Example**
 ```kotlin
@@ -112,14 +118,13 @@ fun getEntity(id: String): CircleEntityInterface<ActualCircle>?
 This method provides read-only access to a circle entity without removing it from the manager.
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | `String` | The unique identifier of the circle entity to retrieve. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier of the circle entity to retrieve.
 
 **Returns**
-| Type | Description |
-|------|-------------|
-| `CircleEntityInterface<ActualCircle>?` | The `CircleEntityInterface` corresponding to the given ID, or `null` if not found. |
+- Type: `CircleEntityInterface<ActualCircle>?`
+- Description: The `CircleEntityInterface` corresponding to the given ID, or `null` if not found.
 
 **Example**
 ```kotlin
@@ -142,14 +147,13 @@ fun hasEntity(id: String): Boolean
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | `String` | The unique identifier to check for. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier to check for.
 
 **Returns**
-| Type | Description |
-|--------|-------------|
-| `Boolean` | Returns `true` if an entity with the given ID exists, `false` otherwise. |
+- Type: `Boolean`
+- Description: Returns `true` if an entity with the given ID exists, `false` otherwise.
 
 **Example**
 ```kotlin
@@ -172,9 +176,9 @@ fun allEntities(): List<CircleEntityInterface<ActualCircle>>
 ```
 
 **Returns**
-| Type | Description |
-|------|-------------|
-| `List<CircleEntityInterface<ActualCircle>>` | A `List` containing all `CircleEntityInterface` objects. The list will be empty if no entities are managed. |
+- Type: `List<CircleEntityInterface<ActualCircle>>`
+- Description: A `List` containing all `CircleEntityInterface` objects. The list will be empty if no
+  entities are managed.
 
 **Example**
 ```kotlin
@@ -220,23 +224,26 @@ fun find(position: GeoPointInterface): CircleEntityInterface<ActualCircle>?
 **Description**
 This method implements a "hit test" for circles. The search logic is as follows:
 1.  Filters all managed circles to find those whose radius contains the specified `position`.
-2.  From the filtered list, it only considers circles that are marked as clickable (`entity.state.clickable` is `true`).
-3.  If multiple clickable circles are found at the position, it returns the one with the highest `zIndex`. The `zIndex` is determined by `entity.state.zIndex` if set; otherwise, it's calculated based on the circle's center coordinate.
+2.  From the filtered list, it only considers circles that are marked as clickable
+(`entity.state.clickable` is `true`).
+3.  If multiple clickable circles are found at the position, it returns the one with the highest
+`zIndex`. The `zIndex` is determined by `entity.state.zIndex` if set; otherwise, it's calculated
+based on the circle's center coordinate.
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `position` | `GeoPointInterface` | The geographic coordinate (e.g., from a map tap event) to search at. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic coordinate (e.g., from a map tap event) to search at.
 
 **Returns**
-| Type | Description |
-|------|-------------|
-| `CircleEntityInterface<ActualCircle>?` | The matching `CircleEntityInterface` with the highest `zIndex`, or `null` if no clickable circle is found at the given position. |
+- Type: `CircleEntityInterface<ActualCircle>?`
+- Description: The matching `CircleEntityInterface` with the highest `zIndex`, or `null` if no
+  clickable circle is found at the given position.
 
 **Example**
 ```kotlin
 // A GeoPoint representing a user's tap on the map
-val tapPosition = GeoPoint(40.7128, -74.0060) 
+val tapPosition = GeoPoint(40.7128, -74.0060)
 
 val tappedCircle = circleManager.find(tapPosition)
 

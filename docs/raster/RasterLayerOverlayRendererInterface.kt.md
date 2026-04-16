@@ -2,21 +2,25 @@
 
 ## Description
 
-The `RasterLayerOverlayRendererInterface` defines a contract for rendering and managing the lifecycle of raster layer overlays on a map. Implementations of this interface are responsible for translating abstract raster layer state changes (add, change, remove) into concrete operations for a specific, underlying map SDK (e.g., Google Maps, Mapbox).
+The `RasterLayerOverlayRendererInterface` defines a contract for rendering and managing the
+lifecycle of raster layer overlays on a map. Implementations of this interface are responsible for
+translating abstract raster layer state changes (add, change, remove) into concrete operations for a
+specific, underlying map SDK (e.g., Google Maps, Mapbox).
 
 All operations are designed to be asynchronous and are executed within a provided `CoroutineScope`.
 
 ### Generic Type Parameters
 
-| Parameter | Description |
-| :--- | :--- |
-| `<ActualLayer>` | The concrete layer class of the underlying map SDK (e.g., `TileOverlay` for Google Maps). |
+- `<ActualLayer>`
+    - Description: The concrete layer class of the underlying map SDK (e.g., `TileOverlay` for
+      Google Maps).
 
 ## Properties
 
 ### coroutine
 
-The coroutine scope in which all suspend functions of this interface will be executed. The implementation must provide this scope.
+The coroutine scope in which all suspend functions of this interface will be executed. The
+implementation must provide this scope.
 
 **Signature**
 ```kotlin
@@ -29,7 +33,8 @@ abstract val coroutine: CoroutineScope
 
 ### onAdd
 
-Called to add one or more new raster layers to the map. This function should process the provided layer states, create the corresponding native map layers, and add them to the map view.
+Called to add one or more new raster layers to the map. This function should process the provided
+layer states, create the corresponding native map layers, and add them to the map view.
 
 **Signature**
 ```kotlin
@@ -38,19 +43,23 @@ suspend fun onAdd(data: List<AddParamsInterface>): List<ActualLayer?>
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<AddParamsInterface>` | A list of objects, where each object contains the state for a new layer to be added. |
+- `data`
+    - Type: `List<AddParamsInterface>`
+    - Description: A list of objects, where each object contains the state for a new layer to be
+      added.
 
 **Returns**
 
-A `List<ActualLayer?>` where each element corresponds to the newly created native map layer object at the same index as the input `data`. An element will be `null` if the layer creation failed for any reason.
+A `List<ActualLayer?>` where each element corresponds to the newly created native map layer object
+at the same index as the input `data`. An element will be `null` if the layer creation failed for
+any reason.
 
 ---
 
 ### onChange
 
-Called to update one or more existing raster layers. This function should handle changes to layer properties such as opacity, visibility, or tile sources.
+Called to update one or more existing raster layers. This function should handle changes to layer
+properties such as opacity, visibility, or tile sources.
 
 **Signature**
 ```kotlin
@@ -59,13 +68,16 @@ suspend fun onChange(data: List<ChangeParamsInterface<ActualLayer>>): List<Actua
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<ChangeParamsInterface<ActualLayer>>` | A list of objects, each containing the previous and current state of a layer to be updated. |
+- `data`
+    - Type: `List<ChangeParamsInterface<ActualLayer>>`
+    - Description: A list of objects, each containing the previous and current state of a layer to
+      be updated.
 
 **Returns**
 
-A `List<ActualLayer?>` where each element is the updated native map layer object corresponding to the input `data`. An element can be `null` if the update results in the layer being removed or if an error occurs.
+A `List<ActualLayer?>` where each element is the updated native map layer object corresponding to
+the input `data`. An element can be `null` if the update results in the layer being removed or if an
+error occurs.
 
 ---
 
@@ -80,15 +92,17 @@ suspend fun onRemove(data: List<RasterLayerEntityInterface<ActualLayer>>)
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<RasterLayerEntityInterface<ActualLayer>>` | A list of layer entities to be removed from the map. |
+- `data`
+    - Type: `List<RasterLayerEntityInterface<ActualLayer>>`
+    - Description: A list of layer entities to be removed from the map.
 
 ---
 
 ### onCameraChanged
 
-An optional callback invoked whenever the map's camera position changes. This can be overridden to implement logic that depends on the current map view, such as adjusting layer details based on zoom level. The default implementation is empty.
+An optional callback invoked whenever the map's camera position changes. This can be overridden to
+implement logic that depends on the current map view, such as adjusting layer details based on zoom
+level. The default implementation is empty.
 
 **Signature**
 ```kotlin
@@ -97,15 +111,18 @@ suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {}
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `mapCameraPosition` | `MapCameraPosition` | An object containing the current camera state (e.g., target, zoom, tilt, bearing). |
+- `mapCameraPosition`
+    - Type: `MapCameraPosition`
+    - Description: An object containing the current camera state (e.g., target, zoom, tilt,
+      bearing).
 
 ---
 
 ### onPostProcess
 
-A lifecycle hook called after a batch of add, change, or remove operations has been completed. This can be used for final cleanup, batching updates, or forcing a map redraw to ensure all changes are visually applied.
+A lifecycle hook called after a batch of add, change, or remove operations has been completed. This
+can be used for final cleanup, batching updates, or forcing a map redraw to ensure all changes are
+visually applied.
 
 **Signature**
 ```kotlin
@@ -120,24 +137,27 @@ suspend fun onPostProcess()
 
 A data structure holding the parameters required to add a new raster layer.
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `RasterLayerState` | The state of the raster layer to be added. |
+- `state`
+    - Type: `RasterLayerState`
+    - Description: The state of the raster layer to be added.
 
 ### ChangeParamsInterface<ActualLayer>
 
 A data structure holding the parameters required to change an existing raster layer.
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `current` | `RasterLayerEntityInterface<ActualLayer>` | The new entity representing the layer's updated state. |
-| `prev` | `RasterLayerEntityInterface<ActualLayer>` | The old entity representing the layer's state before the change. |
+- `current`
+    - Type: `RasterLayerEntityInterface<ActualLayer>`
+    - Description: The new entity representing the layer's updated state.
+- `prev`
+    - Type: `RasterLayerEntityInterface<ActualLayer>`
+    - Description: The old entity representing the layer's state before the change.
 
 ---
 
 ## Example
 
-The following example demonstrates a conceptual implementation of `RasterLayerOverlayRendererInterface` for a hypothetical map SDK.
+The following example demonstrates a conceptual implementation of
+`RasterLayerOverlayRendererInterface` for a hypothetical map SDK.
 
 ```kotlin
 import com.mapconductor.core.map.MapCameraPosition
@@ -176,7 +196,7 @@ class MyRasterLayerRenderer(
 
     override suspend fun onChange(data: List<ChangeParamsInterface<NativeTileOverlay>>): List<NativeTileOverlay?> {
         return data.map { params ->
-            val nativeLayer = params.prev.actual
+            val nativeLayer = params.prev.layer
             // Apply changes to the existing native layer
             nativeLayer?.apply {
                 // Example: Update opacity based on the new state
@@ -188,7 +208,7 @@ class MyRasterLayerRenderer(
 
     override suspend fun onRemove(data: List<RasterLayerEntityInterface<NativeTileOverlay>>) {
         data.forEach { entity ->
-            entity.actual?.let { nativeLayer ->
+            entity.layer?.let { nativeLayer ->
                 // Remove the layer from the actual map
                 mapSDK.removeOverlay(nativeLayer)
             }

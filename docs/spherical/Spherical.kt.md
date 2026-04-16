@@ -2,11 +2,16 @@
 
 ## Overview
 
-The `Spherical` object provides a collection of static utility functions for performing spherical geometry calculations on Earth's surface. It uses a spherical model of the Earth for all computations, which is suitable for most mapping applications.
+The `Spherical` object provides a collection of static utility functions for performing spherical
+geometry calculations on Earth's surface. It uses a spherical model of the Earth for all
+computations, which is suitable for most mapping applications.
 
-These functions are essential for tasks like calculating distances between two points, determining the heading from one point to another, finding a destination point given a starting point and an offset, and calculating the area or length of a path.
+These functions are essential for tasks like calculating distances between two points, determining
+the heading from one point to another, finding a destination point given a starting point and an
+offset, and calculating the area or length of a path.
 
-This implementation is a Kotlin port of the spherical geometry utilities found in the Cordova Google Maps plugin, adapted to use the `GeoPointInterface` for coordinate representation.
+This implementation is a Kotlin port of the spherical geometry utilities found in the Cordova Google
+Maps plugin, adapted to use the `GeoPointInterface` for coordinate representation.
 
 ---
 
@@ -25,20 +30,23 @@ fun computeDistanceBetween(
 
 ### Description
 
-This function returns the distance, in meters, between two `GeoPointInterface` locations. The calculation is based on the haversine formula, which accounts for the Earth's curvature, providing an accurate distance over a sphere.
+This function returns the distance, in meters, between two `GeoPointInterface` locations. The
+calculation is based on the haversine formula, which accounts for the Earth's curvature, providing
+an accurate distance over a sphere.
 
 ### Parameters
 
-| Parameter | Type                | Description              |
-| :-------- | :------------------ | :----------------------- |
-| `from`    | `GeoPointInterface` | The starting point.      |
-| `to`      | `GeoPointInterface` | The ending point.        |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting point.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending point.
 
 ### Returns
 
-| Type     | Description            |
-| :------- | :--------------------- |
-| `Double` | The distance in meters. |
+- Type: `Double`
+- Description: The distance in meters.
 
 ### Example
 
@@ -69,20 +77,23 @@ fun computeHeading(
 
 ### Description
 
-This function returns the heading from one `GeoPointInterface` to another. The heading is expressed in degrees clockwise from true North and is normalized to the range `(-180, 180]`. A heading of 0 is North, 90 is East, 180 is South, and -90 is West.
+This function returns the heading from one `GeoPointInterface` to another. The heading is expressed
+in degrees clockwise from true North and is normalized to the range `(-180, 180]`. A heading of 0 is
+North, 90 is East, 180 is South, and -90 is West.
 
 ### Parameters
 
-| Parameter | Type                | Description              |
-| :-------- | :------------------ | :----------------------- |
-| `from`    | `GeoPointInterface` | The starting point.      |
-| `to`      | `GeoPointInterface` | The ending point.        |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting point.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending point.
 
 ### Returns
 
-| Type     | Description                                       |
-| :------- | :------------------------------------------------ |
-| `Double` | The heading in degrees within the range `(-180, 180]`. |
+- Type: `Double`
+- Description: The heading in degrees within the range `(-180, 180]`.
 
 ### Example
 
@@ -113,21 +124,25 @@ fun computeOffset(
 
 ### Description
 
-This function returns a new `GeoPoint` that is a specified distance and heading away from an origin point. It is useful for projecting a point on the map.
+This function returns a new `GeoPoint` that is a specified distance and heading away from an origin
+point. It is useful for projecting a point on the map.
 
 ### Parameters
 
-| Parameter  | Type                | Description                                           |
-| :--------- | :------------------ | :---------------------------------------------------- |
-| `origin`   | `GeoPointInterface` | The starting point.                                   |
-| `distance` | `Double`            | The distance to travel in meters.                     |
-| `heading`  | `Double`            | The direction to travel in degrees (0=N, 90=E, 180=S). |
+- `origin`
+    - Type: `GeoPointInterface`
+    - Description: The starting point.
+- `distance`
+    - Type: `Double`
+    - Description: The distance to travel in meters.
+- `heading`
+    - Type: `Double`
+    - Description: The direction to travel in degrees (0=N, 90=E, 180=S).
 
 ### Returns
 
-| Type       | Description                               |
-| :--------- | :---------------------------------------- |
-| `GeoPoint` | The new `GeoPoint` at the calculated offset. |
+- Type: `GeoPoint`
+- Description: The new `GeoPoint` at the calculated offset.
 
 ### Example
 
@@ -159,21 +174,26 @@ fun computeOffsetOrigin(
 
 ### Description
 
-This function is the inverse of `computeOffset`. It determines the starting point from which one would have traveled a certain distance at a specific heading to arrive at the destination `to`. It calculates this by reversing the heading and applying the `computeOffset` function.
+This function is the inverse of `computeOffset`. It determines the starting point from which one
+would have traveled a certain distance at a specific heading to arrive at the destination `to`. It
+calculates this by reversing the heading and applying the `computeOffset` function.
 
 ### Parameters
 
-| Parameter  | Type                | Description                               |
-| :--------- | :------------------ | :---------------------------------------- |
-| `to`       | `GeoPointInterface` | The destination point.                    |
-| `distance` | `Double`            | The distance traveled in meters.          |
-| `heading`  | `Double`            | The original heading in degrees.          |
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The destination point.
+- `distance`
+    - Type: `Double`
+    - Description: The distance traveled in meters.
+- `heading`
+    - Type: `Double`
+    - Description: The original heading in degrees.
 
 ### Returns
 
-| Type        | Description                                                              |
-| :---------- | :----------------------------------------------------------------------- |
-| `GeoPoint?` | The original `GeoPoint` position, or `null` if a solution is not available. |
+- Type: `GeoPoint?`
+- Description: The original `GeoPoint` position, or `null` if a solution is not available.
 
 ### Example
 
@@ -203,19 +223,19 @@ fun computeLength(path: List<GeoPointInterface>): Double
 
 ### Description
 
-This function sums the great-circle distances between consecutive points in a list to calculate the total length of the path. If the path has fewer than two points, the length is 0.
+This function sums the great-circle distances between consecutive points in a list to calculate the
+total length of the path. If the path has fewer than two points, the length is 0.
 
 ### Parameters
 
-| Parameter | Type                    | Description                               |
-| :-------- | :---------------------- | :---------------------------------------- |
-| `path`    | `List<GeoPointInterface>` | A list of points defining the path.       |
+- `path`
+    - Type: `List<GeoPointInterface>`
+    - Description: A list of points defining the path.
 
 ### Returns
 
-| Type     | Description                     |
-| :------- | :------------------------------ |
-| `Double` | The total length in meters.     |
+- Type: `Double`
+- Description: The total length in meters.
 
 ### Example
 
@@ -245,19 +265,21 @@ fun computeArea(path: List<GeoPointInterface>): Double
 
 ### Description
 
-This function computes the area of a closed polygon defined by a list of points. It returns the absolute (non-negative) value of the area. The path is assumed to be closed; the function does not automatically connect the last point to the first. For accurate results, the last point in the list should be the same as the first.
+This function computes the area of a closed polygon defined by a list of points. It returns the
+absolute (non-negative) value of the area. The path is assumed to be closed; the function does not
+automatically connect the last point to the first. For accurate results, the last point in the list
+should be the same as the first.
 
 ### Parameters
 
-| Parameter | Type                    | Description                               |
-| :-------- | :---------------------- | :---------------------------------------- |
-| `path`    | `List<GeoPointInterface>` | A list of points defining the polygon.    |
+- `path`
+    - Type: `List<GeoPointInterface>`
+    - Description: A list of points defining the polygon.
 
 ### Returns
 
-| Type     | Description                     |
-| :------- | :------------------------------ |
-| `Double` | The area in square meters.      |
+- Type: `Double`
+- Description: The area in square meters.
 
 ### Example
 
@@ -289,7 +311,8 @@ fun computeSignedArea(path: List<GeoPointInterface>): Double
 
 ### Description
 
-This function computes the signed area of a closed polygon. The sign of the result indicates the orientation of the vertices:
+This function computes the signed area of a closed polygon. The sign of the result indicates the
+orientation of the vertices:
 - **Positive value:** The vertices are in a counter-clockwise order.
 - **Negative value:** The vertices are in a clockwise order.
 
@@ -297,15 +320,14 @@ The magnitude of the result is the area in square meters. The path is assumed to
 
 ### Parameters
 
-| Parameter | Type                    | Description                               |
-| :-------- | :---------------------- | :---------------------------------------- |
-| `path`    | `List<GeoPointInterface>` | A list of points defining the polygon.    |
+- `path`
+    - Type: `List<GeoPointInterface>`
+    - Description: A list of points defining the polygon.
 
 ### Returns
 
-| Type     | Description                                                              |
-| :------- | :----------------------------------------------------------------------- |
-| `Double` | The signed area in square meters. Positive for CCW, negative for CW.     |
+- Type: `Double`
+- Description: The signed area in square meters. Positive for CCW, negative for CW.
 
 ### Example
 
@@ -333,7 +355,8 @@ println("Clockwise signed area: $signedAreaCW")
 
 ## `sphericalInterpolate`
 
-Interpolates between two points along a great-circle path using Spherical Linear Interpolation (Slerp).
+Interpolates between two points along a great-circle path using Spherical Linear Interpolation
+(Slerp).
 
 ### Signature
 
@@ -347,21 +370,27 @@ fun sphericalInterpolate(
 
 ### Description
 
-This method provides a highly accurate interpolation between two points on the globe by following the shortest path along the Earth's surface (a great-circle arc). It is ideal for interpolating over medium to long distances where Earth's curvature is significant. For very close points, it falls back to linear interpolation for stability.
+This method provides a highly accurate interpolation between two points on the globe by following
+the shortest path along the Earth's surface (a great-circle arc). It is ideal for interpolating over
+medium to long distances where Earth's curvature is significant. For very close points, it falls
+back to linear interpolation for stability.
 
 ### Parameters
 
-| Parameter  | Type                | Description                                                              |
-| :--------- | :------------------ | :----------------------------------------------------------------------- |
-| `from`     | `GeoPointInterface` | The starting point.                                                      |
-| `to`       | `GeoPointInterface` | The ending point.                                                        |
-| `fraction` | `Double`            | The interpolation fraction, from 0.0 (at `from`) to 1.0 (at `to`).       |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting point.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending point.
+- `fraction`
+    - Type: `Double`
+    - Description: The interpolation fraction, from 0.0 (at `from`) to 1.0 (at `to`).
 
 ### Returns
 
-| Type       | Description                               |
-| :--------- | :---------------------------------------- |
-| `GeoPoint` | The interpolated `GeoPoint` position.     |
+- Type: `GeoPoint`
+- Description: The interpolated `GeoPoint` position.
 
 ### Example
 
@@ -393,25 +422,32 @@ fun linearInterpolate(
 
 ### Description
 
-This method treats latitude and longitude as coordinates on a Cartesian plane and performs a simple linear interpolation. It is computationally faster than `sphericalInterpolate` but is less accurate, especially over long distances, as it does not account for Earth's curvature.
+This method treats latitude and longitude as coordinates on a Cartesian plane and performs a simple
+linear interpolation. It is computationally faster than `sphericalInterpolate` but is less accurate,
+especially over long distances, as it does not account for Earth's curvature.
 
-A key feature is its handling of longitude: it automatically interpolates along the shorter of the two paths (e.g., from 170°E to -170°W, it will cross the antimeridian instead of going the long way around).
+A key feature is its handling of longitude: it automatically interpolates along the shorter of the
+two paths (e.g., from 170°E to -170°W, it will cross the antimeridian instead of going the long way
+around).
 
 Use this method for short distances or when performance is more critical than geographic accuracy.
 
 ### Parameters
 
-| Parameter  | Type                | Description                                                              |
-| :--------- | :------------------ | :----------------------------------------------------------------------- |
-| `from`     | `GeoPointInterface` | The starting point.                                                      |
-| `to`       | `GeoPointInterface` | The ending point.                                                        |
-| `fraction` | `Double`            | The interpolation fraction, from 0.0 (at `from`) to 1.0 (at `to`).       |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting point.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The ending point.
+- `fraction`
+    - Type: `Double`
+    - Description: The interpolation fraction, from 0.0 (at `from`) to 1.0 (at `to`).
 
 ### Returns
 
-| Type       | Description                               |
-| :--------- | :---------------------------------------- |
-| `GeoPoint` | The linearly interpolated `GeoPoint` position. |
+- Type: `GeoPoint`
+- Description: The linearly interpolated `GeoPoint` position.
 
 ### Example
 

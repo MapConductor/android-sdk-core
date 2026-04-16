@@ -1,14 +1,17 @@
 # GroundImageManager
 
-The `GroundImageManager` class is a concrete implementation of the `GroundImageManagerInterface`. It provides a comprehensive solution for managing a collection of ground image entities on a map. It handles the lifecycle of ground images, including their registration, retrieval, removal, and querying.
+The `GroundImageManager` class is a concrete implementation of the `GroundImageManagerInterface`. It
+provides a comprehensive solution for managing a collection of ground image entities on a map. It
+handles the lifecycle of ground images, including their registration, retrieval, removal, and
+querying.
 
-This manager uses a map to store entities, keyed by their unique string identifiers, allowing for efficient lookups.
+This manager uses a map to store entities, keyed by their unique string identifiers, allowing for
+efficient lookups.
 
 ## Type Parameters
 
-| Name              | Description                                                              |
-| ----------------- | ------------------------------------------------------------------------ |
-| `ActualGroundImage` | A generic type representing the platform-specific ground image object. |
+- `ActualGroundImage`
+    - Description: A generic type representing the platform-specific ground image object.
 
 ---
 
@@ -16,7 +19,8 @@ This manager uses a map to store entities, keyed by their unique string identifi
 
 ### registerEntity
 
-Adds a new ground image entity to the manager. If an entity with the same ID already exists, it will be replaced.
+Adds a new ground image entity to the manager. If an entity with the same ID already exists, it will
+be replaced.
 
 **Signature**
 ```kotlin
@@ -25,9 +29,9 @@ fun registerEntity(entity: GroundImageEntityInterface<ActualGroundImage>)
 
 **Parameters**
 
-| Parameter | Type                                                | Description                               |
-| --------- | --------------------------------------------------- | ----------------------------------------- |
-| `entity`  | `GroundImageEntityInterface<ActualGroundImage>` | The ground image entity to be registered. |
+- `entity`
+    - Type: `GroundImageEntityInterface<ActualGroundImage>`
+    - Description: The ground image entity to be registered.
 
 **Example**
 ```kotlin
@@ -49,15 +53,14 @@ fun removeEntity(id: String): GroundImageEntityInterface<ActualGroundImage>?
 
 **Parameters**
 
-| Parameter | Type     | Description                                    |
-| --------- | -------- | ---------------------------------------------- |
-| `id`      | `String` | The unique identifier of the entity to remove. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier of the entity to remove.
 
 **Returns**
 
-| Type                                                  | Description                                                              |
-| ----------------------------------------------------- | ------------------------------------------------------------------------ |
-| `GroundImageEntityInterface<ActualGroundImage>?` | The removed entity if it was found, or `null` if no entity with the given ID exists. |
+- Type: `GroundImageEntityInterface<ActualGroundImage>?`
+- Description: The removed entity if it was found, or `null` if no entity with the given ID exists.
 
 **Example**
 ```kotlin
@@ -82,15 +85,14 @@ fun getEntity(id: String): GroundImageEntityInterface<ActualGroundImage>?
 
 **Parameters**
 
-| Parameter | Type     | Description                                      |
-| --------- | -------- | ------------------------------------------------ |
-| `id`      | `String` | The unique identifier of the entity to retrieve. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier of the entity to retrieve.
 
 **Returns**
 
-| Type                                                  | Description                                                              |
-| ----------------------------------------------------- | ------------------------------------------------------------------------ |
-| `GroundImageEntityInterface<ActualGroundImage>?` | The entity corresponding to the given ID, or `null` if it is not found. |
+- Type: `GroundImageEntityInterface<ActualGroundImage>?`
+- Description: The entity corresponding to the given ID, or `null` if it is not found.
 
 **Example**
 ```kotlin
@@ -114,15 +116,14 @@ fun hasEntity(id: String): Boolean
 
 **Parameters**
 
-| Parameter | Type     | Description                                    |
-| --------- | -------- | ---------------------------------------------- |
-| `id`      | `String` | The unique identifier to check for existence. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier to check for existence.
 
 **Returns**
 
-| Type      | Description                                      |
-| --------- | ------------------------------------------------ |
-| `Boolean` | `true` if an entity with the specified ID exists, `false` otherwise. |
+- Type: `Boolean`
+- Description: `true` if an entity with the specified ID exists, `false` otherwise.
 
 **Example**
 ```kotlin
@@ -146,9 +147,9 @@ fun allEntities(): List<GroundImageEntityInterface<ActualGroundImage>>
 
 **Returns**
 
-| Type                                                          | Description                                                                                             |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `List<GroundImageEntityInterface<ActualGroundImage>>` | A `List` containing all registered ground image entities. The list is a snapshot; modifying it will not affect the manager's internal collection. |
+- Type: `List<GroundImageEntityInterface<ActualGroundImage>>`
+- Description: A `List` containing all registered ground image entities. The list is a snapshot;
+  modifying it will not affect the manager's internal collection.
 
 **Example**
 ```kotlin
@@ -182,7 +183,8 @@ println("Entities after clear: ${manager.allEntities().size}") // 0
 
 ### find
 
-Finds the first ground image entity whose geographical bounds contain a given geographical position. The order in which entities are checked is not guaranteed.
+Finds the first ground image entity whose geographical bounds contain a given geographical position.
+The order in which entities are checked is not guaranteed.
 
 **Signature**
 ```kotlin
@@ -191,15 +193,15 @@ fun find(position: GeoPointInterface): GroundImageEntityInterface<ActualGroundIm
 
 **Parameters**
 
-| Parameter  | Type                | Description                                                              |
-| ---------- | ------------------- | ------------------------------------------------------------------------ |
-| `position` | `GeoPointInterface` | The geographical point used to search for a containing ground image. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographical point used to search for a containing ground image.
 
 **Returns**
 
-| Type                                                  | Description                                                                                             |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `GroundImageEntityInterface<ActualGroundImage>?` | The first matching ground image entity found, or `null` if no entity's bounds contain the specified position. |
+- Type: `GroundImageEntityInterface<ActualGroundImage>?`
+- Description: The first matching ground image entity found, or `null` if no entity's bounds contain
+  the specified position.
 
 **Example**
 ```kotlin

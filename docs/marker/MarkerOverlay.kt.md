@@ -1,6 +1,7 @@
 # SDK Documentation
 
-This document provides detailed information about the `LocalMarkerCollector` and `MarkerOverlay` components, which are essential for managing and rendering markers on the map.
+This document provides detailed information about the `LocalMarkerCollector` and `MarkerOverlay`
+components, which are essential for managing and rendering markers on the map.
 
 ## `LocalMarkerCollector`
 
@@ -12,13 +13,18 @@ val LocalMarkerCollector: ProvidableCompositionLocal<ChildCollector<MarkerState>
 
 ### Description
 
-A `CompositionLocal` used to provide a `ChildCollector<MarkerState>` instance down the Composable tree. This mechanism allows individual `Marker` composables to register their state with a parent `MapView` component.
+A `CompositionLocal` used to provide a `ChildCollector<MarkerState>` instance down the Composable
+tree. This mechanism allows individual `Marker` composables to register their state with a parent
+`MapView` component.
 
-It is crucial that any composable accessing `LocalMarkerCollector` is a descendant of a `MapView` that provides a value for it. Failure to do so will result in an `IllegalStateException` with the message: "Marker must be under the <MapView />".
+It is crucial that any composable accessing `LocalMarkerCollector` is a descendant of a `MapView`
+that provides a value for it. Failure to do so will result in an `IllegalStateException` with the
+message: "Marker must be under the <MapView />".
 
 ### Example
 
-While you typically won't interact with `LocalMarkerCollector` directly as an end-user, it is used internally by `Marker` composables to register with the map.
+While you typically won't interact with `LocalMarkerCollector` directly as an end-user, it is used
+internally by `Marker` composables to register with the map.
 
 ```kotlin
 // Hypothetical internal usage within a Marker composable
@@ -51,13 +57,18 @@ class MarkerOverlay(
 
 ### Description
 
-`MarkerOverlay` is an implementation of the `MapOverlayInterface` specifically designed for handling map markers. It acts as a bridge between the declarative marker state management system and the imperative map controller. It observes a `StateFlow` of marker data and uses a `MarkerCapableInterface` to instruct the map controller to render the markers on the map view.
+`MarkerOverlay` is an implementation of the `MapOverlayInterface` specifically designed for handling
+map markers. It acts as a bridge between the declarative marker state management system and the
+imperative map controller. It observes a `StateFlow` of marker data and uses a
+`MarkerCapableInterface` to instruct the map controller to render the markers on the map view.
 
 ### Constructor Parameters
 
-| Parameter | Type                                           | Description                                                                                                                            |
-|-----------|------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `flow`    | `StateFlow<MutableMap<String, MarkerState>>`   | A state flow that emits the current collection of markers to be displayed. The map's key is a unique identifier for the marker, and the value is the `MarkerState` object containing its properties. |
+- `flow`
+    - Type: `StateFlow<MutableMap<String, MarkerState>>`
+    - Description: A state flow that emits the current collection of markers to be displayed. The
+      map's key is a unique identifier for the marker, and the value is the `MarkerState` object
+      containing its properties.
 
 ### Methods
 
@@ -74,14 +85,20 @@ override suspend fun render(
 
 ##### Description
 
-This function is called by the map's rendering engine to update the visual representation of markers. It receives the latest marker data and the map controller. The method checks if the controller is capable of handling markers (by implementing `MarkerCapableInterface`) and then delegates the rendering task to the controller's `compositionMarkers` method.
+This function is called by the map's rendering engine to update the visual representation of
+markers. It receives the latest marker data and the map controller. The method checks if the
+controller is capable of handling markers (by implementing `MarkerCapableInterface`) and then
+delegates the rendering task to the controller's `compositionMarkers` method.
 
 ##### Parameters
 
-| Parameter    | Type                         | Description                                                                                                                            |
-|--------------|------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `data`       | `MutableMap<String, MarkerState>` | The most recent map of marker states to be rendered on the map.                                                                        |
-| `controller` | `MapViewControllerInterface` | The map view controller responsible for interacting with the underlying map SDK. It must conform to `MarkerCapableInterface` to render markers. |
+- `data`
+    - Type: `MutableMap<String, MarkerState>`
+    - Description: The most recent map of marker states to be rendered on the map.
+- `controller`
+    - Type: `MapViewControllerInterface`
+    - Description: The map view controller responsible for interacting with the underlying map SDK.
+      It must conform to `MarkerCapableInterface` to render markers.
 
 ##### Returns
 

@@ -1,10 +1,8 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
+# RasterLayerSource
 
----
-
-## RasterLayerSource
-
-`RasterLayerSource` is a sealed class that defines the various sources from which a raster tile layer can be loaded. It provides a type-safe way to specify the configuration for different raster data providers.
+`RasterLayerSource` is a sealed class that defines the various sources from which a raster tile
+layer can be loaded. It provides a type-safe way to specify the configuration for different raster
+data providers.
 
 The available source types are:
 *   `UrlTemplate`: For sources defined by a URL template with x, y, and z placeholders.
@@ -37,16 +35,20 @@ enum class TileScheme {
 
 **Values**
 
-| Value | Description |
-| :---- | :---------- |
-| `XYZ` | The standard "slippy map" tile scheme, where the origin (0,0) is at the top-left corner of the map. This is the most common scheme, used by services like OpenStreetMap and Google Maps. |
-| `TMS` | The Tile Map Service scheme, where the origin (0,0) is at the bottom-left corner of the map. |
+- `XYZ`
+    - Description: The standard "slippy map" tile scheme, where the origin (0,0) is at the top-left
+      corner of the map. This is the most common scheme, used by services like OpenStreetMap and
+      Google Maps.
+- `TMS`
+    - Description: The Tile Map Service scheme, where the origin (0,0) is at the bottom-left corner
+      of the map.
 
 ---
 
 ## RasterLayerSource.UrlTemplate
 
-A data class representing a raster layer source defined by a URL template. This is a flexible way to load tiles from various services that follow a predictable URL structure.
+A data class representing a raster layer source defined by a URL template. This is a flexible way to
+load tiles from various services that follow a predictable URL structure.
 
 **Signature**
 ```kotlin
@@ -61,18 +63,32 @@ data class UrlTemplate(
 ```
 
 **Description**
-This source type uses a string template to generate URLs for individual map tiles. The template should include placeholders `{x}`, `{y}`, and `{z}` which will be replaced with the tile's column, row, and zoom level, respectively.
+This source type uses a string template to generate URLs for individual map tiles. The template
+should include placeholders `{x}`, `{y}`, and `{z}` which will be replaced with the tile's column,
+row, and zoom level, respectively.
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `template` | `String` | The URL template for fetching tiles. Must contain `{x}`, `{y}`, and `{z}` placeholders. For example: `https://a.tile.openstreetmap.org/{z}/{x}/{y}.png`. |
-| `tileSize` | `Int` | The size of the tiles in pixels. Defaults to `512`. |
-| `minZoom` | `Int?` | The minimum zoom level at which this layer is available. Defaults to `null`. |
-| `maxZoom` | `Int?` | The maximum zoom level at which this layer is available. Defaults to `null`. |
-| `attribution` | `String?` | The attribution text to display on the map for this layer's data source. Defaults to `null`. |
-| `scheme` | `TileScheme` | The tile coordinate system to use. Defaults to `TileScheme.XYZ`. |
+- `template`
+    - Type: `String`
+    - Description: The URL template for fetching tiles. Must contain `{x}`, `{y}`, and `{z}`
+      placeholders. For example: `https://a.tile.openstreetmap.org/{z}/{x}/{y}.png`.
+- `tileSize`
+    - Type: `Int`
+    - Description: The size of the tiles in pixels. Defaults to `512`.
+- `minZoom`
+    - Type: `Int?`
+    - Description: The minimum zoom level at which this layer is available. Defaults to `null`.
+- `maxZoom`
+    - Type: `Int?`
+    - Description: The maximum zoom level at which this layer is available. Defaults to `null`.
+- `attribution`
+    - Type: `String?`
+    - Description: The attribution text to display on the map for this layer's data source. Defaults
+      to `null`.
+- `scheme`
+    - Type: `TileScheme`
+    - Description: The tile coordinate system to use. Defaults to `TileScheme.XYZ`.
 
 **Example**
 ```kotlin
@@ -99,13 +115,14 @@ data class TileJson(
 ```
 
 **Description**
-This source type loads its configuration from a TileJSON file. The TileJSON file is a JSON object that contains metadata about the tileset, including the URL template, zoom levels, and attribution.
+This source type loads its configuration from a TileJSON file. The TileJSON file is a JSON object
+that contains metadata about the tileset, including the URL template, zoom levels, and attribution.
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `url` | `String` | The URL of the TileJSON resource (e.g., `https://example.com/tiles.json`). |
+- `url`
+    - Type: `String`
+    - Description: The URL of the TileJSON resource (e.g., `https://example.com/tiles.json`).
 
 **Example**
 ```kotlin
@@ -129,13 +146,15 @@ data class ArcGisService(
 ```
 
 **Description**
-This source type connects to an ArcGIS REST service endpoint to fetch map tiles. The SDK will automatically handle communication with the service to retrieve tile URLs and metadata.
+This source type connects to an ArcGIS REST service endpoint to fetch map tiles. The SDK will
+automatically handle communication with the service to retrieve tile URLs and metadata.
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `serviceUrl` | `String` | The base URL of the ArcGIS MapServer or ImageServer service (e.g., `https://.../MapServer`). |
+- `serviceUrl`
+    - Type: `String`
+    - Description: The base URL of the ArcGIS MapServer or ImageServer service (e.g.,
+      `https://.../MapServer`).
 
 **Example**
 ```kotlin

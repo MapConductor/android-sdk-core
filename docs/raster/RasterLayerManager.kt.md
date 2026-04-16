@@ -1,8 +1,12 @@
 # RasterLayerManager
 
-The `RasterLayerManager` is a generic class responsible for managing a collection of raster layer entities. It provides a simple, in-memory key-value store for registering, retrieving, and removing entities using their unique string identifiers. This manager implements the `RasterLayerManagerInterface`.
+The `RasterLayerManager` is a generic class responsible for managing a collection of raster layer
+entities. It provides a simple, in-memory key-value store for registering, retrieving, and removing
+entities using their unique string identifiers. This manager implements the
+`RasterLayerManagerInterface`.
 
-The generic type parameter `ActualLayer` represents the concrete type of the underlying layer object used in a specific map rendering system.
+The generic type parameter `ActualLayer` represents the concrete type of the underlying layer object
+used in a specific map rendering system.
 
 **Class Signature**
 ```kotlin
@@ -14,7 +18,8 @@ class RasterLayerManager<ActualLayer> : RasterLayerManagerInterface<ActualLayer>
 ## Methods
 
 ### registerEntity
-Adds a new raster layer entity to the manager. If an entity with the same ID already exists, it will be replaced.
+Adds a new raster layer entity to the manager. If an entity with the same ID already exists, it will
+be replaced.
 
 **Signature**
 ```kotlin
@@ -25,9 +30,9 @@ fun registerEntity(entity: RasterLayerEntityInterface<ActualLayer>)
 This method uses the entity's ID as the key to store it in the manager's internal collection.
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `entity` | `RasterLayerEntityInterface<ActualLayer>` | The raster layer entity to register. The entity's ID is used as the key. |
+- `entity`
+    - Type: `RasterLayerEntityInterface<ActualLayer>`
+    - Description: The raster layer entity to register. The entity's ID is used as the key.
 
 **Returns**
 `Unit` - This method does not return a value.
@@ -51,12 +56,13 @@ fun removeEntity(id: String): RasterLayerEntityInterface<ActualLayer>?
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | `String` | The unique ID of the entity to remove. |
+- `id`
+    - Type: `String`
+    - Description: The unique ID of the entity to remove.
 
 **Returns**
-The removed `RasterLayerEntityInterface<ActualLayer>` if it was found, or `null` if no entity with the specified ID exists.
+The removed `RasterLayerEntityInterface<ActualLayer>` if it was found, or `null` if no entity with
+the specified ID exists.
 
 **Example**
 ```kotlin
@@ -81,12 +87,13 @@ fun getEntity(id: String): RasterLayerEntityInterface<ActualLayer>?
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | `String` | The unique ID of the entity to retrieve. |
+- `id`
+    - Type: `String`
+    - Description: The unique ID of the entity to retrieve.
 
 **Returns**
-The `RasterLayerEntityInterface<ActualLayer>` corresponding to the given ID, or `null` if the entity is not found.
+The `RasterLayerEntityInterface<ActualLayer>` corresponding to the given ID, or `null` if the entity
+is not found.
 
 **Example**
 ```kotlin
@@ -109,9 +116,9 @@ fun hasEntity(id: String): Boolean
 ```
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | `String` | The unique ID of the entity to check for. |
+- `id`
+    - Type: `String`
+    - Description: The unique ID of the entity to check for.
 
 **Returns**
 `true` if an entity with the given ID exists, `false` otherwise.
@@ -136,7 +143,8 @@ fun allEntities(): List<RasterLayerEntityInterface<ActualLayer>>
 ```
 
 **Returns**
-A `List` containing all registered `RasterLayerEntityInterface<ActualLayer>` objects. The list will be empty if no entities are registered.
+A `List` containing all registered `RasterLayerEntityInterface<ActualLayer>` objects. The list will
+be empty if no entities are registered.
 
 **Example**
 ```kotlin
@@ -184,15 +192,17 @@ fun find(position: GeoPointInterface): RasterLayerEntityInterface<ActualLayer>?
 **Description**
 This method is designed to perform a spatial query to find an entity at the given coordinates.
 
-**Note:** The current implementation is a stub and always returns `null`. This method is intended for future functionality.
+**Note:** The current implementation is a stub and always returns `null`. This method is intended
+for future functionality.
 
 **Parameters**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `position` | `GeoPointInterface` | The geographic coordinate to search at. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: The geographic coordinate to search at.
 
 **Returns**
-Currently, this method always returns `null`. In a future implementation, it would return the found `RasterLayerEntityInterface<ActualLayer>` or `null` if no entity is found at the specified position.
+Currently, this method always returns `null`. In a future implementation, it would return the found
+`RasterLayerEntityInterface<ActualLayer>` or `null` if no entity is found at the specified position.
 
 **Example**
 ```kotlin

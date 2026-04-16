@@ -1,6 +1,8 @@
 # GroundImageCapableInterface
 
-An interface for components capable of managing and displaying ground images on a map surface. It provides methods for adding, updating, and querying ground images, as well as handling user interactions.
+An interface for components capable of managing and displaying ground images on a map surface. It
+provides methods for adding, updating, and querying ground images, as well as handling user
+interactions.
 
 ---
 
@@ -8,7 +10,9 @@ An interface for components capable of managing and displaying ground images on 
 
 ### compositionGroundImages
 
-Asynchronously replaces all currently displayed ground images with a new set. This function is useful for performing a complete refresh of the ground image layer. Being a `suspend` function, it should be called from a coroutine scope.
+Asynchronously replaces all currently displayed ground images with a new set. This function is
+useful for performing a complete refresh of the ground image layer. Being a `suspend` function, it
+should be called from a coroutine scope.
 
 **Signature**
 
@@ -18,13 +22,15 @@ suspend fun compositionGroundImages(data: List<GroundImageState>)
 
 **Parameters**
 
-| Parameter | Type | Description |
-|-----------|---------------------------|------------------------------------------------------------------------------------------|
-| `data` | `List<GroundImageState>` | A list of `GroundImageState` objects that define the new set of ground images to be displayed. |
+- `data`
+    - Type: `List<GroundImageState>`
+    - Description: A list of `GroundImageState` objects that define the new set of ground images to
+      be displayed.
 
 **Returns**
 
-This is a suspend function and does not return a value. It completes once the composition operation is finished.
+This is a suspend function and does not return a value. It completes once the composition operation
+is finished.
 
 **Example**
 
@@ -53,7 +59,9 @@ mapController.compositionGroundImages(newImages)
 
 ### updateGroundImage
 
-Asynchronously updates a single ground image. If a ground image with the same ID as the provided `state` exists, its properties will be updated. If it does not exist, a new ground image may be added. This is a `suspend` function and must be called from a coroutine scope.
+Asynchronously updates a single ground image. If a ground image with the same ID as the provided
+`state` exists, its properties will be updated. If it does not exist, a new ground image may be
+added. This is a `suspend` function and must be called from a coroutine scope.
 
 **Signature**
 
@@ -63,13 +71,14 @@ suspend fun updateGroundImage(state: GroundImageState)
 
 **Parameters**
 
-| Parameter | Type | Description |
-|-----------|--------------------|------------------------------------------------------------------------------------|
-| `state` | `GroundImageState` | The state object containing the ID and updated properties of the ground image. |
+- `state`
+    - Type: `GroundImageState`
+    - Description: The state object containing the ID and updated properties of the ground image.
 
 **Returns**
 
-This is a suspend function and does not return a value. It completes once the update operation is finished.
+This is a suspend function and does not return a value. It completes once the update operation is
+finished.
 
 **Example**
 
@@ -105,13 +114,16 @@ fun setOnGroundImageClickListener(listener: OnGroundImageEventHandler?)
 
 **Description**
 
-This method sets a single listener for click events across all ground images. For more granular, state-driven event handling, it is recommended to set the `onClick` lambda on individual `GroundImageState` objects.
+This method sets a single listener for click events across all ground images. For more granular,
+state-driven event handling, it is recommended to set the `onClick` lambda on individual
+`GroundImageState` objects.
 
 **Parameters**
 
-| Parameter | Type | Description |
-|-----------|------------------------------|----------------------------------------------------------------------------------------------------|
-| `listener` | `OnGroundImageEventHandler?` | An instance of `OnGroundImageEventHandler` to process click events, or `null` to remove the current listener. |
+- `listener`
+    - Type: `OnGroundImageEventHandler?`
+    - Description: An instance of `OnGroundImageEventHandler` to process click events, or `null` to
+      remove the current listener.
 
 **Example**
 
@@ -136,7 +148,8 @@ mapController.setOnGroundImageClickListener(null)
 
 ### hasGroundImage
 
-Synchronously checks if a ground image matching the identifier in the provided `state` object is currently managed by the component.
+Synchronously checks if a ground image matching the identifier in the provided `state` object is
+currently managed by the component.
 
 **Signature**
 
@@ -146,9 +159,10 @@ fun hasGroundImage(state: GroundImageState): Boolean
 
 **Parameters**
 
-| Parameter | Type | Description |
-|-----------|--------------------|------------------------------------------------------------------------------------------------|
-| `state` | `GroundImageState` | The `GroundImageState` object, which must contain the ID of the ground image to check for. |
+- `state`
+    - Type: `GroundImageState`
+    - Description: The `GroundImageState` object, which must contain the ID of the ground image to
+      check for.
 
 **Returns**
 

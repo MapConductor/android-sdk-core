@@ -1,14 +1,13 @@
-Excellent! Here is the high-quality SDK documentation for the provided code snippet, formatted in Markdown.
+# `RasterLayerState`
 
----
+## Description
 
-## `RasterLayerState`
+Manages the state and configuration of a single raster layer on the map. This class is stateful and
+designed to be used within a Jetpack Compose environment. It holds all configurable properties of a
+raster layer, such as its source, opacity, and visibility. Changes to its properties will
+automatically trigger UI updates in a reactive framework.
 
-### Description
-
-Manages the state and configuration of a single raster layer on the map. This class is stateful and designed to be used within a Jetpack Compose environment. It holds all configurable properties of a raster layer, such as its source, opacity, and visibility. Changes to its properties will automatically trigger UI updates in a reactive framework.
-
-### Constructor Signature
+## Constructor Signature
 
 ```kotlin
 class RasterLayerState(
@@ -23,39 +22,82 @@ class RasterLayerState(
 )
 ```
 
-### Parameters
+## Parameters
 
-| Parameter | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `source` | `RasterLayerSource` | - | The source of the raster tiles (e.g., a URL template). |
-| `opacity` | `Float` | `1.0f` | The layer's opacity, ranging from `0.0` (fully transparent) to `1.0` (fully opaque). |
-| `visible` | `Boolean` | `true` | Toggles the visibility of the layer. If `false`, the layer will not be rendered. |
-| `zIndex` | `Int` | `0` | The stacking order of the layer. Layers with a higher `zIndex` are drawn on top of layers with a lower `zIndex`. |
-| `userAgent` | `String?` | `null` | The custom User-Agent string to use for network requests when fetching tiles. If `null`, the system default is used. |
-| `debug` | `Boolean` | `false` | Enables debug mode for the layer, which may overlay debugging information like tile boundaries. |
-| `id` | `String?` | `null` | A unique identifier for the layer. If not provided, a stable ID is generated based on the layer's initial properties. |
-| `extraHeaders` | `Map<String, String>?` | `null` | A map of additional HTTP headers to include in tile requests, such as for authentication tokens. |
+- `source`
+    - Type: `RasterLayerSource`
+    - Description: The source of the raster tiles (e.g., a URL template).
+- `opacity`
+    - Type: `Float`
+    - Default: `1.0f`
+    - Description: The layer's opacity, ranging from `0.0` (fully transparent) to `1.0` (fully
+      opaque).
+- `visible`
+    - Type: `Boolean`
+    - Default: `true`
+    - Description: Toggles the visibility of the layer. If `false`, the layer will not be rendered.
+- `zIndex`
+    - Type: `Int`
+    - Default: `0`
+    - Description: The stacking order of the layer. Layers with a higher `zIndex` are drawn on top
+      of layers with a lower `zIndex`.
+- `userAgent`
+    - Type: `String?`
+    - Default: `null`
+    - Description: The custom User-Agent string to use for network requests when fetching tiles. If
+      `null`, the system default is used.
+- `debug`
+    - Type: `Boolean`
+    - Default: `false`
+    - Description: Enables debug mode for the layer, which may overlay debugging information like
+      tile boundaries.
+- `id`
+    - Type: `String?`
+    - Default: `null`
+    - Description: A unique identifier for the layer. If not provided, a stable ID is generated
+      based on the layer's initial properties.
+- `extraHeaders`
+    - Type: `Map<String, String>?`
+    - Default: `null`
+    - Description: A map of additional HTTP headers to include in tile requests, such as for
+      authentication tokens.
 
-### Properties
+## Properties
 
-The `RasterLayerState` class exposes its constructor parameters as mutable properties. Changes to these properties will trigger recomposition in a Compose environment.
+The `RasterLayerState` class exposes its constructor parameters as mutable properties. Changes to
+these properties will trigger recomposition in a Compose environment.
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `id` | `String` | The unique identifier for the layer. This is a read-only property. |
-| `source` | `RasterLayerSource` | The source of the raster tiles. |
-| `opacity` | `Float` | The layer's opacity. |
-| `visible` | `Boolean` | The visibility of the layer. |
-| `zIndex` | `Int` | The stacking order of the layer. |
-| `userAgent` | `String?` | The custom User-Agent string for network requests. |
-| `debug` | `Boolean` | The debug mode status for the layer. |
-| `extraHeaders` | `Map<String, String>?` | Additional HTTP headers for tile requests. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier for the layer. This is a read-only property.
+- `source`
+    - Type: `RasterLayerSource`
+    - Description: The source of the raster tiles.
+- `opacity`
+    - Type: `Float`
+    - Description: The layer's opacity.
+- `visible`
+    - Type: `Boolean`
+    - Description: The visibility of the layer.
+- `zIndex`
+    - Type: `Int`
+    - Description: The stacking order of the layer.
+- `userAgent`
+    - Type: `String?`
+    - Description: The custom User-Agent string for network requests.
+- `debug`
+    - Type: `Boolean`
+    - Description: The debug mode status for the layer.
+- `extraHeaders`
+    - Type: `Map<String, String>?`
+    - Description: Additional HTTP headers for tile requests.
 
-### Methods
+## Methods
 
-#### `copy()`
+### `copy()`
 
-Creates a shallow copy of the `RasterLayerState`, allowing you to create a new instance with modified properties while keeping others unchanged.
+Creates a shallow copy of the `RasterLayerState`, allowing you to create a new instance with
+modified properties while keeping others unchanged.
 
 **Signature**
 ```kotlin
@@ -73,13 +115,13 @@ fun copy(
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `RasterLayerState` | A new `RasterLayerState` instance. |
+- Type: `RasterLayerState`
+- Description: A new `RasterLayerState` instance.
 
-#### `fingerPrint()`
+### `fingerPrint()`
 
-Generates a `RasterLayerFingerPrint` object representing the current state of the layer. This is useful for efficient state comparison and change detection.
+Generates a `RasterLayerFingerPrint` object representing the current state of the layer. This is
+useful for efficient state comparison and change detection.
 
 **Signature**
 ```kotlin
@@ -88,13 +130,14 @@ fun fingerPrint(): RasterLayerFingerPrint
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `RasterLayerFingerPrint` | A fingerprint object containing hash codes of the layer's properties. |
+- Type: `RasterLayerFingerPrint`
+- Description: A fingerprint object containing hash codes of the layer's properties.
 
-#### `asFlow()`
+### `asFlow()`
 
-Returns a `Flow` that emits a new `RasterLayerFingerPrint` whenever a property of the `RasterLayerState` changes. This is built on top of Jetpack Compose's `snapshotFlow` and is configured to only emit on distinct changes to the state's fingerprint.
+Returns a `Flow` that emits a new `RasterLayerFingerPrint` whenever a property of the
+`RasterLayerState` changes. This is built on top of Jetpack Compose's `snapshotFlow` and is
+configured to only emit on distinct changes to the state's fingerprint.
 
 **Signature**
 ```kotlin
@@ -103,11 +146,10 @@ fun asFlow(): Flow<RasterLayerFingerPrint>
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `Flow<RasterLayerFingerPrint>` | A flow that emits the layer's fingerprint upon state changes. |
+- Type: `Flow<RasterLayerFingerPrint>`
+- Description: A flow that emits the layer's fingerprint upon state changes.
 
-### Example
+## Example
 
 ```kotlin
 import androidx.compose.runtime.remember
@@ -155,54 +197,72 @@ fun MapScreen() {
 
 ---
 
-## `RasterLayerFingerPrint`
+# `RasterLayerFingerPrint`
 
-### Description
+## Description
 
-A data class that represents a unique snapshot of a `RasterLayerState`'s properties. It holds the hash codes of each property, providing a lightweight and efficient way to check for state changes, for example, within a `Flow`.
+A data class that represents a unique snapshot of a `RasterLayerState`'s properties. It holds the
+hash codes of each property, providing a lightweight and efficient way to check for state changes,
+for example, within a `Flow`.
 
-### Properties
+## Properties
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `id` | `Int` | The hash code of the layer's ID. |
-| `source` | `Int` | The hash code of the layer's source. |
-| `opacity` | `Int` | The hash code of the layer's opacity. |
-| `visible` | `Int` | The hash code of the layer's visibility status. |
-| `zIndex` | `Int` | The hash code of the layer's z-index. |
-| `userAgent` | `Int` | The hash code of the layer's User-Agent string. |
-| `debug` | `Int` | The hash code of the layer's debug status. |
-| `extra` | `Int` | The hash code of the layer's extra headers. |
+- `id`
+    - Type: `Int`
+    - Description: The hash code of the layer's ID.
+- `source`
+    - Type: `Int`
+    - Description: The hash code of the layer's source.
+- `opacity`
+    - Type: `Int`
+    - Description: The hash code of the layer's opacity.
+- `visible`
+    - Type: `Int`
+    - Description: The hash code of the layer's visibility status.
+- `zIndex`
+    - Type: `Int`
+    - Description: The hash code of the layer's z-index.
+- `userAgent`
+    - Type: `Int`
+    - Description: The hash code of the layer's User-Agent string.
+- `debug`
+    - Type: `Int`
+    - Description: The hash code of the layer's debug status.
+- `extra`
+    - Type: `Int`
+    - Description: The hash code of the layer's extra headers.
 
 ---
 
-## `RasterLayerEvent`
+# `RasterLayerEvent`
 
-### Description
+## Description
 
-A data class that encapsulates an event related to a raster layer. It is typically used in event handlers to pass the current state of the layer that triggered the event.
+A data class that encapsulates an event related to a raster layer. It is typically used in event
+handlers to pass the current state of the layer that triggered the event.
 
-### Properties
+## Properties
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `RasterLayerState` | The state of the raster layer at the time of the event. |
+- `state`
+    - Type: `RasterLayerState`
+    - Description: The state of the raster layer at the time of the event.
 
 ---
 
-## `OnRasterLayerEventHandler`
+# `OnRasterLayerEventHandler`
 
-### Description
+## Description
 
-A type alias for a function that processes `RasterLayerEvent` objects. This provides a convenient and readable way to define event handlers for raster layer interactions, such as clicks or taps.
+A type alias for a function that processes `RasterLayerEvent` objects. This provides a convenient
+and readable way to define event handlers for raster layer interactions, such as clicks or taps.
 
-### Signature
+## Signature
 
 ```kotlin
 typealias OnRasterLayerEventHandler = (RasterLayerEvent) -> Unit
 ```
 
-### Example
+## Example
 
 ```kotlin
 val handleRasterLayerClick: OnRasterLayerEventHandler = { event ->

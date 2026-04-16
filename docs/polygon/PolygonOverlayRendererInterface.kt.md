@@ -1,7 +1,3 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
----
-
 # PolygonOverlayRendererInterface<ActualPolygon>
 
 ## Signature
@@ -12,15 +8,19 @@ interface PolygonOverlayRendererInterface<ActualPolygon>
 
 ## Description
 
-The `PolygonOverlayRendererInterface` defines a contract for rendering and managing polygon overlays on a map. It abstracts the platform-specific details of polygon manipulation, allowing for a consistent approach across different map providers (e.g., Google Maps, Mapbox).
+The `PolygonOverlayRendererInterface` defines a contract for rendering and managing polygon overlays
+on a map. It abstracts the platform-specific details of polygon manipulation, allowing for a
+consistent approach across different map providers (e.g., Google Maps, Mapbox).
 
-Implement this interface to create a custom renderer that handles the lifecycle of polygons, including their creation, update, and removal from the map view. The renderer operates in batches to ensure efficient updates.
+Implement this interface to create a custom renderer that handles the lifecycle of polygons,
+including their creation, update, and removal from the map view. The renderer operates in batches to
+ensure efficient updates.
 
 ### Type Parameters
 
-| Name            | Description                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------- |
-| `ActualPolygon` | The generic type representing the platform-specific polygon object (e.g., `com.google.android.gms.maps.model.Polygon`). |
+- `ActualPolygon`
+    - Description: The generic type representing the platform-specific polygon object (e.g.,
+      `com.google.android.gms.maps.model.Polygon`).
 
 ---
 
@@ -38,15 +38,16 @@ interface AddParamsInterface
 
 #### Parameters
 
-| Name    | Type           | Description                                      |
-| ------- | -------------- | ------------------------------------------------ |
-| `state` | `PolygonState` | The state object containing all properties for the new polygon. |
+- `state`
+    - Type: `PolygonState`
+    - Description: The state object containing all properties for the new polygon.
 
 ---
 
 ### ChangeParamsInterface<ActualPolygon>
 
-Represents the parameters required to update an existing polygon. It provides both the previous and current states to allow for efficient, targeted updates.
+Represents the parameters required to update an existing polygon. It provides both the previous and
+current states to allow for efficient, targeted updates.
 
 #### Signature
 
@@ -56,16 +57,17 @@ interface ChangeParamsInterface<ActualPolygon>
 
 #### Type Parameters
 
-| Name            | Description                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------- |
-| `ActualPolygon` | The generic type representing the platform-specific polygon object. |
+- `ActualPolygon`
+    - Description: The generic type representing the platform-specific polygon object.
 
 #### Parameters
 
-| Name      | Type                                      | Description                                                              |
-| --------- | ----------------------------------------- | ------------------------------------------------------------------------ |
-| `current` | `PolygonEntityInterface<ActualPolygon>`   | The entity representing the new, updated state of the polygon.           |
-| `prev`    | `PolygonEntityInterface<ActualPolygon>`   | The entity representing the previous state of the polygon before the change. |
+- `current`
+    - Type: `PolygonEntityInterface<ActualPolygon>`
+    - Description: The entity representing the new, updated state of the polygon.
+- `prev`
+    - Type: `PolygonEntityInterface<ActualPolygon>`
+    - Description: The entity representing the previous state of the polygon before the change.
 
 ---
 
@@ -73,7 +75,8 @@ interface ChangeParamsInterface<ActualPolygon>
 
 ### onAdd
 
-This function is called to add a batch of new polygons to the map. The implementation should create the native polygon objects and add them to the map view.
+This function is called to add a batch of new polygons to the map. The implementation should create
+the native polygon objects and add them to the map view.
 
 #### Signature
 
@@ -83,19 +86,23 @@ suspend fun onAdd(data: List<AddParamsInterface>): List<ActualPolygon?>
 
 #### Parameters
 
-| Name   | Type                         | Description                                            |
-| ------ | ---------------------------- | ------------------------------------------------------ |
-| `data` | `List<AddParamsInterface>`   | A list of parameter objects for the polygons to be added. |
+- `data`
+    - Type: `List<AddParamsInterface>`
+    - Description: A list of parameter objects for the polygons to be added.
 
 #### Returns
 
-`List<ActualPolygon?>`: A list of the newly created, platform-specific polygon objects. The size and order of this list must match the input `data` list. If a polygon fails to be created, the corresponding element in the list should be `null`.
+`List<ActualPolygon?>`: A list of the newly created, platform-specific polygon objects. The size and
+order of this list must match the input `data` list. If a polygon fails to be created, the
+corresponding element in the list should be `null`.
 
 ---
 
 ### onChange
 
-This function is called to process a batch of updates for existing polygons. The implementation should compare the `prev` and `current` states for each item and apply only the necessary changes to the native polygon objects for optimal performance.
+This function is called to process a batch of updates for existing polygons. The implementation
+should compare the `prev` and `current` states for each item and apply only the necessary changes to
+the native polygon objects for optimal performance.
 
 #### Signature
 
@@ -105,13 +112,15 @@ suspend fun onChange(data: List<ChangeParamsInterface<ActualPolygon>>): List<Act
 
 #### Parameters
 
-| Name   | Type                                          | Description                                                              |
-| ------ | --------------------------------------------- | ------------------------------------------------------------------------ |
-| `data` | `List<ChangeParamsInterface<ActualPolygon>>`  | A list of objects, each containing the previous and current states for a polygon to be updated. |
+- `data`
+    - Type: `List<ChangeParamsInterface<ActualPolygon>>`
+    - Description: A list of objects, each containing the previous and current states for a polygon
+      to be updated.
 
 #### Returns
 
-`List<ActualPolygon?>`: A list of the updated, platform-specific polygon objects. The size and order of this list must match the input `data` list.
+`List<ActualPolygon?>`: A list of the updated, platform-specific polygon objects. The size and order
+of this list must match the input `data` list.
 
 ---
 
@@ -127,15 +136,17 @@ suspend fun onRemove(data: List<PolygonEntityInterface<ActualPolygon>>)
 
 #### Parameters
 
-| Name   | Type                                        | Description                                      |
-| ------ | ------------------------------------------- | ------------------------------------------------ |
-| `data` | `List<PolygonEntityInterface<ActualPolygon>>` | A list of polygon entities to be removed from the map. |
+- `data`
+    - Type: `List<PolygonEntityInterface<ActualPolygon>>`
+    - Description: A list of polygon entities to be removed from the map.
 
 ---
 
 ### onPostProcess
 
-A lifecycle callback that is invoked after all `onAdd`, `onChange`, and `onRemove` operations for a single update cycle have been completed. This function can be used for cleanup, finalization, or triggering map-wide updates if necessary.
+A lifecycle callback that is invoked after all `onAdd`, `onChange`, and `onRemove` operations for a
+single update cycle have been completed. This function can be used for cleanup, finalization, or
+triggering map-wide updates if necessary.
 
 #### Signature
 
@@ -168,7 +179,7 @@ class GoogleMapsPolygonRenderer(private val map: GoogleMap) : PolygonOverlayRend
                 .fillColor(state.fillColor)
                 .strokeColor(state.strokeColor)
                 .zIndex(state.zIndex)
-            
+
             map.addPolygon(polygonOptions)
         }
     }
@@ -177,7 +188,7 @@ class GoogleMapsPolygonRenderer(private val map: GoogleMap) : PolygonOverlayRend
         return data.map { params ->
             val polygon = params.prev.actual
             val newState = params.current.state
-            
+
             polygon?.apply {
                 // Apply changes based on the new state
                 points = newState.points
@@ -185,7 +196,7 @@ class GoogleMapsPolygonRenderer(private val map: GoogleMap) : PolygonOverlayRend
                 strokeColor = newState.strokeColor
                 zIndex = newState.zIndex
             }
-            
+
             polygon // Return the updated polygon
         }
     }

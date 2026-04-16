@@ -1,16 +1,17 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
+# `CollectAndUpdateEach`
 
----
+`CollectAndUpdateEach` is an internal composable function designed to efficiently observe a
+collection of component states. For each state, it listens for changes via a provided `Flow`,
+debounces these changes to prevent excessive updates, and then triggers a specified update action.
 
-### `CollectAndUpdateEach`
-
-`CollectAndUpdateEach` is an internal composable function designed to efficiently observe a collection of component states. For each state, it listens for changes via a provided `Flow`, debounces these changes to prevent excessive updates, and then triggers a specified update action.
-
-This utility is particularly useful for scenarios where multiple components on the screen (e.g., text fields, sliders) can change rapidly, and you want to batch or delay the corresponding update operations (like saving to a database or making a network call) until the user has paused their interaction.
+This utility is particularly useful for scenarios where multiple components on the screen (e.g.,
+text fields, sliders) can change rapidly, and you want to batch or delay the corresponding update
+operations (like saving to a database or making a network call) until the user has paused their
+interaction.
 
 **Note:** This is an `internal` composable and is intended for use within its own module.
 
-### Signature
+## Signature
 ```kotlin
 @OptIn(FlowPreview::class)
 @Composable
@@ -22,24 +23,43 @@ internal fun <T : ComponentState, FingerPrint> CollectAndUpdateEach(
 )
 ```
 
-### Description
-The `CollectAndUpdateEach` composable collects a `StateFlow` map of component states. It iterates through each state in the map and sets up a `LaunchedEffect` keyed by the state's unique `id`.
+## Description
+The `CollectAndUpdateEach` composable collects a `StateFlow` map of component states. It iterates
+through each state in the map and sets up a `LaunchedEffect` keyed by the state's unique `id`.
 
-Inside the effect, it uses the `asFlow` lambda to get a "fingerprint" flow that signals changes for that specific state. It then applies a `debounce` period to this flow. When a debounced value is emitted, the `collectLatest` operator triggers the `onUpdate` suspend function with the corresponding state. `collectLatest` ensures that if a new change arrives while a previous `onUpdate` is still running, the old one is canceled and the new one begins, guaranteeing only the latest state is processed.
+Inside the effect, it uses the `asFlow` lambda to get a "fingerprint" flow that signals changes for
+that specific state. It then applies a `debounce` period to this flow. When a debounced value is
+emitted, the `collectLatest` operator triggers the `onUpdate` suspend function with the
+corresponding state. `collectLatest` ensures that if a new change arrives while a previous
+`onUpdate` is still running, the old one is canceled and the new one begins, guaranteeing only the
+latest state is processed.
 
-### Parameters
-| Parameter | Type                                                              | Description                                                                                                                                                           |
-| :-------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `states`  | `StateFlow<MutableMap<String, T>>`                                | A `StateFlow` that emits a map of component states. The key is a unique `String` identifier, and the value `T` is the component state object.                     |
-| `debounce`| `Duration`                                                        | The `kotlin.time.Duration` to wait for after the last change before triggering the `onUpdate` action. This helps prevent rapid, successive updates.                |
-| `asFlow`  | `(T) -> Flow<FingerPrint>`                                        | A lambda function that takes a component state `T` and returns a `Flow`. This flow is observed for changes. The `FingerPrint` type represents the data that signals a change. |
-| `onUpdate`| `suspend (T) -> Unit`                                             | A suspendable lambda function that is executed when a debounced change is detected. It receives the component state `T` that needs to be updated as its argument. |
+## Parameters
+- `states`
+    - Type: `StateFlow<MutableMap<String, T>>`
+    - Description: A `StateFlow` that emits a map of component states. The key is a unique `String`
+      identifier, and the value `T` is the component state object.
+- `debounce`
+    - Type: `Duration`
+    - Description: The `kotlin.time.Duration` to wait for after the last change before triggering
+      the `onUpdate` action. This helps prevent rapid, successive updates.
+- `asFlow`
+    - Type: `(T) -> Flow<FingerPrint>`
+    - Description: A lambda function that takes a component state `T` and returns a `Flow`. This
+      flow is observed for changes. The `FingerPrint` type represents the data that signals a
+      change.
+- `onUpdate`
+    - Type: `suspend (T) -> Unit`
+    - Description: A suspendable lambda function that is executed when a debounced change is
+      detected. It receives the component state `T` that needs to be updated as its argument.
 
-### Returns
-This composable function does not return any value (`Unit`). Its purpose is to manage side effects by observing state changes and launching update coroutines.
+## Returns
+This composable function does not return any value (`Unit`). Its purpose is to manage side effects
+by observing state changes and launching update coroutines.
 
-### Example
-Imagine you have several text fields on a screen, and you want to automatically save their content to a server after the user stops typing in any of them.
+## Example
+Imagine you have several text fields on a screen, and you want to automatically save their content
+to a server after the user stops typing in any of them.
 
 First, define the state for a single text field.
 

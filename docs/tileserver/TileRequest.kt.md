@@ -14,19 +14,26 @@ data class TileRequest(
 
 ## Description
 
-The `TileRequest` class represents a request for a specific map tile using the standard XYZ (or "Slippy Map") tiling scheme. It is a simple data holder for the three essential coordinates: `x`, `y`, and `z` (zoom level).
+The `TileRequest` class represents a request for a specific map tile using the standard XYZ (or
+"Slippy Map") tiling scheme. It is a simple data holder for the three essential coordinates: `x`,
+`y`, and `z` (zoom level).
 
-Instances of this class are typically used to query a tile server or a tile cache for a specific map tile image.
+Instances of this class are typically used to query a tile server or a tile cache for a specific map
+tile image.
 
 ## Parameters
 
 This table describes the constructor parameters for the `TileRequest` class.
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `x` | `Int` | The x-coordinate of the tile at the specified zoom level. |
-| `y` | `Int` | The y-coordinate of the tile at the specified zoom level. |
-| `z` | `Int` | The zoom level for the tile. |
+- `x`
+    - Type: `Int`
+    - Description: The x-coordinate of the tile at the specified zoom level.
+- `y`
+    - Type: `Int`
+    - Description: The y-coordinate of the tile at the specified zoom level.
+- `z`
+    - Type: `Int`
+    - Description: The zoom level for the tile.
 
 ## Example
 

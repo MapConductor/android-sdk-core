@@ -1,14 +1,15 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
 # Info Bubbles
 
-These composable functions are used to display informational windows, or "bubbles," attached to markers on the map. They must be called from within a `MapViewScope`.
+These composable functions are used to display informational windows, or "bubbles," attached to
+markers on the map. They must be called from within a `MapViewScope`.
 
 ---
 
 ## InfoBubble
 
-Displays a standard, customizable info bubble attached to a map marker. This composable provides a default speech-bubble appearance with a tail pointing towards the specified `marker`. You can customize its colors, corners, padding, and tail size.
+Displays a standard, customizable info bubble attached to a map marker. This composable provides a
+default speech-bubble appearance with a tail pointing towards the specified `marker`. You can
+customize its colors, corners, padding, and tail size.
 
 ### Signature
 ```kotlin
@@ -25,20 +26,36 @@ fun MapViewScope.InfoBubble(
 ```
 
 ### Description
-The `InfoBubble` composable is the standard way to show information for a marker. It automatically draws a rectangular bubble with a triangular tail that points to the marker's anchor point. The bubble's appearance is easily customized through its parameters. The content of the bubble is defined by the `content` composable lambda.
+The `InfoBubble` composable is the standard way to show information for a marker. It automatically
+draws a rectangular bubble with a triangular tail that points to the marker's anchor point. The
+bubble's appearance is easily customized through its parameters. The content of the bubble is
+defined by the `content` composable lambda.
 
-The bubble is automatically added to the map when the composable enters the composition and removed when it leaves, managed by a `DisposableEffect`.
+The bubble is automatically added to the map when the composable enters the composition and removed
+when it leaves, managed by a `DisposableEffect`.
 
 ### Parameters
-| Parameter | Type | Description |
-|---|---|---|
-| `marker` | `MarkerState` | The marker state to which this info bubble will be attached. |
-| `bubbleColor` | `Color` | The background color of the bubble. Defaults to `Color.White`. |
-| `borderColor` | `Color` | The color of the bubble's border and tail outline. Defaults to `Color.Black`. |
-| `contentPadding` | `Dp` | The padding between the bubble's border and its content. Defaults to `8.dp`. |
-| `cornerRadius` | `Dp` | The corner radius for the rectangular part of the bubble. Defaults to `4.dp`. |
-| `tailSize` | `Dp` | The size of the triangular tail pointing to the marker. Defaults to `8.dp`. |
-| `content` | `@Composable () -> Unit` | The composable content to be displayed inside the bubble. |
+- `marker`
+    - Type: `MarkerState`
+    - Description: The marker state to which this info bubble will be attached.
+- `bubbleColor`
+    - Type: `Color`
+    - Description: The background color of the bubble. Defaults to `Color.White`.
+- `borderColor`
+    - Type: `Color`
+    - Description: The color of the bubble's border and tail outline. Defaults to `Color.Black`.
+- `contentPadding`
+    - Type: `Dp`
+    - Description: The padding between the bubble's border and its content. Defaults to `8.dp`.
+- `cornerRadius`
+    - Type: `Dp`
+    - Description: The corner radius for the rectangular part of the bubble. Defaults to `4.dp`.
+- `tailSize`
+    - Type: `Dp`
+    - Description: The size of the triangular tail pointing to the marker. Defaults to `8.dp`.
+- `content`
+    - Type: `@Composable () -> Unit`
+    - Description: The composable content to be displayed inside the bubble.
 
 ### Returns
 This composable does not return a value.
@@ -97,22 +114,37 @@ fun MapViewScope.InfoBubbleCustom(
 ```
 
 ### Description
-The `InfoBubbleCustom` composable offers complete control over the visual appearance of an info bubble. Unlike `InfoBubble`, it does not draw any default shape or tail. You are responsible for drawing the entire bubble UI, including any desired shape, background, and tail, within the `content` lambda.
+The `InfoBubbleCustom` composable offers complete control over the visual appearance of an info
+bubble. Unlike `InfoBubble`, it does not draw any default shape or tail. You are responsible for
+drawing the entire bubble UI, including any desired shape, background, and tail, within the
+`content` lambda.
 
-The map's overlay engine will use the `tailOffset` parameter to correctly position your custom content relative to the marker. This function is ideal when you need a non-standard bubble shape or complex internal layout.
+The map's overlay engine will use the `tailOffset` parameter to correctly position your custom
+content relative to the marker. This function is ideal when you need a non-standard bubble shape or
+complex internal layout.
 
 ### Parameters
-| Parameter | Type | Description |
-|---|---|---|
-| `marker` | `MarkerState` | The marker state to which this custom info bubble will be attached. |
-| `tailOffset` | `Offset` | Specifies the connection point within your custom content's bounding box, using a relative coordinate system from (0, 0) to (1, 1). For example, `Offset(0.5f, 1.0f)` means the bottom-center of your content will point to the marker. `Offset(0.0f, 0.5f)` would be the middle of the left edge. |
-| `content` | `@Composable () -> Unit` | The composable content that defines the entire visual representation of the custom bubble. |
+- `marker`
+    - Type: `MarkerState`
+    - Description: The marker state to which this custom info bubble will be attached.
+- `tailOffset`
+    - Type: `Offset`
+    - Description: Specifies the connection point within your custom content's bounding box, using a
+      relative coordinate system from (0, 0) to (1, 1). For example, `Offset(0.5f, 1.0f)` means the
+      bottom-center of your content will point to the marker. `Offset(0.0f, 0.5f)` would be the
+      middle of the left edge.
+- `content`
+    - Type: `@Composable () -> Unit`
+    - Description: The composable content that defines the entire visual representation of the
+      custom bubble.
 
 ### Returns
 This composable does not return a value.
 
 ### Example
-This example demonstrates creating a circular info bubble with a custom background and shadow. The `tailOffset` is set to `Offset(0.5f, 1.0f)` to ensure the bottom-center of the `Card` points to the marker.
+This example demonstrates creating a circular info bubble with a custom background and shadow. The
+`tailOffset` is set to `Offset(0.5f, 1.0f)` to ensure the bottom-center of the `Card` points to the
+marker.
 
 ```kotlin
 // Assume this is within a Composable function and MapViewScope

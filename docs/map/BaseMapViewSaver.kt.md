@@ -8,15 +8,18 @@ abstract class BaseMapViewSaver<T : MapViewStateInterface<*>>
 
 ## Description
 
-An abstract base class for creating `Saver` instances that handle saving and restoring the state of a `MapView`.
+An abstract base class for creating `Saver` instances that handle saving and restoring the state of
+a `MapView`.
 
-This class provides the core logic for persisting the camera's position (location, zoom, tilt, bearing) and delegates the handling of map design specifics and state object creation to its subclasses. It is designed to be used with Jetpack Compose's `rememberSaveable` to preserve the map state across configuration changes or process death.
+This class provides the core logic for persisting the camera's position (location, zoom, tilt,
+bearing) and delegates the handling of map design specifics and state object creation to its
+subclasses. It is designed to be used with Jetpack Compose's `rememberSaveable` to preserve the map
+state across configuration changes or process death.
 
 ## Type Parameters
 
-| Name | Description |
-| :--- | :--- |
-| `T` | The specific type of `MapViewStateInterface` that this saver will manage. |
+- `T`
+    - Description: The specific type of `MapViewStateInterface` that this saver will manage.
 
 ---
 
@@ -24,9 +27,12 @@ This class provides the core logic for persisting the camera's position (locatio
 
 ### `createSaver()`
 
-Creates and returns a `Saver` object configured to save and restore the map view state. This is the primary entry point for using the class.
+Creates and returns a `Saver` object configured to save and restore the map view state. This is the
+primary entry point for using the class.
 
-The resulting `Saver` orchestrates the entire process, calling the abstract methods (`saveMapDesign`, `createState`, etc.) at the appropriate times. It is intended for use with `rememberSaveable` in a Jetpack Compose UI.
+The resulting `Saver` orchestrates the entire process, calling the abstract methods
+(`saveMapDesign`, `createState`, etc.) at the appropriate times. It is intended for use with
+`rememberSaveable` in a Jetpack Compose UI.
 
 **Signature**
 
@@ -36,9 +42,8 @@ fun createSaver(): Saver<T, Bundle>
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `Saver<T, Bundle>` | A `Saver` instance that can manage the lifecycle of the map view state. |
+- Type: `Saver<T, Bundle>`
+- Description: A `Saver` instance that can manage the lifecycle of the map view state.
 
 **Example**
 
@@ -105,7 +110,8 @@ Here is an example of how to implement `BaseMapViewSaver` and use it in a Compos
 
 ### `saveMapDesign()`
 
-Saves the custom map design information from the current state into a `Bundle`. Subclasses must implement this method to persist any design-related properties, such as the map style or theme.
+Saves the custom map design information from the current state into a `Bundle`. Subclasses must
+implement this method to persist any design-related properties, such as the map style or theme.
 
 **Signature**
 
@@ -118,16 +124,20 @@ protected abstract fun saveMapDesign(
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `T` | The current map view state instance from which to save data. |
-| `bundle` | `Bundle` | The `Bundle` object where the map design data should be written. |
+- `state`
+    - Type: `T`
+    - Description: The current map view state instance from which to save data.
+- `bundle`
+    - Type: `Bundle`
+    - Description: The `Bundle` object where the map design data should be written.
 
 ---
 
 ### `createState()`
 
-Creates a new instance of the map view state (`T`) from the restored data. Subclasses must implement this factory method to reconstruct the state object using the provided camera position and map design information.
+Creates a new instance of the map view state (`T`) from the restored data. Subclasses must implement
+this factory method to reconstruct the state object using the provided camera position and map
+design information.
 
 **Signature**
 
@@ -141,23 +151,28 @@ protected abstract fun createState(
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `stateId` | `String` | The unique identifier for the state being restored. |
-| `mapDesignBundle` | `Bundle?` | A `Bundle` containing the custom map design data, previously saved by `saveMapDesign`. Can be `null` if no data was saved. |
-| `cameraPosition` | `MapCameraPosition` | The restored `MapCameraPosition`. |
+- `stateId`
+    - Type: `String`
+    - Description: The unique identifier for the state being restored.
+- `mapDesignBundle`
+    - Type: `Bundle?`
+    - Description: A `Bundle` containing the custom map design data, previously saved by
+      `saveMapDesign`. Can be `null` if no data was saved.
+- `cameraPosition`
+    - Type: `MapCameraPosition`
+    - Description: The restored `MapCameraPosition`.
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `T` | A new instance of the map view state (`T`). |
+- Type: `T`
+- Description: A new instance of the map view state (`T`).
 
 ---
 
 ### `getStateId()`
 
-Extracts a unique identifier from the given state object. This ID is used to track the state instance during the save/restore process.
+Extracts a unique identifier from the given state object. This ID is used to track the state
+instance during the save/restore process.
 
 **Signature**
 
@@ -167,21 +182,22 @@ protected abstract fun getStateId(state: T): String
 
 **Parameters**
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `T` | The current map view state instance. |
+- `state`
+    - Type: `T`
+    - Description: The current map view state instance.
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `String` | A `String` representing the unique ID of the state. |
+- Type: `String`
+- Description: A `String` representing the unique ID of the state.
 
 ---
 
 ### `getCameraPaddings()`
 
-Provides optional padding values to be applied when restoring the camera position. Subclasses can override this method to specify custom paddings. The default implementation returns `null`, indicating no padding.
+Provides optional padding values to be applied when restoring the camera position. Subclasses can
+override this method to specify custom paddings. The default implementation returns `null`,
+indicating no padding.
 
 **Signature**
 
@@ -191,6 +207,5 @@ protected open fun getCameraPaddings(): MapPaddingsInterface?
 
 **Returns**
 
-| Type | Description |
-| :--- | :--- |
-| `MapPaddingsInterface?` | An instance of `MapPaddingsInterface` or `null`. |
+- Type: `MapPaddingsInterface?`
+- Description: An instance of `MapPaddingsInterface` or `null`.

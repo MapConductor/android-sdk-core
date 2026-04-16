@@ -1,10 +1,7 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
+# `Circle`
 
----
-
-### `Circle`
-
-The `Circle` composable adds a circular overlay to the map. It is a convenient way to define and display a geographic area with a specific radius around a central point.
+The `Circle` composable adds a circular overlay to the map. It is a convenient way to define and
+display a geographic area with a specific radius around a central point.
 
 This function must be called from within the scope of a `MapView` composable.
 
@@ -27,21 +24,42 @@ fun MapViewScope.Circle(
 
 ### Description
 
-This composable creates and displays a circle on the map. You can customize its appearance, such as stroke color, width, and fill color, as well as its behavior, like handling click events.
+This composable creates and displays a circle on the map. You can customize its appearance, such as
+stroke color, width, and fill color, as well as its behavior, like handling click events.
 
 ### Parameters
 
-| Parameter      | Type                  | Description                                                                                             | Default Value                  |
-| :------------- | :-------------------- | :------------------------------------------------------------------------------------------------------ | :----------------------------- |
-| `center`       | `GeoPointInterface`   | **Required.** The geographical coordinate for the center of the circle.                                 | -                              |
-| `radiusMeters` | `Double`              | **Required.** The radius of the circle in meters.                                                       | -                              |
-| `id`           | `String?`             | An optional unique identifier for the circle. Useful for later retrieval or management.                 | `null`                         |
-| `strokeColor`  | `Color`               | The color of the circle's outline.                                                                      | `Color.Red`                    |
-| `strokeWidth`  | `Dp`                  | The width of the circle's outline in density-independent pixels (Dp).                                   | `2.dp`                         |
-| `fillColor`    | `Color`               | The color used to fill the circle's area.                                                               | `Color.White.copy(alpha=0.5f)` |
-| `zIndex`       | `Int?`                | The z-index of the circle, which controls its stacking order relative to other overlays on the map.     | `null`                         |
-| `extra`        | `Serializable?`       | Optional serializable data to associate with the circle, which can be retrieved in event handlers.     | `null`                         |
-| `onClick`      | `OnCircleEventHandler?` | A lambda function that is invoked when the user clicks on the circle. The handler receives the circle's state. | `null`                         |
+- `center`
+    - Type: `GeoPointInterface`
+    - Description: **Required.** The geographical coordinate for the center of the circle.
+- `radiusMeters`
+    - Type: `Double`
+    - Description: **Required.** The radius of the circle in meters.
+- `id`
+    - Type: `String?`
+    - Description: An optional unique identifier for the circle. Useful for later retrieval or
+      management.
+- `strokeColor`
+    - Type: `Color`
+    - Description: The color of the circle's outline.
+- `strokeWidth`
+    - Type: `Dp`
+    - Description: The width of the circle's outline in density-independent pixels (Dp).
+- `fillColor`
+    - Type: `Color`
+    - Description: The color used to fill the circle's area.
+- `zIndex`
+    - Type: `Int?`
+    - Description: The z-index of the circle, which controls its stacking order relative to other
+      overlays on the map.
+- `extra`
+    - Type: `Serializable?`
+    - Description: Optional serializable data to associate with the circle, which can be retrieved
+      in event handlers.
+- `onClick`
+    - Type: `OnCircleEventHandler?`
+    - Description: A lambda function that is invoked when the user clicks on the circle. The handler
+      receives the circle's state.
 
 ### Returns
 
@@ -79,7 +97,8 @@ MapView(
 
 ### `Circle (State-based)`
 
-This is an alternative version of the `Circle` composable that accepts a `CircleState` object. This is useful for managing the state of circles declaratively, for instance, from a ViewModel.
+This is an alternative version of the `Circle` composable that accepts a `CircleState` object. This
+is useful for managing the state of circles declaratively, for instance, from a ViewModel.
 
 ### Signature
 
@@ -90,13 +109,15 @@ fun MapViewScope.Circle(state: CircleState)
 
 ### Description
 
-This composable adds a circle to the map based on the properties defined in the provided `CircleState` object. It handles the addition and removal of the circle from the map as the composable enters or leaves the composition.
+This composable adds a circle to the map based on the properties defined in the provided
+`CircleState` object. It handles the addition and removal of the circle from the map as the
+composable enters or leaves the composition.
 
 ### Parameters
 
-| Parameter | Type          | Description                                                              |
-| :-------- | :------------ | :----------------------------------------------------------------------- |
-| `state`   | `CircleState` | A state holder object that encapsulates all properties of the circle. |
+- `state`
+    - Type: `CircleState`
+    - Description: A state holder object that encapsulates all properties of the circle.
 
 ### Returns
 

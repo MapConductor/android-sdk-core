@@ -1,10 +1,10 @@
-This document provides a detailed reference for the `GeoPoint` class and its related utility functions.
-
 # `GeoPoint`
 
-A data class representing a geographical point defined by latitude, longitude, and an optional altitude. It provides methods for coordinate manipulation, validation, and formatting.
+A data class representing a geographical point defined by latitude, longitude, and an optional
+altitude. It provides methods for coordinate manipulation, validation, and formatting.
 
-Note that `GeoPoint` instances are compared for equality with a small tolerance (`1e-7`) to account for floating-point inaccuracies. This behavior also affects the `hashCode` calculation.
+Note that `GeoPoint` instances are compared for equality with a small tolerance (`1e-7`) to account
+for floating-point inaccuracies. This behavior also affects the `hashCode` calculation.
 
 ## Constructor
 
@@ -24,19 +24,27 @@ Creates a new `GeoPoint` instance.
 
 ### Parameters
 
-| Parameter   | Type     | Description                                    |
-| :---------- | :------- | :--------------------------------------------- |
-| `latitude`  | `Double` | The latitude of the point in decimal degrees.  |
-| `longitude` | `Double` | The longitude of the point in decimal degrees. |
-| `altitude`  | `Double` | The altitude of the point in meters. Defaults to `0.0`. |
+- `latitude`
+    - Type: `Double`
+    - Description: The latitude of the point in decimal degrees.
+- `longitude`
+    - Type: `Double`
+    - Description: The longitude of the point in decimal degrees.
+- `altitude`
+    - Type: `Double`
+    - Description: The altitude of the point in meters. Defaults to `0.0`.
 
 ## Properties
 
-| Property    | Type     | Description                                    |
-| :---------- | :------- | :--------------------------------------------- |
-| `latitude`  | `Double` | The latitude of the point in decimal degrees.  |
-| `longitude` | `Double` | The longitude of the point in decimal degrees. |
-| `altitude`  | `Double` | The altitude of the point in meters.           |
+- `latitude`
+    - Type: `Double`
+    - Description: The latitude of the point in decimal degrees.
+- `longitude`
+    - Type: `Double`
+    - Description: The longitude of the point in decimal degrees.
+- `altitude`
+    - Type: `Double`
+    - Description: The altitude of the point in meters.
 
 ## Methods
 
@@ -52,13 +60,15 @@ fun toUrlValue(precision: Int = 6): String
 
 #### Description
 
-Converts the `latitude` and `longitude` of the point into a single string with the format `"<latitude>,<longitude>"`.
+Converts the `latitude` and `longitude` of the point into a single string with the format
+`"<latitude>,<longitude>"`.
 
 #### Parameters
 
-| Parameter   | Type  | Description                                                              |
-| :---------- | :---- | :----------------------------------------------------------------------- |
-| `precision` | `Int` | The number of decimal places to use for formatting the coordinates. Defaults to `6`. |
+- `precision`
+    - Type: `Int`
+    - Description: The number of decimal places to use for formatting the coordinates. Defaults to
+      `6`.
 
 #### Returns
 
@@ -75,7 +85,8 @@ val urlValuePrecise = point.toUrlValue(precision = 8) // "40.71280000,-74.006000
 
 ### `wrap`
 
-Creates a new `GeoPoint` by wrapping the coordinates to handle values outside standard geographical ranges.
+Creates a new `GeoPoint` by wrapping the coordinates to handle values outside standard geographical
+ranges.
 
 #### Signature
 
@@ -85,9 +96,11 @@ override fun wrap(): GeoPointInterface
 
 #### Description
 
-This method normalizes coordinates that are out of the standard `[-90, 90]` latitude and `[-180, 180]` longitude bounds.
+This method normalizes coordinates that are out of the standard `[-90, 90]` latitude and `[-180,
+180]` longitude bounds.
 
--   **Latitude**: If the latitude is beyond the poles (e.g., > 90 or < -90), it wraps around. When wrapping over a pole, the longitude is flipped by 180 degrees.
+-   **Latitude**: If the latitude is beyond the poles (e.g., > 90 or < -90), it wraps around. When
+    wrapping over a pole, the longitude is flipped by 180 degrees.
 -   **Longitude**: The longitude is normalized to fit within the `[-180, 180]` range.
 
 #### Returns
@@ -120,10 +133,12 @@ fun fromLatLong(latitude: Double, longitude: Double): GeoPoint
 
 #### Parameters
 
-| Parameter   | Type     | Description                                   |
-| :---------- | :------- | :-------------------------------------------- |
-| `latitude`  | `Double` | The latitude of the point in decimal degrees. |
-| `longitude` | `Double` | The longitude of the point in decimal degrees.|
+- `latitude`
+    - Type: `Double`
+    - Description: The latitude of the point in decimal degrees.
+- `longitude`
+    - Type: `Double`
+    - Description: The longitude of the point in decimal degrees.
 
 #### Returns
 
@@ -141,10 +156,12 @@ fun fromLongLat(longitude: Double, latitude: Double): GeoPoint
 
 #### Parameters
 
-| Parameter   | Type     | Description                                   |
-| :---------- | :------- | :-------------------------------------------- |
-| `longitude` | `Double` | The longitude of the point in decimal degrees.|
-| `latitude`  | `Double` | The latitude of the point in decimal degrees. |
+- `longitude`
+    - Type: `Double`
+    - Description: The longitude of the point in decimal degrees.
+- `latitude`
+    - Type: `Double`
+    - Description: The latitude of the point in decimal degrees.
 
 #### Returns
 
@@ -162,13 +179,14 @@ fun from(position: GeoPointInterface): GeoPoint
 
 #### Description
 
-If the provided `position` is already a `GeoPoint`, it is returned directly. Otherwise, a new `GeoPoint` is created from the `GeoPointInterface`'s properties.
+If the provided `position` is already a `GeoPoint`, it is returned directly. Otherwise, a new
+`GeoPoint` is created from the `GeoPointInterface`'s properties.
 
 #### Parameters
 
-| Parameter  | Type                | Description                                  |
-| :--------- | :------------------ | :------------------------------------------- |
-| `position` | `GeoPointInterface` | An object that implements `GeoPointInterface`. |
+- `position`
+    - Type: `GeoPointInterface`
+    - Description: An object that implements `GeoPointInterface`.
 
 #### Returns
 
@@ -196,7 +214,8 @@ This function ensures that the coordinates of a geographical point are within st
 -   **Latitude**: Clamped to the `[-90.0, 90.0]` range.
 -   **Longitude**: Normalized to the `[-180.0, 180.0]` range.
 
-Unlike `wrap()`, `normalize()` does not wrap coordinates around the globe but forces them to the nearest valid boundary.
+Unlike `wrap()`, `normalize()` does not wrap coordinates around the globe but forces them to the
+nearest valid boundary.
 
 ### Returns
 

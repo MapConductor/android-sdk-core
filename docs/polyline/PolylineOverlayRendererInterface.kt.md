@@ -1,12 +1,11 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
----
-
 # PolylineOverlayRendererInterface
 
-The `PolylineOverlayRendererInterface` defines a contract for rendering and managing polyline overlays on a map. It is designed to be implemented by platform-specific renderers, abstracting the underlying map SDK's polyline handling (e.g., Google Maps, Mapbox).
+The `PolylineOverlayRendererInterface` defines a contract for rendering and managing polyline
+overlays on a map. It is designed to be implemented by platform-specific renderers, abstracting the
+underlying map SDK's polyline handling (e.g., Google Maps, Mapbox).
 
-This interface handles the lifecycle of polylines, including their creation, modification, and removal, through a set of asynchronous methods.
+This interface handles the lifecycle of polylines, including their creation, modification, and
+removal, through a set of asynchronous methods.
 
 **Signature**
 ```kotlin
@@ -15,9 +14,9 @@ interface PolylineOverlayRendererInterface<ActualPolyline>
 
 ### Type Parameters
 
-| Name | Description |
-| :--- | :--- |
-| `ActualPolyline` | The generic type representing the platform-specific polyline object (e.g., `com.google.android.gms.maps.model.Polyline`). |
+- `ActualPolyline`
+    - Description: The generic type representing the platform-specific polyline object (e.g.,
+      `com.google.android.gms.maps.model.Polyline`).
 
 ---
 
@@ -34,9 +33,10 @@ interface AddParamsInterface
 
 **Properties**
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `PolylineState` | The state object defining the properties of the new polyline, such as its points, color, width, and z-index. |
+- `state`
+    - Type: `PolylineState`
+    - Description: The state object defining the properties of the new polyline, such as its points,
+      color, width, and z-index.
 
 ### ChangeParamsInterface
 
@@ -49,10 +49,12 @@ interface ChangeParamsInterface<ActualPolyline>
 
 **Properties**
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `current` | `PolylineEntityInterface<ActualPolyline>` | The entity representing the new, updated state of the polyline. |
-| `prev` | `PolylineEntityInterface<ActualPolyline>` | The entity representing the previous state of the polyline before the change. |
+- `current`
+    - Type: `PolylineEntityInterface<ActualPolyline>`
+    - Description: The entity representing the new, updated state of the polyline.
+- `prev`
+    - Type: `PolylineEntityInterface<ActualPolyline>`
+    - Description: The entity representing the previous state of the polyline before the change.
 
 ---
 
@@ -69,13 +71,15 @@ suspend fun onAdd(data: List<AddParamsInterface>): List<ActualPolyline?>
 
 **Parameters**
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<AddParamsInterface>` | A list of parameter objects, where each object defines a polyline to be added. |
+- `data`
+    - Type: `List<AddParamsInterface>`
+    - Description: A list of parameter objects, where each object defines a polyline to be added.
 
 **Returns**
 
-`List<ActualPolyline?>` - A list containing the newly created, platform-specific `ActualPolyline` objects. The order of this list corresponds to the input `data` list. An element will be `null` if the creation of a specific polyline failed.
+`List<ActualPolyline?>` - A list containing the newly created, platform-specific `ActualPolyline`
+objects. The order of this list corresponds to the input `data` list. An element will be `null` if
+the creation of a specific polyline failed.
 
 ### onChange
 
@@ -88,13 +92,15 @@ suspend fun onChange(data: List<ChangeParamsInterface<ActualPolyline>>): List<Ac
 
 **Parameters**
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<ChangeParamsInterface<ActualPolyline>>` | A list of change objects, each containing the previous and current state of a polyline to be updated. |
+- `data`
+    - Type: `List<ChangeParamsInterface<ActualPolyline>>`
+    - Description: A list of change objects, each containing the previous and current state of a
+      polyline to be updated.
 
 **Returns**
 
-`List<ActualPolyline?>` - A list containing the updated `ActualPolyline` objects. An element can be `null` if an update operation failed.
+`List<ActualPolyline?>` - A list containing the updated `ActualPolyline` objects. An element can be
+`null` if an update operation failed.
 
 ### onRemove
 
@@ -107,13 +113,15 @@ suspend fun onRemove(data: List<PolylineEntityInterface<ActualPolyline>>)
 
 **Parameters**
 
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `data` | `List<PolylineEntityInterface<ActualPolyline>>` | A list of polyline entities to be removed from the map. |
+- `data`
+    - Type: `List<PolylineEntityInterface<ActualPolyline>>`
+    - Description: A list of polyline entities to be removed from the map.
 
 ### onPostProcess
 
-A lifecycle callback executed after all `onAdd`, `onChange`, and `onRemove` operations in a single update cycle are complete. This can be used for final cleanup, batch updates, or triggering a map refresh.
+A lifecycle callback executed after all `onAdd`, `onChange`, and `onRemove` operations in a single
+update cycle are complete. This can be used for final cleanup, batch updates, or triggering a map
+refresh.
 
 **Signature**
 ```kotlin
@@ -124,7 +132,8 @@ suspend fun onPostProcess()
 
 ## Example
 
-Here is an example of a simplified, hypothetical implementation of `PolylineOverlayRendererInterface` for a fictional map framework.
+Here is an example of a simplified, hypothetical implementation of
+`PolylineOverlayRendererInterface` for a fictional map framework.
 
 ```kotlin
 // Define dummy classes for the example
@@ -161,7 +170,7 @@ class MyMapPolylineRenderer : PolylineOverlayRendererInterface<MyMapPolyline> {
         return data.map { params ->
             val currentEntity = params.current
             val nativePolyline = currentEntity.nativePolyline
-            
+
             if (nativePolyline != null) {
                 // Apply changes to the native polyline object
                 nativePolyline.points = currentEntity.state.points

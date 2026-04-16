@@ -1,8 +1,14 @@
 # ImageIcon
 
-The `ImageIcon` class represents a map marker icon created from an Android `Drawable` object. It provides a flexible way to define icons using various drawable types, such as `BitmapDrawable`, `ColorDrawable`, or `GradientDrawable`.
+The `ImageIcon` class represents a map marker icon created from an Android `Drawable` object. It
+provides a flexible way to define icons using various drawable types, such as `BitmapDrawable`,
+`ColorDrawable`, or `GradientDrawable`.
 
-This class handles the conversion of the `Drawable` into a `BitmapIcon` suitable for rendering on the map. For efficiency, it caches the generated bitmap, so subsequent requests for the same icon configuration do not require re-rendering. The equality of `ImageIcon` instances is determined by the properties of the underlying `Drawable` and the icon's configuration parameters (`iconSize`, `scale`, `anchor`, etc.), not by object identity.
+This class handles the conversion of the `Drawable` into a `BitmapIcon` suitable for rendering on
+the map. For efficiency, it caches the generated bitmap, so subsequent requests for the same icon
+configuration do not require re-rendering. The equality of `ImageIcon` instances is determined by
+the properties of the underlying `Drawable` and the icon's configuration parameters (`iconSize`,
+`scale`, `anchor`, etc.), not by object identity.
 
 ## Signature
 
@@ -19,18 +25,40 @@ class ImageIcon(
 
 ## Parameters
 
-| Parameter | Type | Description | Default |
-|-----------|------|-------------|---------|
-| `image` | `Drawable` | The Android `Drawable` to be used as the icon. | (none) |
-| `iconSize` | `Dp` | The base size of the icon in density-independent pixels (Dp). | `Settings.Default.iconSize` |
-| `scale` | `Float` | A multiplier applied to `iconSize` to scale the icon. A value of `2.0` would double the icon's size. | `1.0f` |
-| `anchor` | `Offset` | The anchor point of the icon that is attached to the map's geographical coordinate. An `Offset(0.5f, 0.5f)` represents the center of the icon. `Offset(0.0f, 0.0f)` is the top-left corner. | `Offset(0.5f, 0.5f)` |
-| `infoAnchor` | `Offset` | The point on the icon to which an associated info window will be anchored. The coordinate system is the same as for `anchor`. | `Offset(0.5f, 0.5f)` |
-| `debug` | `Boolean` | If `true`, enables debug visualizations for the icon, such as drawing its bounding box or anchor point. | `false` |
+- `image`
+    - Type: `Drawable`
+    - Default: (none)
+    - Description: The Android `Drawable` to be used as the icon.
+- `iconSize`
+    - Type: `Dp`
+    - Default: `Settings.Default.iconSize`
+    - Description: The base size of the icon in density-independent pixels (Dp).
+- `scale`
+    - Type: `Float`
+    - Default: `1.0f`
+    - Description: A multiplier applied to `iconSize` to scale the icon. A value of `2.0` would
+      double the icon's size.
+- `anchor`
+    - Type: `Offset`
+    - Default: `Offset(0.5f, 0.5f)`
+    - Description: The anchor point of the icon that is attached to the map's geographical
+      coordinate. An `Offset(0.5f, 0.5f)` represents the center of the icon. `Offset(0.0f, 0.0f)` is
+      the top-left corner.
+- `infoAnchor`
+    - Type: `Offset`
+    - Default: `Offset(0.5f, 0.5f)`
+    - Description: The point on the icon to which an associated info window will be anchored. The
+      coordinate system is the same as for `anchor`.
+- `debug`
+    - Type: `Boolean`
+    - Default: `false`
+    - Description: If `true`, enables debug visualizations for the icon, such as drawing its
+      bounding box or anchor point.
 
 ## Example
 
-The following example demonstrates how to create `ImageIcon` instances from both a drawable resource and a programmatically generated `Drawable`.
+The following example demonstrates how to create `ImageIcon` instances from both a drawable resource
+and a programmatically generated `Drawable`.
 
 ```kotlin
 import androidx.compose.ui.geometry.Offset

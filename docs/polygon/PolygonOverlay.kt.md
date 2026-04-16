@@ -1,24 +1,23 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
+# `LocalPolygonCollector`
 
----
+A `CompositionLocal` used to provide a `ChildCollector<PolygonState>` down the Composable tree. This
+collector is essential for gathering `Polygon` composables declared within a `MapView`.
 
-## `LocalPolygonCollector`
-
-A `CompositionLocal` used to provide a `ChildCollector<PolygonState>` down the Composable tree. This collector is essential for gathering `Polygon` composables declared within a `MapView`.
-
-### Signature
+## Signature
 
 ```kotlin
 val LocalPolygonCollector: ProvidableCompositionLocal<ChildCollector<PolygonState>>
 ```
 
-### Description
+## Description
 
-`LocalPolygonCollector` is a mechanism used internally by the `MapView` to manage `Polygon` children. Any `Polygon` composable must be a direct or indirect child of a `MapView` composable.
+`LocalPolygonCollector` is a mechanism used internally by the `MapView` to manage `Polygon`
+children. Any `Polygon` composable must be a direct or indirect child of a `MapView` composable.
 
-If you attempt to use a `Polygon` outside of a `MapView` hierarchy, the app will throw an `IllegalStateException` with the message: "Polygon must be under the <MapView />".
+If you attempt to use a `Polygon` outside of a `MapView` hierarchy, the app will throw an
+`IllegalStateException` with the message: "Polygon must be under the <MapView />".
 
-### Example
+## Example
 
 This shows the correct and incorrect placement of a `Polygon` composable.
 
@@ -44,7 +43,9 @@ Polygon(
 
 ## `PolygonOverlay`
 
-A map overlay class responsible for managing and rendering a collection of polygons on the map. It observes a reactive stream of polygon states and delegates the rendering task to a capable map controller.
+A map overlay class responsible for managing and rendering a collection of polygons on the map. It
+observes a reactive stream of polygon states and delegates the rendering task to a capable map
+controller.
 
 ### Signature
 
@@ -56,7 +57,11 @@ class PolygonOverlay(
 
 ### Description
 
-`PolygonOverlay` acts as a layer on the map dedicated to drawing polygons. It subscribes to a `StateFlow` that provides the state of all polygons to be displayed. When the state updates, this class works with the `MapViewControllerInterface` to efficiently update the polygons on the map view, handling additions, removals, and modifications. This class is typically managed by the `MapView` and not instantiated directly by the user.
+`PolygonOverlay` acts as a layer on the map dedicated to drawing polygons. It subscribes to a
+`StateFlow` that provides the state of all polygons to be displayed. When the state updates, this
+class works with the `MapViewControllerInterface` to efficiently update the polygons on the map
+view, handling additions, removals, and modifications. This class is typically managed by the
+`MapView` and not instantiated directly by the user.
 
 ### Constructor
 
@@ -64,9 +69,10 @@ class PolygonOverlay(
 
 Creates a new instance of the polygon overlay.
 
-| Parameter | Type                                             | Description                                                                                                                            |
-| :-------- | :----------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
-| `flow`    | `StateFlow<MutableMap<String, PolygonState>>`    | A reactive stream that emits the current state of all polygons to be displayed. The map's key is a unique ID for the polygon, and the value is its `PolygonState`. |
+- `flow`
+    - Type: `StateFlow<MutableMap<String, PolygonState>>`
+    - Description: A reactive stream that emits the current state of all polygons to be displayed.
+      The map's key is a unique ID for the polygon, and the value is its `PolygonState`.
 
 ### Methods
 
@@ -83,11 +89,15 @@ suspend fun render(
 ```
 
 **Description**
-This function is called by the map rendering engine when polygon updates are needed. It checks if the `controller` implements the `PolygonCapableInterface`. If it does, it passes the list of `PolygonState` objects to the controller's `compositionPolygons` method for native rendering.
+This function is called by the map rendering engine when polygon updates are needed. It checks if
+the `controller` implements the `PolygonCapableInterface`. If it does, it passes the list of
+`PolygonState` objects to the controller's `compositionPolygons` method for native rendering.
 
 **Parameters**
 
-| Parameter    | Type                               | Description                                                                    |
-| :----------- | :--------------------------------- | :----------------------------------------------------------------------------- |
-| `data`       | `MutableMap<String, PolygonState>` | The current map of polygon states to be rendered.                              |
-| `controller` | `MapViewControllerInterface`       | The map view controller responsible for executing rendering commands.          |
+- `data`
+    - Type: `MutableMap<String, PolygonState>`
+    - Description: The current map of polygon states to be rendered.
+- `controller`
+    - Type: `MapViewControllerInterface`
+    - Description: The map view controller responsible for executing rendering commands.

@@ -1,12 +1,17 @@
 # Interface `RasterLayerCapableInterface`
 
-The `RasterLayerCapableInterface` defines a contract for classes that can manage and display raster layers on a map. It provides a standardized way to handle the composition, updating, and querying of raster layers. Implement this interface in any class, such as a map controller or view, that needs to interact with a collection of raster data layers.
+The `RasterLayerCapableInterface` defines a contract for classes that can manage and display raster
+layers on a map. It provides a standardized way to handle the composition, updating, and querying of
+raster layers. Implement this interface in any class, such as a map controller or view, that needs
+to interact with a collection of raster data layers.
 
 ---
 
 ## `compositionRasterLayers`
 
-Composes a new set of raster layers, replacing any existing ones. This function asynchronously updates the map to display exactly the layers specified in the input list, in the given order. It is useful for setting or resetting the entire raster layer stack.
+Composes a new set of raster layers, replacing any existing ones. This function asynchronously
+updates the map to display exactly the layers specified in the input list, in the given order. It is
+useful for setting or resetting the entire raster layer stack.
 
 ### Signature
 
@@ -16,13 +21,16 @@ suspend fun compositionRasterLayers(data: List<RasterLayerState>)
 
 ### Description
 
-This asynchronous suspend function takes a complete list of `RasterLayerState` objects and applies them to the map. The existing collection of raster layers is replaced with the new one. The function will handle adding new layers, removing obsolete ones, and reordering existing ones to match the provided list.
+This asynchronous suspend function takes a complete list of `RasterLayerState` objects and applies
+them to the map. The existing collection of raster layers is replaced with the new one. The function
+will handle adding new layers, removing obsolete ones, and reordering existing ones to match the
+provided list.
 
 ### Parameters
 
-| Parameter | Type                     | Description                                                                 |
-| :-------- | :----------------------- | :-------------------------------------------------------------------------- |
-| `data`    | `List<RasterLayerState>` | The complete and ordered list of raster layer states to be displayed on the map. |
+- `data`
+    - Type: `List<RasterLayerState>`
+    - Description: The complete and ordered list of raster layer states to be displayed on the map.
 
 ### Example
 
@@ -71,7 +79,8 @@ fun main() = runBlocking {
 
 ## `updateRasterLayer`
 
-Adds a new raster layer or updates an existing one. This function is ideal for making targeted changes to a single layer without affecting the rest of the layer stack.
+Adds a new raster layer or updates an existing one. This function is ideal for making targeted
+changes to a single layer without affecting the rest of the layer stack.
 
 ### Signature
 
@@ -81,13 +90,15 @@ suspend fun updateRasterLayer(state: RasterLayerState)
 
 ### Description
 
-This asynchronous suspend function takes a single `RasterLayerState` object and applies its state to the map. If a layer with the same unique identifier already exists, its properties (e.g., opacity, visibility) are updated. If no such layer exists, a new one is added to the map.
+This asynchronous suspend function takes a single `RasterLayerState` object and applies its state to
+the map. If a layer with the same unique identifier already exists, its properties (e.g., opacity,
+visibility) are updated. If no such layer exists, a new one is added to the map.
 
 ### Parameters
 
-| Parameter | Type              | Description                                                              |
-| :-------- | :---------------- | :----------------------------------------------------------------------- |
-| `state`   | `RasterLayerState` | The state object representing the raster layer to be added or updated. |
+- `state`
+    - Type: `RasterLayerState`
+    - Description: The state object representing the raster layer to be added or updated.
 
 ### Example
 
@@ -143,19 +154,20 @@ fun hasRasterLayer(state: RasterLayerState): Boolean
 
 ### Description
 
-This synchronous function determines whether a raster layer corresponding to the provided `RasterLayerState` exists on the map. The check is typically performed using a unique identifier within the `state` object.
+This synchronous function determines whether a raster layer corresponding to the provided
+`RasterLayerState` exists on the map. The check is typically performed using a unique identifier
+within the `state` object.
 
 ### Parameters
 
-| Parameter | Type              | Description                                                              |
-| :-------- | :---------------- | :----------------------------------------------------------------------- |
-| `state`   | `RasterLayerState` | The state object of the raster layer to check for.                       |
+- `state`
+    - Type: `RasterLayerState`
+    - Description: The state object of the raster layer to check for.
 
 ### Returns
 
-| Type      | Description                                            |
-| :-------- | :----------------------------------------------------- |
-| `Boolean` | Returns `true` if the layer exists, `false` otherwise. |
+- Type: `Boolean`
+- Description: Returns `true` if the layer exists, `false` otherwise.
 
 ### Example
 

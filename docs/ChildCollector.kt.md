@@ -1,16 +1,17 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
+# ChildCollector API Reference
 
-***
+The `ChildCollector` API provides a robust and efficient mechanism for managing a collection of
+stateful components. It is designed for reactive systems where you need to observe and react to
+changes in a dynamic set of objects.
 
-## ChildCollector API Reference
-
-The `ChildCollector` API provides a robust and efficient mechanism for managing a collection of stateful components. It is designed for reactive systems where you need to observe and react to changes in a dynamic set of objects.
-
-The core of the API is the `ChildCollectorImpl` class, which handles the addition, removal, and observation of individual component states.
+The core of the API is the `ChildCollectorImpl` class, which handles the addition, removal, and
+observation of individual component states.
 
 ### `ChildCollectorImpl<T, FingerPrint>`
 
-A generic, thread-safe collector that manages a dynamic collection of objects conforming to the `ComponentState` interface. It efficiently batches add/remove operations and provides a debounced mechanism to handle updates to individual states.
+A generic, thread-safe collector that manages a dynamic collection of objects conforming to the
+`ComponentState` interface. It efficiently batches add/remove operations and provides a debounced
+mechanism to handle updates to individual states.
 
 #### Signature
 
@@ -24,19 +25,33 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
 
 #### Description
 
-`ChildCollectorImpl` maintains an in-memory map of component states, identified by their unique `id`. It exposes this collection as a `StateFlow`, allowing observers to react to any changes in the set of components.
+`ChildCollectorImpl` maintains an in-memory map of component states, identified by their unique
+`id`. It exposes this collection as a `StateFlow`, allowing observers to react to any changes in the
+set of components.
 
-A key feature is its ability to monitor individual states for changes. This is achieved via the `asFlow` function provided during initialization, which defines what constitutes an "update" for a state object. When a change is detected, a configurable `updateHandler` is invoked after a specified `updateDebounce` period. This prevents system overload from rapid, successive updates.
+A key feature is its ability to monitor individual states for changes. This is achieved via the
+`asFlow` function provided during initialization, which defines what constitutes an "update" for a
+state object. When a change is detected, a configurable `updateHandler` is invoked after a specified
+`updateDebounce` period. This prevents system overload from rapid, successive updates.
 
 All asynchronous operations are managed within the provided `CoroutineScope`.
 
 #### Parameters
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `asFlow` | `(T) -> Flow<FingerPrint>` | A function that takes a state object `T` and returns a `Flow`. The collector subscribes to this flow to detect changes. The `FingerPrint` is a generic type representing the data whose changes should trigger an update. For example, this could be a flow of a specific property, a tuple of multiple properties, or the object itself. |
-| `updateDebounce` | `Duration` | The time duration to wait for new changes before invoking the `updateHandler`. This helps to coalesce multiple rapid updates into a single callback. |
-| `scope` | `CoroutineScope` | The coroutine scope in which all background jobs for collecting, debouncing, and updating will be launched. Defaults to `CoroutineScope(Dispatchers.Main.immediate)`. |
+- `asFlow`
+    - Type: `(T) -> Flow<FingerPrint>`
+    - Description: A function that takes a state object `T` and returns a `Flow`. The collector
+      subscribes to this flow to detect changes. The `FingerPrint` is a generic type representing
+      the data whose changes should trigger an update. For example, this could be a flow of a
+      specific property, a tuple of multiple properties, or the object itself.
+- `updateDebounce`
+    - Type: `Duration`
+    - Description: The time duration to wait for new changes before invoking the `updateHandler`.
+      This helps to coalesce multiple rapid updates into a single callback.
+- `scope`
+    - Type: `CoroutineScope`
+    - Description: The coroutine scope in which all background jobs for collecting, debouncing, and
+      updating will be launched. Defaults to `CoroutineScope(Dispatchers.Main.immediate)`.
 
 ---
 
@@ -52,7 +67,8 @@ override val flow: MutableStateFlow<MutableMap<String, T>>
 ```
 
 **Description**
-Collectors can subscribe to this flow to receive an updated map (`Map<String, T>`) whenever a state is added, removed, or the entire collection is replaced. The map's keys are the state `id`s.
+Collectors can subscribe to this flow to receive an updated map (`Map<String, T>`) whenever a state
+is added, removed, or the entire collection is replaced. The map's keys are the state `id`s.
 
 ---
 
@@ -68,12 +84,14 @@ override suspend fun add(state: T)
 ```
 
 **Description**
-This function submits the state to an internal queue. Additions are batched and debounced for performance, so the state will not be reflected in the main `flow` immediately. If a state with the same `id` already exists, it will be replaced.
+This function submits the state to an internal queue. Additions are batched and debounced for
+performance, so the state will not be reflected in the main `flow` immediately. If a state with the
+same `id` already exists, it will be replaced.
 
 **Parameters**
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `state` | `T` | The component state object to add or update. |
+- `state`
+    - Type: `T`
+    - Description: The component state object to add or update.
 
 #### `remove`
 
@@ -85,12 +103,13 @@ override fun remove(id: String)
 ```
 
 **Description**
-This is a non-suspending, fire-and-forget operation. Like `add`, removals are batched and debounced for efficiency. Any active update-monitoring job for the corresponding state will be cancelled.
+This is a non-suspending, fire-and-forget operation. Like `add`, removals are batched and debounced
+for efficiency. Any active update-monitoring job for the corresponding state will be cancelled.
 
 **Parameters**
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `id` | `String` | The unique identifier of the state to remove. |
+- `id`
+    - Type: `String`
+    - Description: The unique identifier of the state to remove.
 
 #### `setUpdateHandler`
 
@@ -102,14 +121,18 @@ override fun setUpdateHandler(handler: (suspend (T) -> Unit)?)
 ```
 
 **Description**
-When a non-null `handler` is provided, the collector begins monitoring all current and future states for changes (as defined by the `asFlow` function). When a change is detected and the `updateDebounce` period passes, the handler is called with the updated state.
+When a non-null `handler` is provided, the collector begins monitoring all current and future states
+for changes (as defined by the `asFlow` function). When a change is detected and the
+`updateDebounce` period passes, the handler is called with the updated state.
 
-If the handler is set to `null`, all active update-monitoring jobs are cancelled and no further update callbacks will be triggered.
+If the handler is set to `null`, all active update-monitoring jobs are cancelled and no further
+update callbacks will be triggered.
 
 **Parameters**
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `handler` | `(suspend (T) -> Unit)?` | The suspendable lambda to execute on a state update, or `null` to clear the handler. |
+- `handler`
+    - Type: `(suspend (T) -> Unit)?`
+    - Description: The suspendable lambda to execute on a state update, or `null` to clear the
+      handler.
 
 #### `replaceAll`
 
@@ -121,12 +144,15 @@ override fun replaceAll(states: List<T>)
 ```
 
 **Description**
-This function provides an efficient way to perform a bulk update. It calculates the difference between the old and new sets of states, cancels monitoring jobs for removed states, and starts new jobs for added states. The main `flow` is updated with the new map in a single emission. This is more performant than clearing the collection and adding items individually.
+This function provides an efficient way to perform a bulk update. It calculates the difference
+between the old and new sets of states, cancels monitoring jobs for removed states, and starts new
+jobs for added states. The main `flow` is updated with the new map in a single emission. This is
+more performant than clearing the collection and adding items individually.
 
 **Parameters**
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `states` | `List<T>` | The new list of states to manage. |
+- `states`
+    - Type: `List<T>`
+    - Description: The new list of states to manage.
 
 ---
 
@@ -244,7 +270,10 @@ interface ChildCollector<T : ComponentState>
 
 #### Description
 
-This interface abstracts the implementation details of the collector, providing a clear and stable API for managing a collection of states. It includes methods for adding, removing, and replacing states, as well as mechanisms for observing the collection as a whole and handling updates to individual items.
+This interface abstracts the implementation details of the collector, providing a clear and stable
+API for managing a collection of states. It includes methods for adding, removing, and replacing
+states, as well as mechanisms for observing the collection as a whole and handling updates to
+individual items.
 
 ---
 
@@ -260,10 +289,12 @@ interface ComponentState
 
 #### Description
 
-Any class representing a state that will be managed by `ChildCollector` must implement this interface.
+Any class representing a state that will be managed by `ChildCollector` must implement this
+interface.
 
 #### Properties
 
-| Property | Type | Description |
-| :--- | :--- | :--- |
-| `id` | `String` | A unique identifier for the state object. This is used as the key in the collector's internal map. |
+- `id`
+    - Type: `String`
+    - Description: A unique identifier for the state object. This is used as the key in the
+      collector's internal map.

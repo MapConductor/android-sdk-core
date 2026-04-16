@@ -1,16 +1,19 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
 # WGS84Geodesic
 
-The `WGS84Geodesic` object provides a collection of utility functions for performing geodesic calculations on the WGS84 ellipsoid, which is the reference coordinate system used by the Global Positioning System (GPS). These functions are designed for high accuracy and are compatible with standard geodesic computations, such as those used by Google Maps.
+The `WGS84Geodesic` object provides a collection of utility functions for performing geodesic
+calculations on the WGS84 ellipsoid, which is the reference coordinate system used by the Global
+Positioning System (GPS). These functions are designed for high accuracy and are compatible with
+standard geodesic computations, such as those used by Google Maps.
 
-This utility handles calculations for distance, heading (azimuth), and path interpolation between geographic coordinates.
+This utility handles calculations for distance, heading (azimuth), and path interpolation between
+geographic coordinates.
 
 ---
 
 ## `computeDistanceBetween`
 
-Calculates the shortest distance (geodesic) between two points on the surface of the WGS84 ellipsoid. This method implements Vincenty's inverse formula for high accuracy.
+Calculates the shortest distance (geodesic) between two points on the surface of the WGS84
+ellipsoid. This method implements Vincenty's inverse formula for high accuracy.
 
 ### Signature
 
@@ -23,18 +26,24 @@ fun computeDistanceBetween(
 
 ### Description
 
-This function computes the geodesic distance in meters between a starting point (`from`) and an ending point (`to`). The calculation is based on Vincenty's inverse formula, which is an iterative method that is highly accurate for all distances on an ellipsoid. It is a robust alternative to the Haversine formula, which assumes a perfect sphere.
+This function computes the geodesic distance in meters between a starting point (`from`) and an
+ending point (`to`). The calculation is based on Vincenty's inverse formula, which is an iterative
+method that is highly accurate for all distances on an ellipsoid. It is a robust alternative to the
+Haversine formula, which assumes a perfect sphere.
 
 ### Parameters
 
-| Parameter | Type                | Description                      |
-| :-------- | :------------------ | :------------------------------- |
-| `from`    | `GeoPointInterface` | The starting geographical point. |
-| `to`      | `GeoPointInterface` | The destination geographical point. |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting geographical point.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The destination geographical point.
 
 ### Returns
 
-`Double` - The geodesic distance between the two points in meters. Returns `0.0` if the points are identical or if the algorithm fails to converge.
+`Double` - The geodesic distance between the two points in meters. Returns `0.0` if the points are
+identical or if the algorithm fails to converge.
 
 ### Example
 
@@ -57,7 +66,8 @@ fun main() {
 
 ## `computeHeading`
 
-Calculates the initial bearing (forward azimuth) from a starting point to a destination point on the WGS84 ellipsoid.
+Calculates the initial bearing (forward azimuth) from a starting point to a destination point on the
+WGS84 ellipsoid.
 
 ### Signature
 
@@ -70,14 +80,17 @@ fun computeHeading(
 
 ### Description
 
-This function determines the initial heading, in degrees, for the shortest path (geodesic) from the `from` point to the `to` point. The heading is measured clockwise from true north.
+This function determines the initial heading, in degrees, for the shortest path (geodesic) from the
+`from` point to the `to` point. The heading is measured clockwise from true north.
 
 ### Parameters
 
-| Parameter | Type                | Description                      |
-| :-------- | :------------------ | :------------------------------- |
-| `from`    | `GeoPointInterface` | The starting geographical point. |
-| `to`      | `GeoPointInterface` | The destination geographical point. |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting geographical point.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The destination geographical point.
 
 ### Returns
 
@@ -108,7 +121,8 @@ fun main() {
 
 ## `interpolate`
 
-Calculates an intermediate geographical point along the great-circle path between two points using spherical linear interpolation (Slerp).
+Calculates an intermediate geographical point along the great-circle path between two points using
+spherical linear interpolation (Slerp).
 
 ### Signature
 
@@ -122,17 +136,26 @@ fun interpolate(
 
 ### Description
 
-This function finds a `GeoPoint` that lies at a specified fraction of the distance along the path from a starting point to a destination point. It uses Spherical Linear Interpolation (Slerp), which provides a good approximation for short to medium distances by treating the Earth as a sphere. For the highest precision over long distances, Vincenty's direct formula would be required.
+This function finds a `GeoPoint` that lies at a specified fraction of the distance along the path
+from a starting point to a destination point. It uses Spherical Linear Interpolation (Slerp), which
+provides a good approximation for short to medium distances by treating the Earth as a sphere. For
+the highest precision over long distances, Vincenty's direct formula would be required.
 
-Altitude is interpolated linearly. If only one of the points has an altitude, that altitude is used for the interpolated point.
+Altitude is interpolated linearly. If only one of the points has an altitude, that altitude is used
+for the interpolated point.
 
 ### Parameters
 
-| Parameter  | Type                | Description                                                                                                                            |
-| :--------- | :------------------ | :------------------------------------------------------------------------------------------------------------------------------------- |
-| `from`     | `GeoPointInterface` | The starting geographical point.                                                                                                       |
-| `to`       | `GeoPointInterface` | The destination geographical point.                                                                                                    |
-| `fraction` | `Double`            | The fraction of the distance from the `from` point to the `to` point. Must be between `0.0` (returns `from`) and `1.0` (returns `to`). |
+- `from`
+    - Type: `GeoPointInterface`
+    - Description: The starting geographical point.
+- `to`
+    - Type: `GeoPointInterface`
+    - Description: The destination geographical point.
+- `fraction`
+    - Type: `Double`
+    - Description: The fraction of the distance from the `from` point to the `to` point. Must be
+      between `0.0` (returns `from`) and `1.0` (returns `to`).
 
 ### Returns
 

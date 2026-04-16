@@ -8,15 +8,20 @@ fun interface MarkerTileRasterLayerCallback
 
 ### Description
 
-This is a functional interface that acts as a callback for managing a `RasterLayer` from a `MarkerController`. Its primary purpose is to decouple the `MarkerController` from the `RasterLayerController`, allowing for more modular and maintainable code.
+This is a functional interface that acts as a callback for managing a `RasterLayer` from a
+`MarkerController`. Its primary purpose is to decouple the `MarkerController` from the
+`RasterLayerController`, allowing for more modular and maintainable code.
 
-An implementation of this interface is provided to a `MarkerController` to handle updates to its associated raster layer. The controller will invoke the `onRasterLayerUpdate` method when the raster layer needs to be added, modified, or removed.
+An implementation of this interface is provided to a `MarkerController` to handle updates to its
+associated raster layer. The controller will invoke the `onRasterLayerUpdate` method when the raster
+layer needs to be added, modified, or removed.
 
 ---
 
 ## onRasterLayerUpdate
 
-This function is called when a marker's tile raster layer needs to be added, updated, or removed from the map.
+This function is called when a marker's tile raster layer needs to be added, updated, or removed
+from the map.
 
 ### Signature
 
@@ -26,17 +31,21 @@ suspend fun onRasterLayerUpdate(state: RasterLayerState?)
 
 ### Description
 
-The `suspend` modifier indicates that this function is designed to be called from a coroutine and may perform long-running or asynchronous operations, such as I/O or heavy computation, without blocking the main thread.
+The `suspend` modifier indicates that this function is designed to be called from a coroutine and
+may perform long-running or asynchronous operations, such as I/O or heavy computation, without
+blocking the main thread.
 
 ### Parameters
 
-| Parameter | Type                 | Description                                                                                                                            |
-|-----------|----------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `state`   | `RasterLayerState?`  | The desired state for the raster layer. Provide a `RasterLayerState` object to add or update the layer. Pass `null` to remove the layer. |
+- `state`
+    - Type: `RasterLayerState?`
+    - Description: The desired state for the raster layer. Provide a `RasterLayerState` object to
+      add or update the layer. Pass `null` to remove the layer.
 
 ### Example
 
-Here is an example of how to implement the `MarkerTileRasterLayerCallback` and use it to manage a raster layer.
+Here is an example of how to implement the `MarkerTileRasterLayerCallback` and use it to manage a
+raster layer.
 
 ```kotlin
 import kotlinx.coroutines.runBlocking

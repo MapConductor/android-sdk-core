@@ -1,17 +1,20 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
 # BaseMapViewController
 
-`BaseMapViewController` is an abstract base class that provides core functionality for managing a map view. It is designed to be extended by concrete implementations for specific map providers (e.g., Google Maps, Mapbox).
+`BaseMapViewController` is an abstract base class that provides core functionality for managing a
+map view. It is designed to be extended by concrete implementations for specific map providers
+(e.g., Google Maps, Mapbox).
 
-This class handles the registration of event listeners for common map interactions, such as camera movements, clicks, and long clicks. It also manages a collection of `OverlayControllerInterface` instances, automatically notifying them of camera changes.
+This class handles the registration of event listeners for common map interactions, such as camera
+movements, clicks, and long clicks. It also manages a collection of `OverlayControllerInterface`
+instances, automatically notifying them of camera changes.
 
 ---
 
 ## Methods
 
 ### setCameraMoveStartListener
-Sets a listener that is invoked when the map camera starts moving. This is typically triggered when the user begins a pan or zoom gesture.
+Sets a listener that is invoked when the map camera starts moving. This is typically triggered when
+the user begins a pan or zoom gesture.
 
 **Signature**
 ```kotlin
@@ -19,12 +22,14 @@ fun setCameraMoveStartListener(listener: OnCameraMoveHandler?)
 ```
 
 **Description**
-Registers a callback to be executed when the camera movement on the map begins. To remove the listener, pass `null`.
+Registers a callback to be executed when the camera movement on the map begins. To remove the
+listener, pass `null`.
 
 **Parameters**
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `listener` | `OnCameraMoveHandler?` | The callback to invoke when the camera starts moving. It receives the `MapCameraPosition` at the start of the movement. |
+- `listener`
+    - Type: `OnCameraMoveHandler?`
+    - Description: The callback to invoke when the camera starts moving. It receives the
+      `MapCameraPosition` at the start of the movement.
 
 **Example**
 ```kotlin
@@ -47,12 +52,14 @@ fun setCameraMoveListener(listener: OnCameraMoveHandler?)
 ```
 
 **Description**
-Registers a callback that is executed continuously as the camera position changes. This is useful for real-time UI updates that depend on the camera's viewport. To remove the listener, pass `null`.
+Registers a callback that is executed continuously as the camera position changes. This is useful
+for real-time UI updates that depend on the camera's viewport. To remove the listener, pass `null`.
 
 **Parameters**
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `listener` | `OnCameraMoveHandler?` | The callback to invoke during camera movement. It receives the current `MapCameraPosition`. |
+- `listener`
+    - Type: `OnCameraMoveHandler?`
+    - Description: The callback to invoke during camera movement. It receives the current
+      `MapCameraPosition`.
 
 **Example**
 ```kotlin
@@ -76,12 +83,15 @@ fun setCameraMoveEndListener(listener: OnCameraMoveHandler?)
 ```
 
 **Description**
-Registers a callback to be executed once the camera has stopped moving. This is ideal for performing actions that should only happen after the user has settled on a new map view, such as fetching data for the new viewport. To remove the listener, pass `null`.
+Registers a callback to be executed once the camera has stopped moving. This is ideal for performing
+actions that should only happen after the user has settled on a new map view, such as fetching data
+for the new viewport. To remove the listener, pass `null`.
 
 **Parameters**
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `listener` | `OnCameraMoveHandler?` | The callback to invoke when the camera movement ends. It receives the final `MapCameraPosition`. |
+- `listener`
+    - Type: `OnCameraMoveHandler?`
+    - Description: The callback to invoke when the camera movement ends. It receives the final
+      `MapCameraPosition`.
 
 **Example**
 ```kotlin
@@ -106,12 +116,14 @@ fun setMapClickListener(listener: OnMapEventHandler?)
 ```
 
 **Description**
-Registers a callback to be executed when a click event occurs on the map. The callback receives the geographical coordinates (`LatLng`) of the click location. To remove the listener, pass `null`.
+Registers a callback to be executed when a click event occurs on the map. The callback receives the
+geographical coordinates (`LatLng`) of the click location. To remove the listener, pass `null`.
 
 **Parameters**
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `listener` | `OnMapEventHandler?` | The callback to invoke on a map click. It receives the `LatLng` of the click location. |
+- `listener`
+    - Type: `OnMapEventHandler?`
+    - Description: The callback to invoke on a map click. It receives the `LatLng` of the click
+      location.
 
 **Example**
 ```kotlin
@@ -134,12 +146,15 @@ fun setMapLongClickListener(listener: OnMapEventHandler?)
 ```
 
 **Description**
-Registers a callback to be executed when a long-click event occurs on the map. The callback receives the geographical coordinates (`LatLng`) of the long-press location. To remove the listener, pass `null`.
+Registers a callback to be executed when a long-click event occurs on the map. The callback receives
+the geographical coordinates (`LatLng`) of the long-press location. To remove the listener, pass
+`null`.
 
 **Parameters**
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `listener` | `OnMapEventHandler?` | The callback to invoke on a map long-click. It receives the `LatLng` of the long-click location. |
+- `listener`
+    - Type: `OnMapEventHandler?`
+    - Description: The callback to invoke on a map long-click. It receives the `LatLng` of the
+      long-click location.
 
 **Example**
 ```kotlin
@@ -164,12 +179,15 @@ fun registerOverlayController(controller: OverlayControllerInterface<*, *, *>)
 ```
 
 **Description**
-Adds an overlay controller (e.g., for markers, polygons, or other visual elements) to be managed by this `BaseMapViewController`. Registered controllers will be automatically notified of map events, such as camera changes, allowing them to update their state accordingly. A controller will only be registered once, even if this method is called multiple times with the same controller instance.
+Adds an overlay controller (e.g., for markers, polygons, or other visual elements) to be managed by
+this `BaseMapViewController`. Registered controllers will be automatically notified of map events,
+such as camera changes, allowing them to update their state accordingly. A controller will only be
+registered once, even if this method is called multiple times with the same controller instance.
 
 **Parameters**
-| Name | Type | Description |
-| :--- | :--- | :--- |
-| `controller` | `OverlayControllerInterface<*, *, *>` | The overlay controller to register. |
+- `controller`
+    - Type: `OverlayControllerInterface<*, *, *>`
+    - Description: The overlay controller to register.
 
 **Example**
 ```kotlin

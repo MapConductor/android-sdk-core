@@ -1,6 +1,7 @@
 # TileProviderInterface
 
-The `TileProviderInterface` defines a standardized contract for classes that are responsible for rendering map tiles. Any class that generates tile data must implement this interface.
+The `TileProviderInterface` defines a standardized contract for classes that are responsible for
+rendering map tiles. Any class that generates tile data must implement this interface.
 
 ## renderTile
 
@@ -14,19 +15,22 @@ fun renderTile(request: TileRequest): ByteArray?
 
 ### Description
 
-This method processes a `TileRequest` to generate the corresponding map tile image. It returns the raw image data as a byte array. If the tile cannot be rendered for any reason (e.g., the requested coordinates are out of bounds, or a rendering error occurs), it returns `null`.
+This method processes a `TileRequest` to generate the corresponding map tile image. It returns the
+raw image data as a byte array. If the tile cannot be rendered for any reason (e.g., the requested
+coordinates are out of bounds, or a rendering error occurs), it returns `null`.
 
 ### Parameters
 
-| Parameter | Type          | Description                                                                                                |
-| :-------- | :------------ | :--------------------------------------------------------------------------------------------------------- |
-| `request` | `TileRequest` | An object containing the details for the tile to be rendered, such as zoom level and coordinates (x, y). |
+- `request`
+    - Type: `TileRequest`
+    - Description: An object containing the details for the tile to be rendered, such as zoom level
+      and coordinates (x, y).
 
 ### Returns
 
-| Type         | Description                                                                                                                            |
-| :----------- | :------------------------------------------------------------------------------------------------------------------------------------- |
-| `ByteArray?` | A byte array representing the rendered tile image (e.g., in PNG or JPEG format), or `null` if the tile cannot be generated for the given request. |
+- Type: `ByteArray?`
+- Description: A byte array representing the rendered tile image (e.g., in PNG or JPEG format), or
+  `null` if the tile cannot be generated for the given request.
 
 ### Example
 

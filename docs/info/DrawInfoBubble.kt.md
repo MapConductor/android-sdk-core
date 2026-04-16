@@ -15,22 +15,40 @@ internal fun DrawInfoBubble(
 ```
 
 ## Description
-Renders a customizable info bubble with a triangular tail at the bottom center. This composable is designed to act as a container for other UI elements, commonly used for map annotations, tooltips, or callouts.
+Renders a customizable info bubble with a triangular tail at the bottom center. This composable is
+designed to act as a container for other UI elements, commonly used for map annotations, tooltips,
+or callouts.
 
-It uses a `Canvas` to draw the bubble shape with a specified fill color and border. The provided `content` is then placed inside with appropriate padding to fit within the bubble's boundaries, accounting for the space occupied by the tail.
+It uses a `Canvas` to draw the bubble shape with a specified fill color and border. The provided
+`content` is then placed inside with appropriate padding to fit within the bubble's boundaries,
+accounting for the space occupied by the tail.
 
 **Note:** This is an `internal` function, intended for use only within its own module.
 
 ## Parameters
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `modifier` | `Modifier` | The `Modifier` to be applied to the bubble container. |
-| `bubbleColor` | `Color` | The background `Color` of the bubble. |
-| `borderColor` | `Color` | The `Color` of the bubble's border. |
-| `contentPadding` | `Dp` | The padding `Dp` applied to the content within the bubble on all sides. The bottom padding is automatically increased to accommodate the tail. |
-| `cornerRadius` | `Dp` | The corner radius `Dp` for the rounded corners of the bubble. |
-| `tailSize` | `Dp` | The size `Dp` of the triangular tail at the bottom of the bubble. This defines the height and base width of the tail. |
-| `content` | `@Composable () -> Unit` | A composable lambda that defines the content to be displayed inside the bubble. |
+- `modifier`
+    - Type: `Modifier`
+    - Description: The `Modifier` to be applied to the bubble container.
+- `bubbleColor`
+    - Type: `Color`
+    - Description: The background `Color` of the bubble.
+- `borderColor`
+    - Type: `Color`
+    - Description: The `Color` of the bubble's border.
+- `contentPadding`
+    - Type: `Dp`
+    - Description: The padding `Dp` applied to the content within the bubble on all sides. The
+      bottom padding is automatically increased to accommodate the tail.
+- `cornerRadius`
+    - Type: `Dp`
+    - Description: The corner radius `Dp` for the rounded corners of the bubble.
+- `tailSize`
+    - Type: `Dp`
+    - Description: The size `Dp` of the triangular tail at the bottom of the bubble. This defines
+      the height and base width of the tail.
+- `content`
+    - Type: `@Composable () -> Unit`
+    - Description: A composable lambda that defines the content to be displayed inside the bubble.
 
 ## Returns
 This composable does not return any value.

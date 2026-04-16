@@ -1,14 +1,20 @@
-Excellent. Here is the high-quality SDK documentation for the provided `BitmapIconCache` code snippet.
-
 # BitmapIconCache
 
-The `BitmapIconCache` is a singleton object that provides an in-memory cache for `BitmapIcon` objects. It is designed to optimize memory usage and improve performance by reusing bitmap icons instead of recreating them.
+The `BitmapIconCache` is a singleton object that provides an in-memory cache for `BitmapIcon`
+objects. It is designed to optimize memory usage and improve performance by reusing bitmap icons
+instead of recreating them.
 
 The cache employs a two-level strategy:
-1.  **LruCache**: An underlying `LruCache` (Least Recently Used) stores the `BitmapIcon` objects. It automatically evicts the least recently used items when the cache exceeds its designated memory limit (1/8th of the application's maximum memory).
-2.  **Reference Counting**: A reference counting mechanism tracks how many components are actively using a specific icon. An icon is only added to the `LruCache` on its first `put` call and is only removed from the cache when its reference count drops to zero. This prevents actively used icons from being evicted from memory.
+1.  **LruCache**: An underlying `LruCache` (Least Recently Used) stores the `BitmapIcon` objects. It
+automatically evicts the least recently used items when the cache exceeds its designated memory
+limit (1/8th of the application's maximum memory).
+2.  **Reference Counting**: A reference counting mechanism tracks how many components are actively
+using a specific icon. An icon is only added to the `LruCache` on its first `put` call and is only
+removed from the cache when its reference count drops to zero. This prevents actively used icons
+from being evicted from memory.
 
-This object is thread-safe for the operations it exposes, but the underlying `LruCache` has its own synchronization behavior.
+This object is thread-safe for the operations it exposes, but the underlying `LruCache` has its own
+synchronization behavior.
 
 ---
 
@@ -16,7 +22,9 @@ This object is thread-safe for the operations it exposes, but the underlying `Lr
 
 Adds a `BitmapIcon` to the cache or increments its reference count if it already exists.
 
-If the icon with the specified `id` is not already in the cache, it will be added to the `LruCache` and its reference count will be initialized to 1. If the icon already exists, this method simply increments its reference count without re-adding it to the cache.
+If the icon with the specified `id` is not already in the cache, it will be added to the `LruCache`
+and its reference count will be initialized to 1. If the icon already exists, this method simply
+increments its reference count without re-adding it to the cache.
 
 ### Signature
 
@@ -26,10 +34,12 @@ fun put(id: Int, bitmapIcon: BitmapIcon)
 
 ### Parameters
 
-| Parameter    | Type         | Description                                |
-| :----------- | :----------- | :----------------------------------------- |
-| `id`         | `Int`        | The unique identifier for the bitmap icon. |
-| `bitmapIcon` | `BitmapIcon` | The `BitmapIcon` object to cache.          |
+- `id`
+    - Type: `Int`
+    - Description: The unique identifier for the bitmap icon.
+- `bitmapIcon`
+    - Type: `BitmapIcon`
+    - Description: The `BitmapIcon` object to cache.
 
 ### Example
 
@@ -56,15 +66,16 @@ fun get(id: Int): BitmapIcon?
 
 ### Parameters
 
-| Parameter | Type  | Description                                  |
-| :-------- | :---- | :------------------------------------------- |
-| `id`      | `Int` | The unique identifier of the icon to retrieve. |
+- `id`
+    - Type: `Int`
+    - Description: The unique identifier of the icon to retrieve.
 
 ### Returns
 
 **`BitmapIcon?`**
 
-The cached `BitmapIcon` object if it exists, or `null` if no icon with the specified `id` is found in the cache.
+The cached `BitmapIcon` object if it exists, or `null` if no icon with the specified `id` is found
+in the cache.
 
 ### Example
 
@@ -89,7 +100,8 @@ if (cachedIcon != null) {
 
 Manually increments the reference count for a cached icon.
 
-This is useful when a new component begins using an icon that is already in the cache, ensuring it won't be removed prematurely.
+This is useful when a new component begins using an icon that is already in the cache, ensuring it
+won't be removed prematurely.
 
 ### Signature
 
@@ -99,9 +111,9 @@ fun refCountUp(id: Int)
 
 ### Parameters
 
-| Parameter | Type  | Description                                                        |
-| :-------- | :---- | :----------------------------------------------------------------- |
-| `id`      | `Int` | The unique identifier of the icon to increment the reference count for. |
+- `id`
+    - Type: `Int`
+    - Description: The unique identifier of the icon to increment the reference count for.
 
 ### Example
 
@@ -115,9 +127,11 @@ BitmapIconCache.refCountUp(iconId)
 
 ## `refCountDown`
 
-Decrements the reference count for a cached icon. If the reference count drops to zero, the icon is removed from the cache.
+Decrements the reference count for a cached icon. If the reference count drops to zero, the icon is
+removed from the cache.
 
-This method should be called when a component is finished using an icon, allowing the cache to free up memory if the icon is no longer needed by any other component.
+This method should be called when a component is finished using an icon, allowing the cache to free
+up memory if the icon is no longer needed by any other component.
 
 ### Signature
 
@@ -127,9 +141,9 @@ fun refCountDown(id: Int)
 
 ### Parameters
 
-| Parameter | Type  | Description                                                        |
-| :-------- | :---- | :----------------------------------------------------------------- |
-| `id`      | `Int` | The unique identifier of the icon to decrement the reference count for. |
+- `id`
+    - Type: `Int`
+    - Description: The unique identifier of the icon to decrement the reference count for.
 
 ### Example
 
@@ -145,7 +159,8 @@ BitmapIconCache.refCountDown(iconId)
 
 Removes all icons from the cache and resets all reference counts.
 
-This is a destructive operation that completely empties the cache. It can be useful in low-memory situations or when a significant part of the application's UI is being torn down.
+This is a destructive operation that completely empties the cache. It can be useful in low-memory
+situations or when a significant part of the application's UI is being torn down.
 
 ### Signature
 

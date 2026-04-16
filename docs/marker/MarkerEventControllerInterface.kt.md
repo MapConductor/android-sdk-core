@@ -1,6 +1,7 @@
 # MarkerEventControllerInterface<ActualMarker>
 
-The `MarkerEventControllerInterface` provides a generic contract for managing and handling events associated with a map marker.
+The `MarkerEventControllerInterface` provides a generic contract for managing and handling events
+associated with a map marker.
 
 ## Signature
 
@@ -10,19 +11,24 @@ interface MarkerEventControllerInterface<ActualMarker>
 
 ## Description
 
-This interface defines a standardized way to control marker-related events, abstracting the specific implementation details of the underlying map provider. By using a generic type `ActualMarker`, it allows for a consistent event handling architecture regardless of whether the map is powered by Google Maps, Mapbox, or another provider.
+This interface defines a standardized way to control marker-related events, abstracting the specific
+implementation details of the underlying map provider. By using a generic type `ActualMarker`, it
+allows for a consistent event handling architecture regardless of whether the map is powered by
+Google Maps, Mapbox, or another provider.
 
-Implementations of this interface are responsible for attaching and detaching event listeners to the native marker object.
+Implementations of this interface are responsible for attaching and detaching event listeners to the
+native marker object.
 
 ## Type Parameters
 
-| Parameter      | Description                                                                                                                            |
-| :------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
-| `ActualMarker` | The concrete class of the marker object from the underlying map provider's SDK (e.g., `com.google.android.gms.maps.model.Marker`). |
+- `ActualMarker`
+    - Description: The concrete class of the marker object from the underlying map provider's SDK
+      (e.g., `com.google.android.gms.maps.model.Marker`).
 
 ## Example
 
-While the interface itself cannot be instantiated, here is a conceptual example of how it might be implemented for a specific map provider like Google Maps.
+While the interface itself cannot be instantiated, here is a conceptual example of how it might be
+implemented for a specific map provider like Google Maps.
 
 ```java
 import com.google.android.gms.maps.model.Marker;

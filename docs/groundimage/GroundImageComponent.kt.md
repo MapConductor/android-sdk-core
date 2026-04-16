@@ -1,16 +1,18 @@
-Of course! Here is the high-quality SDK documentation for the provided code snippet.
-
 # GroundImage
 
-The `GroundImage` composable is used to overlay an image onto a specific geographical area of the map. It must be used within the content lambda of a `MapView` composable.
+The `GroundImage` composable is used to overlay an image onto a specific geographical area of the
+map. It must be used within the content lambda of a `MapView` composable.
 
-There are two overloads for this function. The primary overload accepts individual properties to define the ground image, while the other accepts a pre-configured `GroundImageState` object for more advanced state management.
+There are two overloads for this function. The primary overload accepts individual properties to
+define the ground image, while the other accepts a pre-configured `GroundImageState` object for more
+advanced state management.
 
 ---
 
 ## GroundImage (Declarative)
 
-This is the primary and most convenient way to add a ground image to the map. You provide the image, its geographical bounds, and other optional properties directly as parameters.
+This is the primary and most convenient way to add a ground image to the map. You provide the image,
+its geographical bounds, and other optional properties directly as parameters.
 
 ### Signature
 
@@ -29,19 +31,38 @@ fun MapViewScope.GroundImage(
 
 ### Description
 
-A composable function that overlays a `Drawable` image onto a specified rectangular geographical area of the map. The image is automatically anchored to the provided `bounds`. This function should be called within the `MapView` composable's content scope.
+A composable function that overlays a `Drawable` image onto a specified rectangular geographical
+area of the map. The image is automatically anchored to the provided `bounds`. This function should
+be called within the `MapView` composable's content scope.
 
 ### Parameters
 
-| Parameter  | Type                        | Description                                                                                                                            |
-|------------|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `bounds`   | `GeoRectBounds`             | The rectangular geographical coordinates where the image will be placed.                                                               |
-| `image`    | `Drawable`                  | The Android `Drawable` to be displayed on the map.                                                                                     |
-| `opacity`  | `Float`                     | The opacity of the image, ranging from `0.0` (fully transparent) to `1.0` (fully opaque). Defaults to `0.5f`.                           |
-| `tileSize` | `Int`                       | The size of the tiles (in pixels) used to render the image on the map. Defaults to `GroundImageTileProvider.DEFAULT_TILE_SIZE`.         |
-| `id`       | `String?`                   | An optional unique identifier for the ground image. If not provided, one will be generated internally.                                 |
-| `extra`    | `Serializable?`             | Optional, serializable data to associate with the ground image. This data is passed to the `onClick` handler.                          |
-| `onClick`  | `OnGroundImageEventHandler?`| An optional callback lambda that is invoked with the image's `id` and `extra` data when the user clicks on the ground image overlay.     |
+- `bounds`
+    - Type: `GeoRectBounds`
+    - Description: The rectangular geographical coordinates where the image will be placed.
+- `image`
+    - Type: `Drawable`
+    - Description: The Android `Drawable` to be displayed on the map.
+- `opacity`
+    - Type: `Float`
+    - Description: The opacity of the image, ranging from `0.0` (fully transparent) to `1.0` (fully
+      opaque). Defaults to `0.5f`.
+- `tileSize`
+    - Type: `Int`
+    - Description: The size of the tiles (in pixels) used to render the image on the map. Defaults
+      to `GroundImageTileProvider.DEFAULT_TILE_SIZE`.
+- `id`
+    - Type: `String?`
+    - Description: An optional unique identifier for the ground image. If not provided, one will be
+      generated internally.
+- `extra`
+    - Type: `Serializable?`
+    - Description: Optional, serializable data to associate with the ground image. This data is
+      passed to the `onClick` handler.
+- `onClick`
+    - Type: `OnGroundImageEventHandler?`
+    - Description: An optional callback lambda that is invoked with the image's `id` and `extra`
+      data when the user clicks on the ground image overlay.
 
 ### Returns
 
@@ -64,7 +85,7 @@ fun MapWithGroundOverlay() {
     ) {
         val context = LocalContext.current
         val imageDrawable = ContextCompat.getDrawable(context, R.drawable.historical_map_overlay)
-        
+
         val overlayBounds = GeoRectBounds(
             northEast = GeoPoint(40.7128, -74.0060), // New York City NE corner
             southWest = GeoPoint(40.7028, -74.0160)  // New York City SW corner
@@ -89,7 +110,8 @@ fun MapWithGroundOverlay() {
 
 ## GroundImage (State-based)
 
-This overload is useful for advanced use cases where you need to manage the `GroundImageState` externally, for instance, by hoisting it or using `remember`.
+This overload is useful for advanced use cases where you need to manage the `GroundImageState`
+externally, for instance, by hoisting it or using `remember`.
 
 ### Signature
 
@@ -100,13 +122,16 @@ fun MapViewScope.GroundImage(state: GroundImageState)
 
 ### Description
 
-Adds a ground image to the map using a pre-configured `GroundImageState` object. This allows for the state of the ground image (its properties, image, and handlers) to be managed separately from its composition.
+Adds a ground image to the map using a pre-configured `GroundImageState` object. This allows for the
+state of the ground image (its properties, image, and handlers) to be managed separately from its
+composition.
 
 ### Parameters
 
-| Parameter | Type               | Description                                                                                                                            |
-|-----------|--------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `state`   | `GroundImageState` | The state object that defines all properties of the ground image, including its bounds, image, opacity, and event handlers.              |
+- `state`
+    - Type: `GroundImageState`
+    - Description: The state object that defines all properties of the ground image, including its
+      bounds, image, opacity, and event handlers.
 
 ### Returns
 
@@ -131,7 +156,7 @@ fun MapWithManagedGroundOverlay() {
     ) {
         val context = LocalContext.current
         val imageDrawable = ContextCompat.getDrawable(context, R.drawable.park_layout)
-        
+
         val parkBounds = GeoRectBounds(
             northEast = GeoPoint(34.0522, -118.2437),
             southWest = GeoPoint(34.0422, -118.2537)

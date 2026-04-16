@@ -1,8 +1,4 @@
-Of course! Here is the high-quality SDK documentation for the provided Kotlin code snippet.
-
----
-
-### `createInterpolatePoints`
+# `createInterpolatePoints`
 
 #### Signature
 
@@ -15,26 +11,37 @@ fun createInterpolatePoints(
 
 #### Description
 
-This function densifies a polyline (a list of geographic points) by interpolating additional points along the geodesic path between each pair of consecutive points. It ensures that the straight-line distance on the WGS84 ellipsoid between any two adjacent points in the returned list is less than or equal to the specified `maxSegmentLength`.
+This function densifies a polyline (a list of geographic points) by interpolating additional points
+along the geodesic path between each pair of consecutive points. It ensures that the straight-line
+distance on the WGS84 ellipsoid between any two adjacent points in the returned list is less than or
+equal to the specified `maxSegmentLength`.
 
-This is useful for processes that require a higher resolution path than the one originally provided, such as for accurate rendering on a map or for collision detection along a route.
+This is useful for processes that require a higher resolution path than the one originally provided,
+such as for accurate rendering on a map or for collision detection along a route.
 
 #### Parameters
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `points` | `List<GeoPointInterface>` | The list of geographic points that define the original polyline. The list must contain at least one point. |
-| `maxSegmentLength` | `Double` | The maximum desired distance in meters between consecutive points in the output list. **Default**: `10000.0` (10 kilometers). |
+- `points`
+    - Type: `List<GeoPointInterface>`
+    - Description: The list of geographic points that define the original polyline. The list must
+      contain at least one point.
+- `maxSegmentLength`
+    - Type: `Double`
+    - Description: The maximum desired distance in meters between consecutive points in the output
+      list. **Default**: `10000.0` (10 kilometers).
 
 #### Returns
 
 **`List<GeoPointInterface>`**
 
-A new list of `GeoPointInterface` objects that includes the original points plus the interpolated points. The points are ordered to form a continuous, higher-resolution path. If the input list contains fewer than two points, a copy of the original list is returned.
+A new list of `GeoPointInterface` objects that includes the original points plus the interpolated
+points. The points are ordered to form a continuous, higher-resolution path. If the input list
+contains fewer than two points, a copy of the original list is returned.
 
 #### Example
 
-Below is an example of how to use `createInterpolatePoints` to add points to a path between two locations.
+Below is an example of how to use `createInterpolatePoints` to add points to a path between two
+locations.
 
 ```kotlin
 // Assume GeoPointInterface and a concrete implementation exist:

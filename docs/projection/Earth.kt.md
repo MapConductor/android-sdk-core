@@ -1,8 +1,11 @@
 # Earth
 
-The `Earth` object provides a collection of fundamental, globally-accepted constants related to the Earth's dimensions. These values are based on the World Geodetic System (WGS 84) ellipsoid model and are provided in meters.
+The `Earth` object provides a collection of fundamental, globally-accepted constants related to the
+Earth's dimensions. These values are based on the World Geodetic System (WGS 84) ellipsoid model and
+are provided in meters.
 
-As a Kotlin `object`, it is a singleton, and its properties can be accessed directly without instantiation.
+As a Kotlin `object`, it is a singleton, and its properties can be accessed directly without
+instantiation.
 
 ## Signature
 
@@ -14,10 +17,13 @@ object Earth
 
 The `Earth` object contains the following constant properties:
 
-| Property               | Type   | Description                                                                                             |
-| ---------------------- | ------ | ------------------------------------------------------------------------------------------------------- |
-| `CIRCUMFERENCE_METERS` | Double | The equatorial circumference of the Earth in meters. Value: `40075016.686`.                               |
-| `RADIUS_METERS`        | Double | The equatorial radius of the Earth in meters, as defined by the WGS 84 ellipsoid. Value: `6378137.0`. |
+- `CIRCUMFERENCE_METERS`
+    - Type: Double
+    - Description: The equatorial circumference of the Earth in meters. Value: `40075016.686`.
+- `RADIUS_METERS`
+    - Type: Double
+    - Description: The equatorial radius of the Earth in meters, as defined by the WGS 84 ellipsoid.
+      Value: `6378137.0`.
 
 ## Example
 

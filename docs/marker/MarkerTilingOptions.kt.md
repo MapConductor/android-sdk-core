@@ -4,19 +4,43 @@ The `MarkerTilingOptions` data class provides configuration for marker tiling op
 
 ## Description
 
-When dealing with a large number of static markers, rendering performance can be a concern. Marker tiling is an optimization technique that addresses this by rendering groups of markers as image tiles instead of as individual objects. This significantly reduces the per-marker add/update overhead in the underlying native map SDKs, leading to a smoother user experience.
+When dealing with a large number of static markers, rendering performance can be a concern. Marker
+tiling is an optimization technique that addresses this by rendering groups of markers as image
+tiles instead of as individual objects. This significantly reduces the per-marker add/update
+overhead in the underlying native map SDKs, leading to a smoother user experience.
 
 This class allows you to enable, disable, and fine-tune the behavior of the marker tiling engine.
 
 ## Parameters
 
-| Parameter | Type | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `enabled` | `Boolean` | If `true`, enables the marker tiling optimization. Set to `false` to disable this feature entirely. | `true` |
-| `debugTileOverlay` | `Boolean` | If `true`, draws a debug overlay onto each marker tile. The overlay includes top/left border lines and a label containing the tile's z/x/y coordinates and basic rendering statistics. This is useful for debugging caching or scaling artifacts. | `false` |
-| `minMarkerCount` | `Int` | The minimum number of markers that must be present on the map before the tiling optimization is activated. | `2000` |
-| `cacheSize` | `Int` | The maximum size of the in-memory tile cache in bytes. | `8388608` (8MB) |
-| `iconScaleCallback` | `((MarkerState, Int) -> Double)?` | An optional callback function to apply an additional scale multiplier to a marker's icon based on the current map zoom level. The function receives the `MarkerState` and the current `zoom` level and must return a `Double` representing the scale multiplier. The renderer computes the final scale as follows: `effectiveScale = (markerState.icon?.scale ?: 1.0) * (iconScaleCallback?.invoke(markerState, zoom) ?: 1.0)` | `null` |
+- `enabled`
+    - Type: `Boolean`
+    - Default: `true`
+    - Description: If `true`, enables the marker tiling optimization. Set to `false` to disable this
+      feature entirely.
+- `debugTileOverlay`
+    - Type: `Boolean`
+    - Default: `false`
+    - Description: If `true`, draws a debug overlay onto each marker tile. The overlay includes
+      top/left border lines and a label containing the tile's z/x/y coordinates and basic rendering
+      statistics. This is useful for debugging caching or scaling artifacts.
+- `minMarkerCount`
+    - Type: `Int`
+    - Default: `2000`
+    - Description: The minimum number of markers that must be present on the map before the tiling
+      optimization is activated.
+- `cacheSize`
+    - Type: `Int`
+    - Default: `8388608` (8MB)
+    - Description: The maximum size of the in-memory tile cache in bytes.
+- `iconScaleCallback`
+    - Type: `((MarkerState, Int) -> Double)?`
+    - Default: `null`
+    - Description: An optional callback function to apply an additional scale multiplier to a
+      marker's icon based on the current map zoom level. The function receives the `MarkerState` and
+      the current `zoom` level and must return a `Double` representing the scale multiplier. The
+      renderer computes the final scale as follows: `effectiveScale = (markerState.icon?.scale ?:
+      1.0) * (iconScaleCallback?.invoke(markerState, zoom) ?: 1.0)`
 
 ## Companion Object
 

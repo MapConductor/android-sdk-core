@@ -1,8 +1,4 @@
-Excellent. Here is the high-quality SDK documentation for the provided code snippet.
-
-***
-
-### `LocalCircleCollector`
+# `LocalCircleCollector`
 
 **Signature**
 
@@ -12,9 +8,13 @@ val LocalCircleCollector: ProvidableCompositionLocal<ChildCollector<CircleState>
 
 **Description**
 
-A `CompositionLocal` that provides access to a `ChildCollector` for `CircleState` objects. This collector is used internally by circle-related composables (e.g., `<Circle />`) to register their state with the parent `<MapView />` component.
+A `CompositionLocal` that provides access to a `ChildCollector` for `CircleState` objects. This
+collector is used internally by circle-related composables (e.g., `<Circle />`) to register their
+state with the parent `<MapView />` component.
 
-Attempting to use a composable that relies on this collector outside of a `<MapView />` component will result in a runtime error, as the `MapView` is responsible for providing the collector instance.
+Attempting to use a composable that relies on this collector outside of a `<MapView />` component
+will result in a runtime error, as the `MapView` is responsible for providing the collector
+instance.
 
 ### `CircleOverlay`
 
@@ -28,15 +28,20 @@ class CircleOverlay(
 
 **Description**
 
-`CircleOverlay` is an internal class that manages the rendering of all circle objects on the map. It implements the `MapOverlayInterface` and is responsible for observing a stream of circle states and passing them to the map controller for rendering.
+`CircleOverlay` is an internal class that manages the rendering of all circle objects on the map. It
+implements the `MapOverlayInterface` and is responsible for observing a stream of circle states and
+passing them to the map controller for rendering.
 
-This class is typically instantiated and managed by the `<MapView />` component and is not intended for direct use by developers. It serves as a bridge between the declarative `Circle` composables and the underlying map rendering engine.
+This class is typically instantiated and managed by the `<MapView />` component and is not intended
+for direct use by developers. It serves as a bridge between the declarative `Circle` composables and
+the underlying map rendering engine.
 
 #### Constructor Parameters
 
-| Parameter | Type                                                 | Description                                                                                                                            |
-|-----------|------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `flow`    | `StateFlow<MutableMap<String, CircleState>>`         | A state flow that emits the current map of circle states. The key is a unique identifier for the circle, and the value is its `CircleState`. |
+- `flow`
+    - Type: `StateFlow<MutableMap<String, CircleState>>`
+    - Description: A state flow that emits the current map of circle states. The key is a unique
+      identifier for the circle, and the value is its `CircleState`.
 
 ---
 
@@ -55,22 +60,30 @@ override suspend fun render(
 
 **Description**
 
-This function is called by the map's rendering system to draw the circles on the map. It delegates the rendering task to the provided `controller` by casting it to a `CircleCapableInterface` and invoking its `compositionCircles` method with the latest circle data.
+This function is called by the map's rendering system to draw the circles on the map. It delegates
+the rendering task to the provided `controller` by casting it to a `CircleCapableInterface` and
+invoking its `compositionCircles` method with the latest circle data.
 
-**Note:** This is part of the `MapOverlayInterface` implementation and should not be called directly from application code.
+**Note:** This is part of the `MapOverlayInterface` implementation and should not be called directly
+from application code.
 
 **Parameters**
 
-| Parameter    | Type                               | Description                                                                                             |
-|--------------|------------------------------------|---------------------------------------------------------------------------------------------------------|
-| `data`       | `MutableMap<String, CircleState>`  | A map containing the state of all circles to be rendered.                                               |
-| `controller` | `MapViewControllerInterface`       | The map view controller responsible for executing rendering commands. It must implement `CircleCapableInterface`. |
+- `data`
+    - Type: `MutableMap<String, CircleState>`
+    - Description: A map containing the state of all circles to be rendered.
+- `controller`
+    - Type: `MapViewControllerInterface`
+    - Description: The map view controller responsible for executing rendering commands. It must
+      implement `CircleCapableInterface`.
 
 ---
 
 ### Example
 
-While `CircleOverlay` and `LocalCircleCollector` are used internally, the following example illustrates how a developer would typically add a circle to a map. This interaction relies on these components behind the scenes.
+While `CircleOverlay` and `LocalCircleCollector` are used internally, the following example
+illustrates how a developer would typically add a circle to a map. This interaction relies on these
+components behind the scenes.
 
 ```kotlin
 import androidx.compose.runtime.Composable
@@ -81,7 +94,7 @@ import androidx.compose.ui.graphics.Color
 
 @Composable
 fun MyMapWithCircle() {
-    // The MapView component provides the LocalCircleCollector 
+    // The MapView component provides the LocalCircleCollector
     // and uses CircleOverlay to render the collected circles.
     MapView {
         // The Circle composable uses LocalCircleCollector to register its state

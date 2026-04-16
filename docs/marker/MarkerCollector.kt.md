@@ -11,20 +11,32 @@ class MarkerCollector(
 
 ### Description
 
-The `MarkerCollector` is a specialized class responsible for collecting and managing a group of `MarkerState` objects. It is designed to be used within a map component to handle the state of multiple markers efficiently.
+The `MarkerCollector` is a specialized class responsible for collecting and managing a group of
+`MarkerState` objects. It is designed to be used within a map component to handle the state of
+multiple markers efficiently.
 
-It functions as a `ChildCollector<MarkerState>` by delegating its implementation to `ChildCollectorImpl`. This allows it to collect marker states declared as its children and expose them as a debounced flow. This is particularly useful for optimizing performance by batching rapid updates to marker properties or positions, reducing the number of recompositions or map redraws.
+It functions as a `ChildCollector<MarkerState>` by delegating its implementation to
+`ChildCollectorImpl`. This allows it to collect marker states declared as its children and expose
+them as a debounced flow. This is particularly useful for optimizing performance by batching rapid
+updates to marker properties or positions, reducing the number of recompositions or map redraws.
 
 ### Parameters
 
-| Parameter | Type | Description |
-| :--- | :--- | :--- |
-| `updateDebounce` | `Duration` | The time duration to wait after the last change before emitting an update. This helps to batch rapid updates and improve performance. Defaults to `Settings.Default.composeEventDebounce`. |
-| `scope` | `CoroutineScope` | The coroutine scope in which the collection and debouncing operations will run. Defaults to a scope on the main thread (`CoroutineScope(Dispatchers.Main.immediate)`). |
+- `updateDebounce`
+    - Type: `Duration`
+    - Description: The time duration to wait after the last change before emitting an update. This
+      helps to batch rapid updates and improve performance. Defaults to
+      `Settings.Default.composeEventDebounce`.
+- `scope`
+    - Type: `CoroutineScope`
+    - Description: The coroutine scope in which the collection and debouncing operations will run.
+      Defaults to a scope on the main thread (`CoroutineScope(Dispatchers.Main.immediate)`).
 
 ### Example
 
-The `MarkerCollector` is typically instantiated and provided to a map component. Markers are then declaratively added within the map's content, and their states are automatically managed by the collector.
+The `MarkerCollector` is typically instantiated and provided to a map component. Markers are then
+declaratively added within the map's content, and their states are automatically managed by the
+collector.
 
 ```kotlin
 import androidx.compose.runtime.Composable
