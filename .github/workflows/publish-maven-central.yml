@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   publish:
@@ -28,12 +29,14 @@ jobs:
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode > "$HOME/secring.gpg"
           gpg --batch --import "$HOME/secring.gpg"
 
-      - name: Check version and publish to Maven Central
+      - name: Check version and publish
         env:
           ORG_GRADLE_PROJECT_ossrh_username: ${{ secrets.OSSRH_USERNAME }}
           ORG_GRADLE_PROJECT_ossrh_password: ${{ secrets.OSSRH_PASSWORD }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_PRIVATE_KEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_PASSPHRASE }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set +e
           set -uo pipefail
@@ -68,9 +71,21 @@ jobs:
           fi
 
           echo "  Will publish local version ${local_version} (remote='${remote_version}')."
+
+          # Maven Central Portal へ publish
           ./gradlew --no-daemon publishReleasePublicationToCentralPortal
           gradle_exit=$?
           if [[ $gradle_exit -ne 0 ]]; then
-            echo "Gradle publish failed with exit code $gradle_exit"
+            echo "Maven Central publish failed with exit code $gradle_exit"
+            exit $gradle_exit
+          fi
+
+          # GitHub Packages へも publish（他モジュールが validated 状態で参照できるようにする）
+          ./gradlew --no-daemon publishReleasePublicationToGitHubPackagesRepository \
+            -Pgpr.user="${GITHUB_ACTOR}" \
+            -Pgpr.key="${GITHUB_TOKEN}"
+          gradle_exit=$?
+          if [[ $gradle_exit -ne 0 ]]; then
+            echo "GitHub Packages publish failed with exit code $gradle_exit"
             exit $gradle_exit
           fi
