@@ -5,6 +5,7 @@
     id("org.jlleitschuh.gradle.ktlint")
     id("maven-publish")
     id("signing")
+    id("com.gradleup.nmcp") version "0.0.8"
 }
 
 ktlint {
@@ -183,4 +184,10 @@ signing {
     }
 }
 
-// Central Portal configuration is handled in root build.gradle.kts
+nmcp {
+    publish("release") {
+        username = findProperty("ossrh_username") as String? ?: System.getenv("OSSRH_USERNAME") ?: ""
+        password = findProperty("ossrh_password") as String? ?: System.getenv("OSSRH_PASSWORD") ?: ""
+    }
+}
+
