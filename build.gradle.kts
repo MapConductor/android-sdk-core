@@ -2,7 +2,11 @@
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+<<<<<<< Updated upstream
     id("org.jlleitschuh.gradle.ktlint")
+=======
+    id("org.jlleitschuh.gradle.ktlint") version "13.1.0"
+>>>>>>> Stashed changes
     id("maven-publish")
     id("signing")
     id("com.gradleup.nmcp") version "0.0.8"
