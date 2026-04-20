@@ -2,7 +2,7 @@
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    id("org.jlleitschuh.gradle.ktlint") version "13.1.0"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
     id("maven-publish")
     id("signing")
     id("com.gradleup.nmcp") version "0.0.8"
@@ -184,10 +184,13 @@ signing {
     }
 }
 
-nmcp {
-    publish("release") {
-        username = findProperty("ossrh_username") as String? ?: System.getenv("OSSRH_USERNAME") ?: ""
-        password = findProperty("ossrh_password") as String? ?: System.getenv("OSSRH_PASSWORD") ?: ""
+if (project == rootProject) {
+    // standalone build only — in multi-project (android-sdk), parent configures nmcp
+    nmcp {
+        publish("release") {
+            username = findProperty("ossrh_username") as String? ?: System.getenv("OSSRH_USERNAME") ?: ""
+            password = findProperty("ossrh_password") as String? ?: System.getenv("OSSRH_PASSWORD") ?: ""
+        }
     }
 }
 
