@@ -3,6 +3,8 @@ package com.mapconductor.core.polygon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -11,6 +13,8 @@ import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import java.io.Serializable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun MapViewScope.Polygon(state: PolygonState) {
@@ -25,6 +29,26 @@ fun MapViewScope.Polygon(state: PolygonState) {
     DisposableEffect(state.id) {
         onDispose {
             collector.remove(state.id)
+        }
+    }
+}
+
+@Composable
+fun MapViewScope.Polygons(states: List<PolygonState>) {
+    val collector = LocalPolygonCollector.current
+    val prevIdsState = remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    LaunchedEffect(states) {
+        withContext(Dispatchers.Default) {
+            prevIdsState.value = states.asSequence().map { it.id }.toSet()
+            collector.flow.value = states.associateBy { it.id }.toMutableMap()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            collector.flow.value = mutableMapOf()
+            prevIdsState.value = emptySet()
         }
     }
 }

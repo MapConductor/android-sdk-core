@@ -3,10 +3,14 @@ package com.mapconductor.core.groundimage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import com.mapconductor.core.MapViewScope
 import com.mapconductor.core.features.GeoRectBounds
 import java.io.Serializable
 import android.graphics.drawable.Drawable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun MapViewScope.GroundImage(state: GroundImageState) {
@@ -18,6 +22,26 @@ fun MapViewScope.GroundImage(state: GroundImageState) {
     DisposableEffect(state.id) {
         onDispose {
             collector.remove(state.id)
+        }
+    }
+}
+
+@Composable
+fun MapViewScope.GroundImages(states: List<GroundImageState>) {
+    val collector = LocalGroundImageCollector.current
+    val prevIdsState = remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    LaunchedEffect(states) {
+        withContext(Dispatchers.Default) {
+            prevIdsState.value = states.asSequence().map { it.id }.toSet()
+            collector.flow.value = states.associateBy { it.id }.toMutableMap()
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            collector.flow.value = mutableMapOf()
+            prevIdsState.value = emptySet()
         }
     }
 }
