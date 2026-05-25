@@ -205,7 +205,7 @@ fun <
                     InitState.MapCreating,
                     InitState.MapCreated-> {
                         mapViewRef.value?.also {
-                            AndroidView(factory = { context -> it})
+                            AndroidView(factory = { _ -> it})
                         }
                     }
                     else -> throw UnimplementedInitStateException()
@@ -300,7 +300,7 @@ fun <
         try {
             val success = sdkInitialize()
             initState = if (success) InitState.SdkInitialized else InitState.Failed
-        } catch (ce: CancellationException) {
+        } catch (_: CancellationException) {
             // Composition left; don't mark as failure or log error
             return@LaunchedEffect
         } catch (e: Exception) {

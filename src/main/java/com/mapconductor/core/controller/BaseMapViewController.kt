@@ -15,6 +15,23 @@ abstract class BaseMapViewController : MapViewControllerInterface {
 
     protected var mapInitializedCallback: OnMapInitializedHandler? = null
 
+    private var userMapClickCallback: OnMapEventHandler? = null
+    private val extraMapClickHandlers = CopyOnWriteArrayList<OnMapEventHandler>()
+
+    /**
+     * Combined click callback: calls the user-supplied listener and all registered handlers.
+     * Subclasses read this property and invoke it from their native map click callback.
+     */
+    protected val mapClickCallback: OnMapEventHandler?
+        get() {
+            val user = userMapClickCallback
+            val extra = extraMapClickHandlers
+            if (user == null && extra.isEmpty()) return null
+            return { geoPoint ->
+                user?.invoke(geoPoint)
+                extra.forEach { it.invoke(geoPoint) }
+            }
+        }
 
     override fun setCameraMoveStartListener(listener: OnCameraMoveHandler?) {
         this.cameraMoveStartCallback = listener
