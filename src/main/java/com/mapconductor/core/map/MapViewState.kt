@@ -9,9 +9,13 @@ enum class InitState {
     Initializing,
     SdkInitialized,
     MapViewCreated,
+    MapCreating,
     MapCreated,
+    MapLoaded,
     Failed,
 }
+
+class UnimplementedInitStateException : Exception("Unimplemented InitState value is received")
 
 interface MapViewStateInterface<ActualMapDesignType> {
     val id: String

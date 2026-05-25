@@ -60,7 +60,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 typealias OnMapLoadedHandler = (MapViewStateInterface<*>) -> Unit
-internal typealias InternalOnMapLoadedHandler = () -> Unit
+typealias OnMapInitializedHandler = () -> Unit
 typealias OnMapEventHandler = (GeoPoint) -> Unit
 typealias OnCameraMoveHandler = (MapCameraPosition) -> Unit
 
@@ -101,66 +101,73 @@ fun <
     val cameraTick = remember { mutableIntStateOf(0) }
     val controller = controllerRef.value
 
-    if (initState == InitState.MapCreated && controller != null) {
-        // 5. 収集した子コンポーネントを描画する
-        DisposableEffect(controller) {
-            scope.groundImageCollector.setUpdateHandler { groundImageState ->
-                (controller as? GroundImageCapableInterface)?.let { groundImageCapable ->
-                    if (groundImageCapable.hasGroundImage(groundImageState)) {
-                        groundImageCapable.updateGroundImage(groundImageState)
-                    }
-                }
-            }
-            scope.rasterLayerCollector.setUpdateHandler { rasterLayerState ->
-                (controller as? RasterLayerCapableInterface)?.let { rasterLayerCapable ->
-                    if (rasterLayerCapable.hasRasterLayer(rasterLayerState)) {
-                        rasterLayerCapable.updateRasterLayer(rasterLayerState)
-                    }
-                }
-            }
-            scope.polygonCollector.setUpdateHandler { polygonState ->
-                (controller as? PolygonCapableInterface)?.let { polygonCapable ->
-                    if (polygonCapable.hasPolygon(polygonState)) {
-                        polygonCapable.updatePolygon(polygonState)
-                    }
-                }
-            }
-            scope.polylineCollector.setUpdateHandler { polylineState ->
-                (controller as? PolylineCapableInterface)?.let { polylineCapable ->
-                    if (polylineCapable.hasPolyline(polylineState)) {
-                        polylineCapable.updatePolyline(polylineState)
-                    }
-                }
-            }
-            scope.circleCollector.setUpdateHandler { circleState ->
-                (controller as? CircleCapableInterface)?.let { circleCapable ->
-                    if (circleCapable.hasCircle(circleState)) {
-                        circleCapable.updateCircle(circleState)
-                    }
-                }
-            }
-            scope.markerCollector.setUpdateHandler { markerState ->
-                (controller as? MarkerCapableInterface)?.let { markerCapable ->
-                    if (markerCapable.hasMarker(markerState)) {
-                        markerCapable.updateMarker(markerState)
-                    }
-                }
-            }
-
-            onDispose {
-                scope.groundImageCollector.setUpdateHandler(null)
-                scope.rasterLayerCollector.setUpdateHandler(null)
-                scope.polygonCollector.setUpdateHandler(null)
-                scope.polylineCollector.setUpdateHandler(null)
-                scope.circleCollector.setUpdateHandler(null)
-                scope.markerCollector.setUpdateHandler(null)
-            }
+    controller?.also {
+        controller.setMapInitializedListener {
+            initState = InitState.MapLoaded
+            onMapLoaded?.invoke(state)
         }
 
-        CollectAndRenderOverlays(
-            registry = registry, // This should come from the specific scope or be passed
-            controller = controller,
-        )
+        if (initState == InitState.MapLoaded) {
+            // 5. 収集した子コンポーネントを描画する
+            DisposableEffect(controller) {
+                scope.groundImageCollector.setUpdateHandler { groundImageState ->
+                    (controller as? GroundImageCapableInterface)?.let { groundImageCapable ->
+                        if (groundImageCapable.hasGroundImage(groundImageState)) {
+                            groundImageCapable.updateGroundImage(groundImageState)
+                        }
+                    }
+                }
+                scope.rasterLayerCollector.setUpdateHandler { rasterLayerState ->
+                    (controller as? RasterLayerCapableInterface)?.let { rasterLayerCapable ->
+                        if (rasterLayerCapable.hasRasterLayer(rasterLayerState)) {
+                            rasterLayerCapable.updateRasterLayer(rasterLayerState)
+                        }
+                    }
+                }
+                scope.polygonCollector.setUpdateHandler { polygonState ->
+                    (controller as? PolygonCapableInterface)?.let { polygonCapable ->
+                        if (polygonCapable.hasPolygon(polygonState)) {
+                            polygonCapable.updatePolygon(polygonState)
+                        }
+                    }
+                }
+                scope.polylineCollector.setUpdateHandler { polylineState ->
+                    (controller as? PolylineCapableInterface)?.let { polylineCapable ->
+                        if (polylineCapable.hasPolyline(polylineState)) {
+                            polylineCapable.updatePolyline(polylineState)
+                        }
+                    }
+                }
+                scope.circleCollector.setUpdateHandler { circleState ->
+                    (controller as? CircleCapableInterface)?.let { circleCapable ->
+                        if (circleCapable.hasCircle(circleState)) {
+                            circleCapable.updateCircle(circleState)
+                        }
+                    }
+                }
+                scope.markerCollector.setUpdateHandler { markerState ->
+                    (controller as? MarkerCapableInterface)?.let { markerCapable ->
+                        if (markerCapable.hasMarker(markerState)) {
+                            markerCapable.updateMarker(markerState)
+                        }
+                    }
+                }
+
+                onDispose {
+                    scope.groundImageCollector.setUpdateHandler(null)
+                    scope.rasterLayerCollector.setUpdateHandler(null)
+                    scope.polygonCollector.setUpdateHandler(null)
+                    scope.polylineCollector.setUpdateHandler(null)
+                    scope.circleCollector.setUpdateHandler(null)
+                    scope.markerCollector.setUpdateHandler(null)
+                }
+            }
+
+            CollectAndRenderOverlays(
+                registry = registry, // This should come from the specific scope or be passed
+                controller = controller,
+            )
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -193,11 +200,15 @@ fun <
                         }
                         BasicMessage("Loading.")
                     }
-                    else -> {
-                        AndroidView(factory = { context ->
-                            mapViewRef.value!!
-                        })
+                    InitState.MapLoaded,
+                    InitState.MapViewCreated,
+                    InitState.MapCreating,
+                    InitState.MapCreated-> {
+                        mapViewRef.value?.also {
+                            AndroidView(factory = { context -> it})
+                        }
                     }
+                    else -> throw UnimplementedInitStateException()
                 }
             }.map { it.measure(constraints) }
 
@@ -207,11 +218,7 @@ fun <
 
         // 2) Overlay フェーズ：Map のサイズが確定し、かつ controller などが揃っているときだけ合成
         val canOverlay =
-            initState >= InitState.MapViewCreated // &&
-        controller != null &&
-            mapSize.width > 0 &&
-            mapSize.height > 0 &&
-            holderRef.value != null
+            initState >= InitState.MapCreating
 
         val overlayPlaceables =
             if (canOverlay) {
@@ -309,9 +316,6 @@ fun <
             val holder = holderProvider(mapView)
             holderRef.value = holder
             controllerRef.value = controllerProvider(holder)
-            initState = InitState.MapCreated
-            Log.d("DEBUG", "------------->onMapLoaded")
-            onMapLoaded?.invoke(state)
         }
     }
 

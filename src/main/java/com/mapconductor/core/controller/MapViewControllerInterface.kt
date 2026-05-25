@@ -22,6 +22,8 @@ interface MapViewControllerInterface {
 
     fun setMapLongClickListener(listener: OnMapEventHandler?)
 
+    fun setMapInitializedListener(listener: OnMapInitializedHandler?)
+
     fun moveCamera(position: MapCameraPosition)
 
     fun animateCamera(

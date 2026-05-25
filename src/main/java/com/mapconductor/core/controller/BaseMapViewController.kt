@@ -1,6 +1,6 @@
 package com.mapconductor.core.controller
 
-import com.mapconductor.core.map.InternalOnMapLoadedHandler
+import com.mapconductor.core.map.OnMapInitializedHandler
 import com.mapconductor.core.map.MapCameraPosition
 import com.mapconductor.core.map.OnCameraMoveHandler
 import com.mapconductor.core.map.OnMapEventHandler
@@ -13,7 +13,8 @@ abstract class BaseMapViewController : MapViewControllerInterface {
     protected var mapClickCallback: OnMapEventHandler? = null
     protected var mapLongClickCallback: OnMapEventHandler? = null
 
-    protected var mapLoadedCallback: InternalOnMapLoadedHandler? = null
+    protected var mapInitializedCallback: OnMapInitializedHandler? = null
+
 
     override fun setCameraMoveStartListener(listener: OnCameraMoveHandler?) {
         this.cameraMoveStartCallback = listener
