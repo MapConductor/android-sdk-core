@@ -316,6 +316,7 @@ fun <
             val holder = holderProvider(mapView)
             holderRef.value = holder
             controllerRef.value = controllerProvider(holder)
+            initState = InitState.MapCreating
         }
     }
 
