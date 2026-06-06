@@ -1,4 +1,5 @@
 ﻿plugins {
+    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.android.library)
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
