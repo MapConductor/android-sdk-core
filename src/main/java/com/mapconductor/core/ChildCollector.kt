@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 
 interface ComponentState {
@@ -124,12 +125,18 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
     }
 
     private fun startUpdateJob(state: T) {
+        // Run on Default so that cancel() from the main thread doesn't synchronously execute
+        // cleanup for each of N jobs (snapshotFlow teardown + debounce unwinding blocks Main
+        // for ~300µs per job, which totals seconds for large marker sets like 20k+).
+        // The handler is invoked back on Main.immediate for SDK thread-safety.
         updateJobs[state.id] =
-            scope.launch {
+            scope.launch(Dispatchers.Default) {
                 asFlow(state)
                     .debounce(updateDebounce)
                     .collectLatest {
-                        updateHandler?.invoke(state)
+                        withContext(Dispatchers.Main.immediate) {
+                            updateHandler?.invoke(state)
+                        }
                     }
             }
     }
