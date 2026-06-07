@@ -53,6 +53,7 @@ class MarkerTileRenderer<ActualMarker>(
     cacheSizeBytes: Int,
     private val debugTileOverlay: Boolean = false,
     private val iconScaleCallback: ((MarkerState, Int) -> Double)? = null,
+    private val wasmEngine: TileRenderWasmEngine? = null,
 ) : TileProviderInterface {
     @Volatile
     private var cacheVersion: Int = 0
@@ -71,6 +72,9 @@ class MarkerTileRenderer<ActualMarker>(
     private val tilesCacheHits = AtomicLong(0L)
     private val stateEpoch = AtomicLong(0L)
 
+    @Volatile private var wasmDirty = true
+    private var wasmEntitiesSnapshot: List<MarkerEntityInterface<ActualMarker>> = emptyList()
+
     private fun bumpStateEpoch() {
         stateEpoch.incrementAndGet()
     }
@@ -82,6 +86,7 @@ class MarkerTileRenderer<ActualMarker>(
         cacheVersion = (cacheVersion + 1) and 0x7fffffff
         synchronized(tileCacheLock) { tileCache.evictAll() }
         bumpStateEpoch()
+        wasmDirty = true
     }
 
     /**
@@ -91,6 +96,7 @@ class MarkerTileRenderer<ActualMarker>(
         cacheVersion = (cacheVersion + 1) and 0x7fffffff
         synchronized(tileCacheLock) { tileCache.evictAll() }
         bumpStateEpoch()
+        wasmDirty = true
     }
 
     private fun tileCacheKey(
@@ -262,9 +268,136 @@ class MarkerTileRenderer<ActualMarker>(
         // First query uses a conservative padding (in dp) so we capture markers slightly outside
         // the tile that can overlap its edges.
         val assumedHalfExtentPx = ResourceProvider.dpToPxForBitmap(32.0) // assume up to 32dp icons
-        var entities = queryByHalfExtentPx(assumedHalfExtentPx)
 
-        if (entities.isEmpty()) {
+        var prepared: List<PreparedMarker>
+        var maxHalfExtentPx: Double
+
+        val engine = wasmEngine
+        if (engine != null) {
+            // WASM path: fused spatial query + Web-Mercator transform in one Wasm call.
+            // Uses 2× conservative padding (64dp) to avoid a second pass in most cases.
+            val wasmHalfExtentPx = ResourceProvider.dpToPxForBitmap(64.0)
+            val span = bounds.toSpan() ?: GeoPoint(0.0, 0.0)
+            val padNorm = (wasmHalfExtentPx / tilePx).coerceAtLeast(0.0)
+            val latPad = span.latitude * padNorm
+            val lonPad = span.longitude * padNorm
+            val extended = bounds.expandedByDegrees(latPad, lonPad)
+            val sw = extended.southWest
+            val ne = extended.northEast
+
+            val wasmResult: TileRenderWasmEngine.QueryResult
+            val snapshot: List<MarkerEntityInterface<ActualMarker>>
+            synchronized(engine) {
+                if (wasmDirty) {
+                    val all = markerManager.allEntities()
+                    wasmEntitiesSnapshot = all
+                    val lats = DoubleArray(all.size) { i -> all[i].state.position.latitude }
+                    val lons = DoubleArray(all.size) { i -> all[i].state.position.longitude }
+                    engine.buildIndex(lats, lons)
+                    wasmDirty = false
+                }
+                snapshot = wasmEntitiesSnapshot
+                wasmResult =
+                    if (sw != null && ne != null) {
+                        engine.queryAndTransform(
+                            minLat = sw.latitude,
+                            maxLat = ne.latitude,
+                            minLon = sw.longitude,
+                            maxLon = ne.longitude,
+                            tileX = tileX,
+                            tileY = tileY,
+                            zoomN = 2.0.pow(zoom),
+                        )
+                    } else {
+                        TileRenderWasmEngine.QueryResult(IntArray(0), DoubleArray(0), DoubleArray(0))
+                    }
+            }
+
+            if (wasmResult.isEmpty) {
+                if (!debugTileOverlay) return null
+                val debugBitmap = createBitmap(tilePxInt, tilePxInt)
+                Canvas(debugBitmap).also { c ->
+                    c.drawLine(0f, 0f, tilePxInt.toFloat(), 0f, debugPaint)
+                    c.drawLine(0f, 0f, 0f, tilePxInt.toFloat(), debugPaint)
+                    c.drawText("x/y/z=$tileX/$tileY/$zoom, entries=0", 20f, 20f, debugPaint)
+                }
+                val bytes = bitmapToByteArray(debugBitmap).also { if (!debugBitmap.isRecycled) debugBitmap.recycle() }
+                tilesRendered.incrementAndGet()
+                if (cacheVersionSnapshot == cacheVersion) {
+                    synchronized(tileCacheLock) { tileCache.put(cacheKey, bytes) }
+                }
+                return bytes
+            }
+
+            var localMax = 0.0
+            val wasmPrepared = ArrayList<PreparedMarker>(wasmResult.count)
+            for (i in 0 until wasmResult.count) {
+                val idx = wasmResult.indices[i]
+                if (idx < 0 || idx >= snapshot.size) continue
+                val entity = snapshot[idx]
+                val stateIcon = entity.state.icon
+                val icon = stateIcon?.toBitmapIcon() ?: defaultIcon.toBitmapIcon()
+                val centerNorm = PointD(x = wasmResult.normX[i], y = wasmResult.normY[i])
+                val callbackScale =
+                    (iconScaleCallback?.invoke(entity.state, zoomInt) ?: 1.0).coerceAtLeast(0.0)
+                val scale = ((stateIcon?.scale?.toDouble() ?: 1.0) * callbackScale).coerceAtLeast(0.0)
+                val drawW = (icon.size.width.toDouble() * scale).coerceAtLeast(1.0)
+                val drawH = (icon.size.height.toDouble() * scale).coerceAtLeast(1.0)
+                val anchorX = icon.anchor.x.toDouble()
+                val anchorY = icon.anchor.y.toDouble()
+                localMax = max(
+                    localMax,
+                    max(
+                        max(kotlin.math.abs(drawW * anchorX), kotlin.math.abs(drawW * (1.0 - anchorX))),
+                        max(kotlin.math.abs(drawH * anchorY), kotlin.math.abs(drawH * (1.0 - anchorY))),
+                    ),
+                )
+                wasmPrepared.add(
+                    PreparedMarker(
+                        bitmap = icon.bitmap,
+                        centerNorm = centerNorm,
+                        drawW = drawW.toFloat(),
+                        drawH = drawH.toFloat(),
+                        anchor = icon.anchor,
+                    ),
+                )
+            }
+            prepared = wasmPrepared
+            maxHalfExtentPx = localMax
+        } else {
+            // JVM path
+            var entities = queryByHalfExtentPx(assumedHalfExtentPx)
+
+            if (entities.isEmpty()) {
+                if (!debugTileOverlay) return null
+                val debugBitmap = createBitmap(tilePxInt, tilePxInt)
+                Canvas(debugBitmap).also { c ->
+                    c.drawLine(0f, 0f, tilePxInt.toFloat(), 0f, debugPaint)
+                    c.drawLine(0f, 0f, 0f, tilePxInt.toFloat(), debugPaint)
+                    c.drawText("x/y/z=$tileX/$tileY/$zoom, entries=0", 20f, 20f, debugPaint)
+                }
+                val bytes = bitmapToByteArray(debugBitmap).also { if (!debugBitmap.isRecycled) debugBitmap.recycle() }
+                tilesRendered.incrementAndGet()
+                if (cacheVersionSnapshot == cacheVersion) {
+                    synchronized(tileCacheLock) { tileCache.put(cacheKey, bytes) }
+                }
+                return bytes
+            }
+
+            val result0 = prepareMarkers(entities)
+            var preparedJvm = result0.first
+            var halfExtentJvm = result0.second
+            if (halfExtentJvm > assumedHalfExtentPx + 1.0) {
+                entities = queryByHalfExtentPx(halfExtentJvm)
+                val result2 = prepareMarkers(entities)
+                preparedJvm = result2.first
+                halfExtentJvm = result2.second
+            }
+            prepared = preparedJvm
+            maxHalfExtentPx = halfExtentJvm
+        }
+
+        if (prepared.isEmpty()) {
             if (!debugTileOverlay) return null
             val debugBitmap = createBitmap(tilePxInt, tilePxInt)
             Canvas(debugBitmap).also { c ->
@@ -278,15 +411,6 @@ class MarkerTileRenderer<ActualMarker>(
                 synchronized(tileCacheLock) { tileCache.put(cacheKey, bytes) }
             }
             return bytes
-        }
-
-        var (prepared, maxHalfExtentPx) = prepareMarkers(entities)
-        // If our assumed padding was too small, re-query once with the measured maximum extent.
-        if (maxHalfExtentPx > assumedHalfExtentPx + 1.0) {
-            entities = queryByHalfExtentPx(maxHalfExtentPx)
-            val prepared2 = prepareMarkers(entities)
-            prepared = prepared2.first
-            maxHalfExtentPx = prepared2.second
         }
 
         // Instead of allocating a fixed 3x tile, allocate (tile + padding*2) based on icon size.

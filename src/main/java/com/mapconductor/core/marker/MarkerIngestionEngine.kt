@@ -41,7 +41,6 @@ object MarkerIngestionEngine {
 
         data.forEach { state ->
             val wantsTiled = tilingEnabled && shouldTile(state)
-            val markerIcon = state.icon?.toBitmapIcon() ?: defaultMarkerIcon
 
             if (previousIds.contains(state.id)) {
                 val prevEntity = markerManager.getEntity(state.id)!!
@@ -66,6 +65,7 @@ object MarkerIngestionEngine {
                         tiledMarkerIds.remove(state.id)
                         tiledDataChanged = true
                     }
+                    val markerIcon = state.icon?.toBitmapIcon() ?: defaultMarkerIcon
                     updated.add(
                         object : MarkerOverlayRendererInterface.ChangeParamsInterface<ActualMarker> {
                             override val current: MarkerEntityInterface<ActualMarker> =
@@ -94,6 +94,7 @@ object MarkerIngestionEngine {
                     )
                     tiledDataChanged = true
                 } else {
+                    val markerIcon = state.icon?.toBitmapIcon() ?: defaultMarkerIcon
                     added.add(
                         object : MarkerOverlayRendererInterface.AddParamsInterface {
                             override val state: MarkerState = state

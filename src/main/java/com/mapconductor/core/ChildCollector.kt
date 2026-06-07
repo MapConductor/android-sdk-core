@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 interface ComponentState {
     val id: String
@@ -83,9 +84,18 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
             return
         }
         val snapshot = flow.value.values.toList()
-        snapshot.forEach { state ->
-            updateJobs.remove(state.id)?.cancel()
-            startUpdateJob(state)
+        if (snapshot.isEmpty()) return
+        // Start update jobs in batches with yield() to avoid blocking the main thread
+        // when there are large numbers of existing markers (e.g. 20k+).
+        scope.launch {
+            yield()
+            snapshot.chunked(UPDATE_JOB_BATCH_SIZE).forEach { chunk ->
+                chunk.forEach { state ->
+                    updateJobs.remove(state.id)?.cancel()
+                    startUpdateJob(state)
+                }
+                yield()
+            }
         }
     }
 
@@ -97,9 +107,17 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
             updateJobs.remove(id)?.cancel()
         }
         if (updateHandler != null) {
-            states.forEach { state ->
-                updateJobs.remove(state.id)?.cancel()
-                startUpdateJob(state)
+            // Start update jobs in batches with yield() to avoid blocking the main thread
+            // when replacing a large number of markers (e.g. 20k+).
+            scope.launch {
+                yield()
+                states.chunked(UPDATE_JOB_BATCH_SIZE).forEach { chunk ->
+                    chunk.forEach { state ->
+                        updateJobs.remove(state.id)?.cancel()
+                        startUpdateJob(state)
+                    }
+                    yield()
+                }
             }
         }
         flow.value = nextMap
@@ -114,5 +132,9 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
                         updateHandler?.invoke(state)
                     }
             }
+    }
+
+    companion object {
+        private const val UPDATE_JOB_BATCH_SIZE = 100
     }
 }

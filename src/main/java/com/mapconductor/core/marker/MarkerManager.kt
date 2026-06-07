@@ -29,6 +29,7 @@ open class MarkerManager<ActualMarker>(
     private val entities = mutableMapOf<String, MarkerEntityInterface<ActualMarker>>()
 
     // Lazy-initialized spatial index only when needed
+    @Volatile
     private var cellRegistry: HexCellRegistry<ActualMarker>? = null
 
     private val semaphore = ReentrantReadWriteLock()
@@ -41,7 +42,7 @@ open class MarkerManager<ActualMarker>(
         if (writeLock != null) return
         writeLock =
             semaphore.writeLock().also {
-                it.tryLock()
+                it.lock()
             }
     }
 
@@ -86,21 +87,19 @@ open class MarkerManager<ActualMarker>(
         checkNotDestroyed()
 
         if (entities.size > minMarkerCount) { // Use spatial index for larger datasets
+            val registry = ensureCellRegistry() // must be called outside read lock to avoid write-lock upgrade deadlock
             semaphore.read {
-                cellRegistry = ensureCellRegistry()
-                cellRegistry?.let { registry ->
-                    val nearestCell = registry.findNearest(position)
-                    nearestCell?.let { cell ->
-                        // Find the nearest entity within the nearest cell
-                        return registry
-                            .getEntryIDsByHexCell(cell)
-                            ?.mapNotNull { id -> entities[id] }
-                            ?.minByOrNull { entity ->
-                                val deltaLatitude = entity.state.position.latitude - position.latitude
-                                val deltaLongitude = entity.state.position.longitude - position.longitude
-                                deltaLatitude * deltaLatitude + deltaLongitude * deltaLongitude
-                            }
-                    }
+                val nearestCell = registry.findNearest(position)
+                nearestCell?.let { cell ->
+                    // Find the nearest entity within the nearest cell
+                    return registry
+                        .getEntryIDsByHexCell(cell)
+                        ?.mapNotNull { id -> entities[id] }
+                        ?.minByOrNull { entity ->
+                            val deltaLatitude = entity.state.position.latitude - position.latitude
+                            val deltaLongitude = entity.state.position.longitude - position.longitude
+                            deltaLatitude * deltaLatitude + deltaLongitude * deltaLongitude
+                        }
                 }
             }
         }
@@ -136,19 +135,19 @@ open class MarkerManager<ActualMarker>(
 
     /**
      * Lazy-initialize the spatial index only when spatial operations are needed.
-     * This saves memory for simple use cases that don't require spatial queries.
+     * Double-checked locking: the registry is assigned only after it is fully populated,
+     * preventing concurrent callers from observing an empty non-null registry.
      */
     private fun ensureCellRegistry(): HexCellRegistry<ActualMarker> {
-        if (cellRegistry == null) {
-            cellRegistry = HexCellRegistry(geocell = geocell, zoom = 20.0)
-            semaphore.write {
-                // Re-index all existing entities
-                entities.values.forEach { entity ->
-                    cellRegistry!!.setPoint(entity)
-                }
+        cellRegistry?.let { return it }
+        return semaphore.write {
+            cellRegistry ?: run {
+                val registry = HexCellRegistry<ActualMarker>(geocell = geocell, zoom = 20.0)
+                entities.values.forEach { entity -> registry.setPoint(entity) }
+                cellRegistry = registry
+                registry
             }
         }
-        return cellRegistry!!
     }
 
     open fun updateEntity(entity: MarkerEntityInterface<ActualMarker>) {
@@ -211,7 +210,7 @@ open class MarkerManager<ActualMarker>(
                         .map { registry.getEntryIDsByHexCell(it.cell) }
                         .mapNotNull { it }
                         .flatMap { it.toList() }
-                return entryIDs.map { getEntity(it)!! }
+                return entryIDs.mapNotNull { getEntity(it) }
             }
         }
 

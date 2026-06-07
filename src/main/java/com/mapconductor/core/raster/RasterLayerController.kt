@@ -1,5 +1,6 @@
 package com.mapconductor.core.raster
 
+import android.util.Log
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
@@ -19,10 +20,17 @@ abstract class RasterLayerController<ActualLayer : Any>(
     override val zIndex: Int = 0
     val semaphore = Semaphore(1)
 
+    // IDs managed via upsert/removeById — excluded from add()'s removal sweep
+    private val upsertedIds = mutableSetOf<String>()
+
     override suspend fun add(data: List<RasterLayerState>) {
         withContext(renderer.coroutine.coroutineContext) {
             semaphore.withPermit {
-                val previous = rasterLayerManager.allEntities().map { it.state.id }.toMutableSet()
+                // Only consider externally-managed layers for removal; upserted layers are independent
+                val previous = rasterLayerManager.allEntities()
+                    .map { it.state.id }
+                    .filter { it !in upsertedIds }
+                    .toMutableSet()
                 val added = mutableListOf<RasterLayerOverlayRendererInterface.AddParamsInterface>()
                 val updated = mutableListOf<RasterLayerOverlayRendererInterface.ChangeParamsInterface<ActualLayer>>()
                 val removed = mutableListOf<RasterLayerEntityInterface<ActualLayer>>()
@@ -138,17 +146,21 @@ abstract class RasterLayerController<ActualLayer : Any>(
     suspend fun upsert(state: RasterLayerState) {
         withContext(renderer.coroutine.coroutineContext) {
             semaphore.withPermit {
+                upsertedIds.add(state.id)
                 val prevEntity = rasterLayerManager.getEntity(state.id)
+                Log.d(TAG, "upsert: id=${state.id} prevEntity=${if (prevEntity == null) "null(ADD)" else "exists(UPDATE)"}")
                 if (prevEntity == null) {
                     val params =
                         object : RasterLayerOverlayRendererInterface.AddParamsInterface {
                             override val state: RasterLayerState = state
                         }
                     val layers = renderer.onAdd(listOf(params))
-                    layers.firstOrNull()?.let { layer ->
+                    val layer = layers.firstOrNull()
+                    Log.d(TAG, "upsert onAdd result: layer=${if (layer != null) "non-null(OK)" else "null(FAILED)"}")
+                    layer?.let { l ->
                         val entity =
                             RasterLayerEntity(
-                                layer = layer,
+                                layer = l,
                                 state = state,
                             )
                         rasterLayerManager.registerEntity(entity)
@@ -159,7 +171,10 @@ abstract class RasterLayerController<ActualLayer : Any>(
 
                 val currentFinger = state.fingerPrint()
                 val prevFinger = prevEntity.fingerPrint
-                if (currentFinger == prevFinger) return@withPermit
+                if (currentFinger == prevFinger) {
+                    Log.d(TAG, "upsert: fingerprint unchanged, skip")
+                    return@withPermit
+                }
 
                 val nextEntity =
                     RasterLayerEntity(
@@ -191,6 +206,7 @@ abstract class RasterLayerController<ActualLayer : Any>(
     suspend fun removeById(id: String) {
         withContext(renderer.coroutine.coroutineContext) {
             semaphore.withPermit {
+                upsertedIds.remove(id)
                 val entity = rasterLayerManager.removeEntity(id) ?: return@withPermit
                 renderer.onRemove(listOf(entity))
                 renderer.onPostProcess()
@@ -201,6 +217,7 @@ abstract class RasterLayerController<ActualLayer : Any>(
     override suspend fun clear() {
         withContext(renderer.coroutine.coroutineContext) {
             semaphore.withPermit {
+                upsertedIds.clear()
                 val entities: List<RasterLayerEntityInterface<ActualLayer>> = rasterLayerManager.allEntities()
                 renderer.onRemove(entities)
                 renderer.onPostProcess()
@@ -219,5 +236,9 @@ abstract class RasterLayerController<ActualLayer : Any>(
 
     override fun destroy() {
         // No native resources to clean up
+    }
+
+    companion object {
+        private const val TAG = "MCTile"
     }
 }

@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.androidx.foundation)
     implementation(libs.net.sf.geographiclib)
     implementation(libs.jts.core)
+    implementation(libs.chicory.runtime)
 
     // Core dependencies - use api to avoid version conflicts
     implementation(libs.androidx.core.ktx)
@@ -80,6 +81,22 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+tasks.register<Exec>("buildTileWasm") {
+    description = "Compiles tile-wasm/src/lib.rs to src/main/assets/tile_wasm.wasm"
+    group = "build"
+    workingDir = file("tile-wasm")
+    commandLine(
+        System.getProperty("user.home") + "/.cargo/bin/cargo",
+        "build", "--release", "--target", "wasm32-unknown-unknown",
+    )
+    doLast {
+        copy {
+            from("tile-wasm/target/wasm32-unknown-unknown/release/tile_wasm.wasm")
+            into("src/main/assets")
+        }
+    }
 }
 
 // Publishing configuration

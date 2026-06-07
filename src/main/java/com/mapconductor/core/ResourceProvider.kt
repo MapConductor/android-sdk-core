@@ -30,6 +30,8 @@ object ResourceProvider {
         appContext = context.applicationContext
     }
 
+    fun getAppContext(): Context = appContext
+
     fun getDensity(): Float = getDisplayMetrics().density
 
     /**
