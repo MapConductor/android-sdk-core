@@ -148,7 +148,6 @@ abstract class RasterLayerController<ActualLayer : Any>(
             semaphore.withPermit {
                 upsertedIds.add(state.id)
                 val prevEntity = rasterLayerManager.getEntity(state.id)
-                Log.d(TAG, "upsert: id=${state.id} prevEntity=${if (prevEntity == null) "null(ADD)" else "exists(UPDATE)"}")
                 if (prevEntity == null) {
                     val params =
                         object : RasterLayerOverlayRendererInterface.AddParamsInterface {
@@ -156,7 +155,6 @@ abstract class RasterLayerController<ActualLayer : Any>(
                         }
                     val layers = renderer.onAdd(listOf(params))
                     val layer = layers.firstOrNull()
-                    Log.d(TAG, "upsert onAdd result: layer=${if (layer != null) "non-null(OK)" else "null(FAILED)"}")
                     layer?.let { l ->
                         val entity =
                             RasterLayerEntity(
@@ -172,7 +170,6 @@ abstract class RasterLayerController<ActualLayer : Any>(
                 val currentFinger = state.fingerPrint()
                 val prevFinger = prevEntity.fingerPrint
                 if (currentFinger == prevFinger) {
-                    Log.d(TAG, "upsert: fingerprint unchanged, skip")
                     return@withPermit
                 }
 
@@ -236,9 +233,5 @@ abstract class RasterLayerController<ActualLayer : Any>(
 
     override fun destroy() {
         // No native resources to clean up
-    }
-
-    companion object {
-        private const val TAG = "MCTile"
     }
 }
