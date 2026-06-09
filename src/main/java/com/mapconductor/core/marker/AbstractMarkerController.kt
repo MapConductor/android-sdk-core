@@ -2,7 +2,6 @@ package com.mapconductor.core.marker
 
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.map.MapCameraPosition
-import android.util.Log
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.yield
@@ -72,7 +71,6 @@ abstract class AbstractMarkerController<ActualMarker>(
 
     override suspend fun add(data: List<MarkerState>) {
         semaphore.withPermit {
-            Log.d("DEBUG", "-------->add start")
             val modifiedEntities = mutableListOf<MarkerEntityInterface<ActualMarker>>()
             val previous = markerManager.allEntities().map { it.state.id }.toMutableSet()
             val added = mutableListOf<MarkerOverlayRendererInterface.AddParamsInterface>()
@@ -110,8 +108,10 @@ abstract class AbstractMarkerController<ActualMarker>(
                 }
             }
 
-            markerManager.lock()
-
+            // Do NOT hold a ReentrantReadWriteLock write lock across suspend calls
+            // (onRemove/onAdd/onChange use withContext and may resume on a different thread,
+            // which doesn't own the lock — causing an infinite block in registerEntity's
+            // inner write lock). Fine-grained locks inside registerEntity/updateEntity are enough.
             previous.forEach { remainId ->
                 markerManager.removeEntity(remainId)?.let { removedEntity ->
                     removed.add(removedEntity)
@@ -167,8 +167,6 @@ abstract class AbstractMarkerController<ActualMarker>(
                 }
             }
 
-            markerManager.unlock()
-
             modifiedEntities.forEach { entity ->
                 entity.state.getAnimation()?.let {
                     renderer.onAnimate(entity)
@@ -198,7 +196,6 @@ abstract class AbstractMarkerController<ActualMarker>(
                 isRendered = prevEntity.isRendered,
             )
 
-        markerManager.lock()
         markerManager.updateEntity(entity)
 
         // Simple fallback: update marker immediately if it's already rendered
@@ -241,7 +238,6 @@ abstract class AbstractMarkerController<ActualMarker>(
             }
             renderer.onPostProcess()
         }
-        markerManager.unlock()
     }
 
     override suspend fun clear() {
