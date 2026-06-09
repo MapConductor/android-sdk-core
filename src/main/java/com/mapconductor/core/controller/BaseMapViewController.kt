@@ -4,9 +4,10 @@ import com.mapconductor.core.map.OnMapInitializedHandler
 import com.mapconductor.core.map.MapCameraPosition
 import com.mapconductor.core.map.OnCameraMoveHandler
 import com.mapconductor.core.map.OnMapEventHandler
+import java.util.concurrent.CopyOnWriteArrayList
 
 abstract class BaseMapViewController : MapViewControllerInterface {
-    private var overlayControllers = mutableListOf<OverlayControllerInterface<*, *, *>>()
+    private val overlayControllers = CopyOnWriteArrayList<OverlayControllerInterface<*, *, *>>()
     protected var cameraMoveStartCallback: OnCameraMoveHandler? = null
     protected var cameraMoveCallback: OnCameraMoveHandler? = null
     protected var cameraMoveEndCallback: OnCameraMoveHandler? = null
