@@ -105,10 +105,7 @@ object MarkerIngestionEngine {
             }
         }
 
-        // Lock the entire marker manage.
-        // Avoid the incorrect marker tile rendering
-        markerManager.lock()
-
+        // Remove stale entities from the manager (non-suspending, fine-grained locks inside)
         previousIds.forEach { remainId ->
             markerManager.removeEntity(remainId)?.let { removedEntity ->
                 if (tiledMarkerIds.remove(remainId)) {
@@ -162,9 +159,6 @@ object MarkerIngestionEngine {
                 }
             }
         }
-
-        // Unlock the entire marker manager lock
-        markerManager.unlock()
 
         renderer.onPostProcess()
         return Result(tiledDataChanged = tiledDataChanged, hasTiledMarkers = tiledMarkerIds.isNotEmpty())
