@@ -21,6 +21,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -256,22 +257,34 @@ fun <
                         ) {
                             bubbles.forEach { mapEntry ->
                                 val entry = mapEntry.value
-                                val marker = entry.marker
-                                val position = marker.position
+                                val position = entry.positionProvider()
                                 val posOffset = holderRef.value?.toScreenOffset(position)
                                 if (posOffset != null) {
-                                    // Keep a stable key per marker id; avoid using Flow as a key.
-                                    key(marker.id) {
-                                        val icon = marker.icon ?: DefaultMarkerIcon()
-                                        val iconScale = icon.scale
-                                        val iconSize = ResourceProvider.dpToPx(icon.iconSize.value) * iconScale
+                                    // Keep a stable key per entry id; avoid using Flow as a key.
+                                    key(entry.id) {
+                                        val icon = entry.icon
+                                        val resolvedIconSize: Size
+                                        val iconOffset: Offset
+                                        val infoAnchorOffset: Offset
+                                        if (icon != null) {
+                                            val px = ResourceProvider.dpToPx(icon.iconSize.value) * icon.scale
+                                            resolvedIconSize = Size(px.toFloat(), px.toFloat())
+                                            iconOffset = icon.anchor
+                                            infoAnchorOffset = icon.infoAnchor
+                                        } else {
+                                            // No icon: collapse icon-size terms so the tail points
+                                            // exactly to posOffset (the tapped / anchor GeoPoint).
+                                            resolvedIconSize = Size.Zero
+                                            iconOffset = Offset(0.5f, 0.5f)
+                                            infoAnchorOffset = Offset(0.5f, 0.5f)
+                                        }
                                         InfoBubbleOverlay(
                                             positionOffset = posOffset,
                                             tailOffset = entry.tailOffset,
                                             content = entry.content,
-                                            iconSize = Size(iconSize.toFloat(), iconSize.toFloat()),
-                                            iconOffset = icon.anchor,
-                                            infoAnchorOffset = icon.infoAnchor,
+                                            iconSize = resolvedIconSize,
+                                            iconOffset = iconOffset,
+                                            infoAnchorOffset = infoAnchorOffset,
                                         )
                                     }
                                 }

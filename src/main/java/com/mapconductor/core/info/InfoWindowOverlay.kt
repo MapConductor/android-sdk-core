@@ -14,7 +14,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import com.mapconductor.core.marker.MarkerState
+import com.mapconductor.core.features.GeoPointInterface
+import com.mapconductor.core.marker.MarkerIconInterface
 import kotlinx.coroutines.flow.MutableStateFlow
 
 @Composable
@@ -54,8 +55,11 @@ internal fun InfoBubbleOverlay(
     }
 }
 
-data class InfoBubbleEntry(
-    val marker: MarkerState,
+class InfoBubbleEntry(
+    val id: String,
+    /** Called during Compose recomposition to read the current position. */
+    val positionProvider: () -> GeoPointInterface,
+    val icon: MarkerIconInterface? = null,
     val tailOffset: Offset = Offset(0.5f, 1.0f),
     val content: @Composable () -> Unit,
 )

@@ -22,7 +22,6 @@ data class MarkerTilingOptions(
      * `effectiveScale = (markerState.icon?.scale ?: 1.0) * (iconScaleCallback?.invoke(markerState, zoom) ?: 1.0)`
      */
     val iconScaleCallback: ((MarkerState, Int) -> Double)? = null,
-    val enableWasmAcceleration: Boolean = false,
 ) {
     companion object {
         val Disabled: MarkerTilingOptions = MarkerTilingOptions(enabled = false)
