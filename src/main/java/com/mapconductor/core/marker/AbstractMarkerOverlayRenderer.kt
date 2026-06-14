@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 abstract class AbstractMarkerOverlayRenderer<
     MapViewHolderType : MapViewHolderInterface<*, *>,
@@ -61,75 +62,80 @@ abstract class AbstractMarkerOverlayRenderer<
         entity: MarkerEntityInterface<ActualMarker>,
         duration: Long,
     ) {
-        // アニメーションの最終的な目標地点(地理座標)
-        val target = entity.state.position
+        coroutine.launch {
 
-        // 線形補間
-        val interpolator = LinearInterpolator()
+            // アニメーションの最終的な目標地点(地理座標)
+            val target = entity.state.position
 
-        // 開始地点:x座標はMarkerと同じ、y座標は画面上端。なければreturn
-        val startPoint = holder.toScreenOffset(target)?.let { Offset(it.x, 0f) } ?: return
+            // 線形補間
+            val interpolator = LinearInterpolator()
 
-        animateStartListener?.invoke(entity.state)
+            // 開始地点:x座標はMarkerと同じ、y座標は画面上端。なければreturn
+            val startPoint = holder.toScreenOffset(target)?.let { Offset(it.x, 0f) } ?: return@launch
 
-        flow {
-            val startTime = SystemClock.uptimeMillis()
-            var t = 0f
-            while (t < 1f) {
-                val elapsed = SystemClock.uptimeMillis() - startTime
-                t = min(1f, elapsed.toFloat() / duration)
-                emit(interpolator.getInterpolation(t))
-                delay(16L)
-            }
-        }.onEach { t: Float ->
-            // 開始時の画面座標から緯度経度に戻す(垂直方向アニメーション起点)
-            val startLatLng = holder.fromScreenOffset(startPoint)!!
+            animateStartListener?.invoke(entity.state)
 
-            // 緯度・経度を線形補間
-            val interpolatedLatitude = t * target.latitude + (1f - t) * startLatLng.latitude
-            val interpolatedLongitude = t * target.longitude + (1f - t) * startLatLng.longitude
+            flow {
+                val startTime = SystemClock.uptimeMillis()
+                var t = 0f
+                while (t < 1f) {
+                    val elapsed = SystemClock.uptimeMillis() - startTime
+                    t = min(1f, elapsed.toFloat() / duration)
+                    emit(interpolator.getInterpolation(t))
+                    delay(16L)
+                }
+            }.onEach { t: Float ->
+                // 開始時の画面座標から緯度経度に戻す(垂直方向アニメーション起点)
+                val startLatLng = holder.fromScreenOffset(startPoint)!!
 
-            // 現在の座標をマーカーに適用
-            val newPosition = GeoPoint.fromLatLong(interpolatedLatitude, interpolatedLongitude)
-            setMarkerPosition(entity, newPosition)
-        }.onCompletion {
-            entity.state.position = target
-            entity.state.animate(null)
-            animateEndListener?.invoke(entity.state)
-        }.launchIn(CoroutineScope(Dispatchers.Main))
+                // 緯度・経度を線形補間
+                val interpolatedLatitude = t * target.latitude + (1f - t) * startLatLng.latitude
+                val interpolatedLongitude = t * target.longitude + (1f - t) * startLatLng.longitude
+
+                // 現在の座標をマーカーに適用
+                val newPosition = GeoPoint.fromLatLong(interpolatedLatitude, interpolatedLongitude)
+                setMarkerPosition(entity, newPosition)
+            }.onCompletion {
+                entity.state.position = target
+                entity.state.animate(null)
+                animateEndListener?.invoke(entity.state)
+            }.launchIn(CoroutineScope(Dispatchers.Main))
+        }
     }
 
     fun animateMarkerBounce(
         entity: MarkerEntityInterface<ActualMarker>,
         duration: Long,
     ) {
-        val target = entity.state.position
-        val interpolator = BounceInterpolator()
-        val startPoint = holder.toScreenOffset(target)?.let { Offset(it.x, 0f) } ?: return
+        coroutine.launch {
+            val target = entity.state.position
+            val interpolator = BounceInterpolator()
+            val startPoint = holder.toScreenOffset(target)?.let { Offset(it.x, 0f) } ?: return@launch
 
-        animateStartListener?.invoke(entity.state)
-        flow {
-            val startTime = SystemClock.uptimeMillis()
-            var t = 0f
-            while (t < 1f) {
-                val elapsed = SystemClock.uptimeMillis() - startTime
-                t = interpolator.getInterpolation(min(1f, elapsed.toFloat() / duration))
-                emit(t)
-                delay(16L)
-            }
-        }.onEach { t ->
-            val startLatLng = holder.fromScreenOffset(startPoint) ?: return@onEach
-            val interpolatedLongitude = t * target.longitude + (1f - t) * startLatLng.longitude
-            val interpolatedLatitude = t * target.latitude + (1f - t) * startLatLng.latitude
+            animateStartListener?.invoke(entity.state)
+            flow {
+                val startTime = SystemClock.uptimeMillis()
+                var t = 0f
+                while (t < 1f) {
+                    val elapsed = SystemClock.uptimeMillis() - startTime
+                    t = interpolator.getInterpolation(min(1f, elapsed.toFloat() / duration))
+                    emit(t)
+                    delay(16L)
+                }
+            }.onEach { t ->
+                val startLatLng = holder.fromScreenOffset(startPoint) ?: return@onEach
+                val interpolatedLongitude = t * target.longitude + (1f - t) * startLatLng.longitude
+                val interpolatedLatitude = t * target.latitude + (1f - t) * startLatLng.latitude
 
-            // 現在の座標をマーカーに適用
-            val newPosition = GeoPoint.fromLatLong(interpolatedLatitude, interpolatedLongitude)
-            setMarkerPosition(entity, newPosition)
-        }.onCompletion {
-            // 最終的にマーカー位置を正確な着地点に戻す（補間誤差などを吸収）
-            entity.state.position = target
-            entity.state.animate(null)
-            animateEndListener?.invoke(entity.state)
-        }.launchIn(coroutine)
+                // 現在の座標をマーカーに適用
+                val newPosition = GeoPoint.fromLatLong(interpolatedLatitude, interpolatedLongitude)
+                setMarkerPosition(entity, newPosition)
+            }.onCompletion {
+                // 最終的にマーカー位置を正確な着地点に戻す（補間誤差などを吸収）
+                entity.state.position = target
+                entity.state.animate(null)
+                animateEndListener?.invoke(entity.state)
+            }.launchIn(coroutine)
+        }
     }
 }
