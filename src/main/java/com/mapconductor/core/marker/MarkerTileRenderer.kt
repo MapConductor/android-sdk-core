@@ -145,10 +145,10 @@ class MarkerTileRenderer<ActualMarker>(
     private val scaledTileSize = ResourceProvider.dpToPx(tileSize.dp)
     private val debugPaint =
         Paint().apply {
-            setTextSize(ResourceProvider.dpToPxForBitmap(10f).toFloat())
-            setColor(Color.RED)
-            setStrokeWidth(ResourceProvider.dpToPxForBitmap(1f).toFloat())
-            setFlags(Paint.ANTI_ALIAS_FLAG)
+            textSize = ResourceProvider.dpToPxForBitmap(10f).toFloat()
+            color = Color.RED
+            strokeWidth = ResourceProvider.dpToPxForBitmap(1f).toFloat()
+            flags = Paint.ANTI_ALIAS_FLAG
         }
 
     private val bmpPaint =
