@@ -63,7 +63,6 @@ abstract class AbstractMarkerOverlayRenderer<
         duration: Long,
     ) {
         coroutine.launch {
-
             // アニメーションの最終的な目標地点(地理座標)
             val target = entity.state.position
 

@@ -13,7 +13,7 @@ class RasterLayerState(
     opacity: Float = 1.0f,
     visible: Boolean = true,
     zIndex: Int = 0,
-    userAgent: String? = null,
+    userAgent: String = "MapConductor/RasterLayerAgent(https://mapconductor.com)",
     debug: Boolean = false,
     id: String? = null,
     extraHeaders: Map<String, String>? = null,
@@ -66,7 +66,7 @@ class RasterLayerState(
         visible: Boolean = this.visible,
         zIndex: Int = this.zIndex,
         debug: Boolean = this.debug,
-        userAgent: String? = this.userAgent,
+        userAgent: String = this.userAgent,
         id: String? = this.id,
         extraHeaders: Map<String, String>? = this.extraHeaders,
     ): RasterLayerState =

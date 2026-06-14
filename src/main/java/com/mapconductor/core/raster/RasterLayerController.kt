@@ -1,6 +1,5 @@
 package com.mapconductor.core.raster
 
-import android.util.Log
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
@@ -27,10 +26,12 @@ abstract class RasterLayerController<ActualLayer : Any>(
         withContext(renderer.coroutine.coroutineContext) {
             semaphore.withPermit {
                 // Only consider externally-managed layers for removal; upserted layers are independent
-                val previous = rasterLayerManager.allEntities()
-                    .map { it.state.id }
-                    .filter { it !in upsertedIds }
-                    .toMutableSet()
+                val previous =
+                    rasterLayerManager
+                        .allEntities()
+                        .map { it.state.id }
+                        .filter { it !in upsertedIds }
+                        .toMutableSet()
                 val added = mutableListOf<RasterLayerOverlayRendererInterface.AddParamsInterface>()
                 val updated = mutableListOf<RasterLayerOverlayRendererInterface.ChangeParamsInterface<ActualLayer>>()
                 val removed = mutableListOf<RasterLayerEntityInterface<ActualLayer>>()

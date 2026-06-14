@@ -47,12 +47,13 @@ fun MapViewScope.InfoBubble(
         )
     }
 
-    val entry = InfoBubbleEntry(
-        id = marker.id,
-        positionProvider = { marker.position },
-        icon = marker.icon,
-        content = wrapped,
-    )
+    val entry =
+        InfoBubbleEntry(
+            id = marker.id,
+            positionProvider = { marker.position },
+            icon = marker.icon,
+            content = wrapped,
+        )
 
     DisposableEffect(marker) {
         val newMap = bubbleFlow.value.toMutableMap()
@@ -103,12 +104,13 @@ fun MapViewScope.InfoBubble(
 
     // Re-register when position changes so the bubble moves to the new coordinates.
     DisposableEffect(position) {
-        val entry = InfoBubbleEntry(
-            id = id,
-            positionProvider = { position },
-            icon = null,
-            content = wrapped,
-        )
+        val entry =
+            InfoBubbleEntry(
+                id = id,
+                positionProvider = { position },
+                icon = null,
+                content = wrapped,
+            )
         val newMap = bubbleFlow.value.toMutableMap()
         newMap[id] = entry
         bubbleFlow.value = newMap
@@ -135,13 +137,14 @@ fun MapViewScope.InfoBubbleCustom(
     tailOffset: Offset,
     content: @Composable () -> Unit,
 ) {
-    val entry = InfoBubbleEntry(
-        id = marker.id,
-        positionProvider = { marker.position },
-        icon = marker.icon,
-        tailOffset = tailOffset,
-        content = content,
-    )
+    val entry =
+        InfoBubbleEntry(
+            id = marker.id,
+            positionProvider = { marker.position },
+            icon = marker.icon,
+            tailOffset = tailOffset,
+            content = content,
+        )
 
     // Re-register when marker or tail changes
     DisposableEffect(marker, tailOffset) {

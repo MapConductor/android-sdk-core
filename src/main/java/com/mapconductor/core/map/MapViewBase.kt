@@ -44,7 +44,6 @@ import com.mapconductor.core.groundimage.GroundImageCapableInterface
 import com.mapconductor.core.groundimage.LocalGroundImageCollector
 import com.mapconductor.core.info.InfoBubbleOverlay
 import com.mapconductor.core.info.LocalInfoBubbleCollector
-import com.mapconductor.core.marker.DefaultMarkerIcon
 import com.mapconductor.core.marker.LocalMarkerCollector
 import com.mapconductor.core.marker.MarkerCapableInterface
 import com.mapconductor.core.polygon.LocalPolygonCollector
@@ -204,9 +203,10 @@ fun <
                     InitState.MapLoaded,
                     InitState.MapViewCreated,
                     InitState.MapCreating,
-                    InitState.MapCreated-> {
+                    InitState.MapCreated,
+                    -> {
                         mapViewRef.value?.also {
-                            AndroidView(factory = { _ -> it})
+                            AndroidView(factory = { _ -> it })
                         }
                     }
                     else -> throw UnimplementedInitStateException()
