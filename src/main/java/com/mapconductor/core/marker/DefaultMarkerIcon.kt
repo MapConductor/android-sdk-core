@@ -723,12 +723,12 @@ class DrawableDefaultIcon(
                 backgroundDrawable.color
             }
             is GradientDrawable -> {
-                // GradientDrawableの場合はDrawable自体のハッシュを使用
-                backgroundDrawable.hashCode()
+                // ConstantStateは同一リソースから生成されたDrawable間で共有されるため
+                // identityHashCodeはリコンポジションをまたいで安定する
+                System.identityHashCode(backgroundDrawable.constantState ?: backgroundDrawable)
             }
             else -> {
-                // その他のDrawableの場合はクラス名とハッシュコードを組み合わせ
-                "${backgroundDrawable::class.java.name}_${backgroundDrawable.hashCode()}"
+                System.identityHashCode(backgroundDrawable.constantState ?: backgroundDrawable)
             }
         }
     }
