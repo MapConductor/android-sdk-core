@@ -201,8 +201,7 @@ abstract class AbstractMarkerController<ActualMarker>(
         // Simple fallback: update marker immediately if it's already rendered
         semaphore.withPermit {
             val marker = prevEntity.marker
-            val defaultMarkerIcon = DefaultMarkerIcon()
-            val markerIcon = state.icon ?: defaultMarkerIcon
+            val bitmapIcon = state.icon?.toBitmapIcon() ?: defaultMarkerIcon
 
             val renderEntity =
                 MarkerEntity(
@@ -213,7 +212,7 @@ abstract class AbstractMarkerController<ActualMarker>(
             val markerParams =
                 object : MarkerOverlayRendererInterface.ChangeParamsInterface<ActualMarker> {
                     override val current: MarkerEntityInterface<ActualMarker> = renderEntity
-                    override val bitmapIcon: BitmapIcon = markerIcon.toBitmapIcon()
+                    override val bitmapIcon: BitmapIcon = bitmapIcon
                     override val prev: MarkerEntityInterface<ActualMarker> = prevEntity
                 }
             val markers = renderer.onChange(listOf(markerParams))
