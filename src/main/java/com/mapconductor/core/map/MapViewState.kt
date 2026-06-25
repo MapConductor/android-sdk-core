@@ -2,6 +2,7 @@ package com.mapconductor.core.map
 
 import com.mapconductor.core.controller.MapViewControllerInterface
 import com.mapconductor.core.features.GeoPoint
+import com.mapconductor.core.features.GeoRectBounds
 import kotlinx.coroutines.flow.StateFlow
 
 enum class InitState {
@@ -30,6 +31,11 @@ interface MapViewStateInterface<ActualMapDesignType> {
     fun moveCameraTo(
         position: GeoPoint,
         durationMillis: Long? = 0,
+    )
+
+    fun fitBounds(
+        bounds: GeoRectBounds,
+        padding: Int = 0,
     )
 
     fun getMapViewHolder(): MapViewHolderInterface<*, *>?
