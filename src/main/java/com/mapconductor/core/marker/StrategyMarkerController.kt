@@ -2,6 +2,7 @@ package com.mapconductor.core.marker
 
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
+import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -18,6 +19,7 @@ class StrategyMarkerController<ActualMarker>(
     val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
     override val zIndex: Int = 10
     private var mapCameraPosition: MapCameraPosition? = null
+    private var lastKnownBounds: GeoRectBounds? = null
     private val semaphore = Semaphore(1)
     private var pendingStates: List<MarkerState>? = null
 
@@ -63,7 +65,7 @@ class StrategyMarkerController<ActualMarker>(
     }
 
     override suspend fun add(data: List<MarkerState>) {
-        val bounds = mapCameraPosition?.visibleRegion?.bounds
+        val bounds = mapCameraPosition?.visibleRegion?.bounds ?: lastKnownBounds
         if (bounds == null) {
             pendingStates = data
             return
@@ -78,7 +80,7 @@ class StrategyMarkerController<ActualMarker>(
     }
 
     override suspend fun update(state: MarkerState) {
-        val bounds = mapCameraPosition?.visibleRegion?.bounds ?: return
+        val bounds = mapCameraPosition?.visibleRegion?.bounds ?: lastKnownBounds ?: return
         semaphore.withPermit {
             strategy.onUpdate(
                 state = state,
@@ -100,6 +102,7 @@ class StrategyMarkerController<ActualMarker>(
 
     override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {
         this.mapCameraPosition = mapCameraPosition
+        mapCameraPosition.visibleRegion?.bounds?.let { lastKnownBounds = it }
         semaphore.withPermit {
             strategy.onCameraChanged(mapCameraPosition, renderer)
         }
