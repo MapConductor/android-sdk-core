@@ -1,5 +1,6 @@
 package com.mapconductor.core.controller
 
+import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.map.MapCameraPosition
 import com.mapconductor.core.map.MapViewHolderInterface
 import com.mapconductor.core.map.OnCameraMoveHandler
@@ -30,6 +31,11 @@ interface MapViewControllerInterface {
     fun animateCamera(
         position: MapCameraPosition,
         duration: Long,
+    )
+
+    fun fitBounds(
+        bounds: GeoRectBounds,
+        padding: Int,
     )
 
     fun registerOverlayController(controller: OverlayControllerInterface<*, *, *>) {}
