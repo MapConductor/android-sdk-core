@@ -97,86 +97,88 @@ val javadocJar by tasks.registering(Jar::class) {
     // Since Android libraries don't have javadoc task by default, create empty jar
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("release") {
-            from(components["release"])
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                from(components["release"])
 
-            groupId = libraryGroupId
-            artifactId = libraryArtifactId
-            version = libraryVersion
+                groupId = libraryGroupId
+                artifactId = libraryArtifactId
+                version = libraryVersion
 
-            artifact(javadocJar.get())
+                artifact(javadocJar.get())
 
-            pom {
-                name.set(libraryName)
-                description.set(libraryDescription)
-                url.set(
-                    project.findProperty("libraryUrl") as String?
-                        ?: "https://github.com/MapConductor/android-sdk-core",
-                )
-
-                licenses {
-                    license {
-                        name.set("The Apache License, Version 2.0")
-                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                    }
-                }
-
-                developers {
-                    developer {
-                        id.set(project.findProperty("developerId") as String? ?: "mapconductor")
-                        name.set(project.findProperty("developerName") as String? ?: "MapConductor Team")
-                        email.set(project.findProperty("developerEmail") as String? ?: "info@mkgeeklab.com")
-                    }
-                }
-
-                scm {
-                    connection.set("scm:git:git://github.com/MapConductor/android-sdk-core.git")
-                    developerConnection
-                        .set("scm:git:ssh://github.com:MapConductor/android-sdk-core.git")
+                pom {
+                    name.set(libraryName)
+                    description.set(libraryDescription)
                     url.set(
-                        project.findProperty("scmUrl") as String?
-                            ?: "https://github.com/MapConductor/android-sdk-core.git",
+                        project.findProperty("libraryUrl") as String?
+                            ?: "https://github.com/MapConductor/android-sdk-core",
                     )
+
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id.set(project.findProperty("developerId") as String? ?: "mapconductor")
+                            name.set(project.findProperty("developerName") as String? ?: "MapConductor Team")
+                            email.set(project.findProperty("developerEmail") as String? ?: "info@mkgeeklab.com")
+                        }
+                    }
+
+                    scm {
+                        connection.set("scm:git:git://github.com/MapConductor/android-sdk-core.git")
+                        developerConnection
+                            .set("scm:git:ssh://github.com:MapConductor/android-sdk-core.git")
+                        url.set(
+                            project.findProperty("scmUrl") as String?
+                                ?: "https://github.com/MapConductor/android-sdk-core.git",
+                        )
+                    }
                 }
             }
         }
-    }
 
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            setUrl("https://maven.pkg.github.com/MapConductor/android-sdk-core")
-            credentials {
-                username =
-                    project.findProperty("gpr.user") as String? ?: System.getenv("GPR_USER")
-                        ?: System.getenv("GITHUB_ACTOR")
-                password =
-                    project.findProperty("gpr.key") as String? ?: System.getenv("GPR_TOKEN")
-                        ?: System.getenv("GITHUB_TOKEN")
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                setUrl("https://maven.pkg.github.com/MapConductor/android-sdk-core")
+                credentials {
+                    username =
+                        project.findProperty("gpr.user") as String? ?: System.getenv("GPR_USER")
+                            ?: System.getenv("GITHUB_ACTOR")
+                    password =
+                        project.findProperty("gpr.key") as String? ?: System.getenv("GPR_TOKEN")
+                            ?: System.getenv("GITHUB_TOKEN")
+                }
             }
+
+            // Central Portal publishing is handled by nmcp plugin, no manual repository needed
         }
-
-        // Central Portal publishing is handled by nmcp plugin, no manual repository needed
     }
-}
 
-signing {
-    val signingKey = findProperty("signingKey") as String?
-    val signingPassword = findProperty("signingPassword") as String?
-    if (!signingKey.isNullOrEmpty() && !signingPassword.isNullOrEmpty()) {
-        useInMemoryPgpKeys(signingKey, signingPassword)
-        sign(publishing.publications["release"])
+    signing {
+        val signingKey = findProperty("signingKey") as String?
+        val signingPassword = findProperty("signingPassword") as String?
+        if (!signingKey.isNullOrEmpty() && !signingPassword.isNullOrEmpty()) {
+            useInMemoryPgpKeys(signingKey, signingPassword)
+            sign(publishing.publications["release"])
+        }
     }
-}
 
-if (project == rootProject) {
-    // standalone build only — in multi-project (android-sdk), parent configures nmcp
-    nmcp {
-        publishAllPublicationsToCentralPortal {
-            username.set(findProperty("ossrh_username") as String? ?: System.getenv("OSSRH_USERNAME") ?: "")
-            password.set(findProperty("ossrh_password") as String? ?: System.getenv("OSSRH_PASSWORD") ?: "")
+    if (project == rootProject) {
+        // standalone build only — in multi-project (android-sdk), parent configures nmcp
+        nmcp {
+            publishAllPublicationsToCentralPortal {
+                username.set(findProperty("ossrh_username") as String? ?: System.getenv("OSSRH_USERNAME") ?: "")
+                password.set(findProperty("ossrh_password") as String? ?: System.getenv("OSSRH_PASSWORD") ?: "")
+            }
         }
     }
 }
