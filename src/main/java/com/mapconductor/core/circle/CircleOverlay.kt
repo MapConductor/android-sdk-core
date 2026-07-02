@@ -6,10 +6,6 @@ import com.mapconductor.core.controller.MapViewControllerInterface
 import com.mapconductor.core.map.MapOverlayInterface
 import kotlinx.coroutines.flow.StateFlow
 
-val LocalCircleCollector =
-    compositionLocalOf<ChildCollector<CircleState>> {
-        error("Circle must be under the <MapView />")
-    }
 
 class CircleOverlay(
     override val flow: StateFlow<MutableMap<String, CircleState>>,

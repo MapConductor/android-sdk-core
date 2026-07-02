@@ -6,11 +6,6 @@ import com.mapconductor.core.controller.MapViewControllerInterface
 import com.mapconductor.core.map.MapOverlayInterface
 import kotlinx.coroutines.flow.StateFlow
 
-val LocalPolygonCollector =
-    compositionLocalOf<ChildCollector<PolygonState>> {
-        error("Polygon must be under the <MapView />")
-    }
-
 class PolygonOverlay(
     override val flow: StateFlow<MutableMap<String, PolygonState>>,
 ) : MapOverlayInterface<PolygonState> {
