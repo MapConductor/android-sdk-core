@@ -186,7 +186,7 @@ class MarkerTileRenderer<ActualMarker>(
         val tileX = normalizedX.toDouble()
         val tileY = tileYInt.toDouble()
         val zoom = zoomInt.toDouble()
-        val tilePx = scaledTileSize.toDouble().coerceAtLeast(1.0)
+        val tilePx = scaledTileSize.coerceAtLeast(1.0)
         val tilePxInt = tilePx.toInt().coerceAtLeast(1)
 
         // Tile geographic bounds (NW and SE corners).
@@ -422,9 +422,9 @@ class MarkerTileRenderer<ActualMarker>(
         //
         // This returns the NW (top-left) corner of the tile.
         // If you need the center, use (x + 0.5, y + 0.5) instead.
-        val n = 2.0.pow(z.toDouble())
-        val lonDeg = (x.toDouble() / n) * 360.0 - 180.0
-        val latRad = atan(sinh(PI * (1.0 - 2.0 * (y.toDouble() / n))))
+        val n = 2.0.pow(z)
+        val lonDeg = (x / n) * 360.0 - 180.0
+        val latRad = atan(sinh(PI * (1.0 - 2.0 * (y / n))))
         val latDeg = latRad * 180.0 / PI
         return GeoPoint.fromLatLong(latitude = latDeg, longitude = lonDeg)
     }

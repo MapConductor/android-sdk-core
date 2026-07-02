@@ -4,12 +4,14 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 
@@ -123,11 +125,12 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
         flow.value = nextMap
     }
 
+    @OptIn(FlowPreview::class)
     private fun startUpdateJob(state: T) {
         updateJobs[state.id] =
             scope.launch {
                 asFlow(state)
-                    .debounce(updateDebounce)
+                    .sample(updateDebounce)
                     .collectLatest {
                         updateHandler?.invoke(state)
                     }

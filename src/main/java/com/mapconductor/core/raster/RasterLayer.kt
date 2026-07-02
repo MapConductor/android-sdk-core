@@ -56,7 +56,7 @@ class RasterLayerState(
         result = 31 * result + zIndex.hashCode()
         result = 31 * result + debug.hashCode()
         result = 31 * result + (extraHeaders?.hashCode() ?: 0)
-        result = 31 * result + (userAgent?.hashCode() ?: 0)
+        result = 31 * result + userAgent.hashCode()
         return result
     }
 
@@ -88,7 +88,7 @@ class RasterLayerState(
             opacity = opacity.hashCode(),
             visible = visible.hashCode(),
             zIndex = zIndex.hashCode(),
-            userAgent = userAgent?.hashCode() ?: 0,
+            userAgent = userAgent.hashCode(),
             debug = debug.hashCode(),
             extra = extraHeaders?.hashCode() ?: 0,
         )

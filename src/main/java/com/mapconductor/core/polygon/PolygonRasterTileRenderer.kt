@@ -1,5 +1,8 @@
 package com.mapconductor.core.polygon
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.Dp
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.spherical.createInterpolatePoints
@@ -29,10 +32,10 @@ class PolygonRasterTileRenderer(
     var holes: List<List<GeoPointInterface>> = emptyList()
 
     @Volatile
-    var fillColor: Int = android.graphics.Color.TRANSPARENT
+    var fillColor: Color = Color.Transparent
 
     @Volatile
-    var strokeColor: Int = android.graphics.Color.TRANSPARENT
+    var strokeColor: Color = Color.Transparent
 
     @Volatile
     var strokeWidthPx: Float = 0f
@@ -115,16 +118,16 @@ class PolygonRasterTileRenderer(
         val fillPaint =
             Paint().apply {
                 style = Paint.Style.FILL
-                color = fillColor
+                color = fillColor.toArgb()
                 isAntiAlias = true
             }
         canvas.drawPath(path, fillPaint)
 
-        if (strokeWidthPx > 0f && android.graphics.Color.alpha(strokeColor) > 0) {
+        if (strokeWidthPx > 0f && android.graphics.Color.alpha(strokeColor.toArgb()) > 0) {
             val strokePaint =
                 Paint().apply {
                     style = Paint.Style.STROKE
-                    color = strokeColor
+                    color = strokeColor.toArgb()
                     strokeWidth = strokeWidthPx
                     isAntiAlias = true
                 }
@@ -132,7 +135,7 @@ class PolygonRasterTileRenderer(
         }
 
         if (tileRequestCount <= 5) {
-            Log.d(TAG, "  -> rendered tile with fillColor=${Integer.toHexString(fillColor)}, pathEmpty=${path.isEmpty}")
+            Log.d(TAG, "  -> rendered tile with fillColor=${Integer.toHexString(fillColor.toArgb())}, pathEmpty=${path.isEmpty}")
         }
 
         return bitmapToPng(bitmap).also { bitmap.recycle() }

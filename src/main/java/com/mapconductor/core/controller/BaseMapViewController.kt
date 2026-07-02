@@ -1,9 +1,9 @@
 package com.mapconductor.core.controller
 
+import com.mapconductor.core.OnCameraMoveHandler
+import com.mapconductor.core.OnMapEventHandler
+import com.mapconductor.core.OnMapInitializedHandler
 import com.mapconductor.core.map.MapCameraPosition
-import com.mapconductor.core.map.OnCameraMoveHandler
-import com.mapconductor.core.map.OnMapEventHandler
-import com.mapconductor.core.map.OnMapInitializedHandler
 import java.util.concurrent.CopyOnWriteArrayList
 
 abstract class BaseMapViewController : MapViewControllerInterface {

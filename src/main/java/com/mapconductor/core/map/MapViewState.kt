@@ -16,8 +16,6 @@ enum class InitState {
     Failed,
 }
 
-class UnimplementedInitStateException : Exception("Unimplemented InitState value is received")
-
 interface MapViewStateInterface<ActualMapDesignType> {
     val id: String
     val cameraPosition: MapCameraPosition
