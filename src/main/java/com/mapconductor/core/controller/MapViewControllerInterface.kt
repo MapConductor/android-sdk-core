@@ -39,4 +39,6 @@ interface MapViewControllerInterface {
     )
 
     fun registerOverlayController(controller: OverlayControllerInterface<*, *, *>) {}
+
+    fun destroy()
 }

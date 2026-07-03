@@ -11,7 +11,7 @@ class MarkerCollector(
     updateDebounce: Duration = Settings.Default.composeEventDebounce,
     scope: CoroutineScope = CoroutineScope(Dispatchers.Main.immediate),
 ) : ChildCollector<MarkerState> by ChildCollectorImpl(
-        asFlow = { it.asFlow() },
+        fingerPrintOf = { it.fingerPrint() },
         updateDebounce = updateDebounce,
         scope = scope,
     )

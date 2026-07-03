@@ -5,6 +5,7 @@ import com.mapconductor.core.OnMapEventHandler
 import com.mapconductor.core.OnMapInitializedHandler
 import com.mapconductor.core.map.MapCameraPosition
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlinx.coroutines.cancel
 
 abstract class BaseMapViewController : MapViewControllerInterface {
     private val overlayControllers = CopyOnWriteArrayList<OverlayControllerInterface<*, *, *>>()
@@ -52,5 +53,14 @@ abstract class BaseMapViewController : MapViewControllerInterface {
         cameraMoveCallback?.let { callBack ->
             callBack(mapCameraPosition)
         }
+    }
+
+    override fun destroy() {
+        overlayControllers.forEach { it.destroy() }
+        overlayControllers.clear()
+        // Stop camera/click listener jobs still running on this controller's
+        // scope; without this the scope (and everything its jobs capture)
+        // outlives the map.
+        coroutine.cancel()
     }
 }

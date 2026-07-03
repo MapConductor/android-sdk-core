@@ -1,19 +1,17 @@
 package com.mapconductor.core
 
+import androidx.compose.runtime.snapshotFlow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.yield
 
 interface ComponentState {
     val id: String
@@ -32,7 +30,7 @@ interface ChildCollector<T : ComponentState> {
 }
 
 class ChildCollectorImpl<T : ComponentState, FingerPrint>(
-    private val asFlow: (T) -> Flow<FingerPrint>,
+    private val fingerPrintOf: (T) -> FingerPrint,
     private val updateDebounce: Duration,
     scope: CoroutineScope = CoroutineScope(Dispatchers.Main.immediate),
 ) : ChildCollector<T> {
@@ -41,7 +39,7 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
     private val removeSharedFlow = MutableSharedFlow<String>(1000)
 
     @Volatile private var updateHandler: (suspend (T) -> Unit)? = null
-    private val updateJobs = mutableMapOf<String, Job>()
+    private var watcherJob: Job? = null
 
     override val flow = MutableStateFlow<MutableMap<String, T>>(mutableMapOf())
 
@@ -51,8 +49,6 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
                 val newMap = flow.value.toMutableMap()
                 states.forEach { state ->
                     newMap[state.id] = state
-                    updateJobs.remove(state.id)?.cancel()
-                    startUpdateJob(state)
                 }
                 flow.value = newMap
             }
@@ -63,7 +59,6 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
                 val newMap = flow.value.toMutableMap()
                 ids.forEach { id ->
                     newMap.remove(id)
-                    updateJobs.remove(id)?.cancel()
                 }
                 flow.value = newMap
             }
@@ -80,64 +75,54 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
 
     override fun setUpdateHandler(handler: (suspend (T) -> Unit)?) {
         updateHandler = handler
-        if (handler == null) {
-            updateJobs.values.forEach { it.cancel() }
-            updateJobs.clear()
-            return
-        }
-        val snapshot = flow.value.values.toList()
-        if (snapshot.isEmpty()) return
-        // Start update jobs in batches with yield() to avoid blocking the main thread
-        // when there are large numbers of existing markers (e.g. 20k+).
-        scope.launch {
-            yield()
-            snapshot.chunked(UPDATE_JOB_BATCH_SIZE).forEach { chunk ->
-                chunk.forEach { state ->
-                    updateJobs.remove(state.id)?.cancel()
-                    startUpdateJob(state)
-                }
-                yield()
-            }
-        }
+        watcherJob?.cancel()
+        watcherJob = null
+        if (handler == null) return
+        watcherJob = scope.launch { watchStateChanges() }
     }
 
     override fun replaceAll(states: List<T>) {
-        val nextMap = states.associateBy { it.id }.toMutableMap()
-        val nextIds = nextMap.keys
-        val removedIds = updateJobs.keys - nextIds
-        removedIds.forEach { id ->
-            updateJobs.remove(id)?.cancel()
-        }
-        if (updateHandler != null) {
-            // Start update jobs in batches with yield() to avoid blocking the main thread
-            // when replacing a large number of markers (e.g. 20k+).
-            scope.launch {
-                yield()
-                states.chunked(UPDATE_JOB_BATCH_SIZE).forEach { chunk ->
-                    chunk.forEach { state ->
-                        updateJobs.remove(state.id)?.cancel()
-                        startUpdateJob(state)
-                    }
-                    yield()
-                }
-            }
-        }
-        flow.value = nextMap
+        flow.value = states.associateBy { it.id }.toMutableMap()
     }
 
+    /**
+     * Watches in-place mutations of all collected states with a single
+     * [snapshotFlow] that reads every state's fingerprint, then diffs
+     * successive fingerprint maps and delivers only the changed states to
+     * the update handler.
+     *
+     * A single watcher is intentional: one watcher coroutine (and snapshot
+     * apply-observer) per state does not scale — with tens of thousands of
+     * states, every update-handler registration (e.g. switching map
+     * providers) spawned O(n) coroutines, and every snapshot commit anywhere
+     * in the app paid an O(n) observer sweep.
+     *
+     * The first emission after a (re)start is recorded as the baseline and
+     * not delivered: membership changes (add/remove/replaceAll) reach the
+     * renderer through [flow], not the update handler.
+     */
     @OptIn(FlowPreview::class)
-    private fun startUpdateJob(state: T) {
-        updateJobs[state.id] =
-            scope.launch {
-                asFlow(state)
-                    .sample(updateDebounce)
-                    .collectLatest {
-                        updateHandler?.invoke(state)
+    private suspend fun watchStateChanges() {
+        flow.collectLatest { states ->
+            if (states.isEmpty()) return@collectLatest
+            var baseline: Map<String, FingerPrint>? = null
+            snapshotFlow {
+                val prints = HashMap<String, FingerPrint>(states.size * 2)
+                for (state in states.values) {
+                    prints[state.id] = fingerPrintOf(state)
+                }
+                prints
+            }.sample(updateDebounce)
+                .collect { current ->
+                    val previous = baseline
+                    baseline = current
+                    if (previous == null) return@collect
+                    for ((id, print) in current) {
+                        if (previous[id] != print) {
+                            states[id]?.let { updateHandler?.invoke(it) }
+                        }
                     }
-            }
-    }
-
-    companion object {
-        private const val UPDATE_JOB_BATCH_SIZE = 100
+                }
+        }
     }
 }

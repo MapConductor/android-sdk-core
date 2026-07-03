@@ -222,7 +222,9 @@ class MarkerTileRenderer<ActualMarker>(
                 val callbackScale =
                     (iconScaleCallback?.invoke(entity.state, zoomInt) ?: 1.0)
                         .coerceAtLeast(0.0)
-                val scale = ((stateIcon?.scale?.toDouble() ?: 1.0) * callbackScale * extraIconScale).coerceAtLeast(0.0)
+                // icon.size already includes MarkerIconInterface.scale (baked into the
+                // bitmap by toBitmapIcon), so it must not be applied again here.
+                val scale = (callbackScale * extraIconScale).coerceAtLeast(0.0)
                 val drawW = (icon.size.width.toDouble() * scale).coerceAtLeast(1.0)
                 val drawH = (icon.size.height.toDouble() * scale).coerceAtLeast(1.0)
                 val anchorX = icon.anchor.x.toDouble()

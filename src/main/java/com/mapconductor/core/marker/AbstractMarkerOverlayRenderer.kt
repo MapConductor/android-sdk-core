@@ -31,6 +31,27 @@ abstract class AbstractMarkerOverlayRenderer<
     override var animateStartListener: OnMarkerEventHandler? = null
     override var animateEndListener: OnMarkerEventHandler? = null
 
+    /**
+     * Set by the Compose layer; when present and [supportsAnimationOverlay]
+     * is true, marker animations run in screen space above the map view
+     * instead of interpolating geographic coordinates (which breaks on
+     * tilted/rotated/globe projections).
+     */
+    var animationOverlayHost: MarkerAnimationOverlayHost? = null
+
+    /**
+     * Renderers that can hide/show their native marker (see
+     * [setMarkerVisible]) opt into the screen-space animation overlay.
+     */
+    open val supportsAnimationOverlay: Boolean = false
+
+    /** Hide/show the native marker while the overlay animation runs. */
+    open fun setMarkerVisible(
+        markerEntity: MarkerEntityInterface<ActualMarker>,
+        visible: Boolean,
+    ) {
+    }
+
     abstract fun setMarkerPosition(
         markerEntity: MarkerEntityInterface<ActualMarker>,
         position: GeoPoint,
@@ -38,6 +59,11 @@ abstract class AbstractMarkerOverlayRenderer<
 
     override suspend fun onAnimate(entity: MarkerEntityInterface<ActualMarker>) {
         val animation = entity.state.getAnimation()
+        val host = animationOverlayHost
+        if (animation != null && host != null && supportsAnimationOverlay) {
+            animateOnOverlay(host, entity, animation)
+            return
+        }
         when (animation) {
             MarkerAnimation.Drop ->
                 animateMarkerDrop(
@@ -51,6 +77,37 @@ abstract class AbstractMarkerOverlayRenderer<
                 )
             else -> throw IllegalArgumentException("No animation is available: $animation")
         }
+    }
+
+    private fun animateOnOverlay(
+        host: MarkerAnimationOverlayHost,
+        entity: MarkerEntityInterface<ActualMarker>,
+        animation: MarkerAnimation,
+    ) {
+        val duration =
+            when (animation) {
+                MarkerAnimation.Drop -> dropAnimateDuration
+                MarkerAnimation.Bounce -> bounceAnimateDuration
+            }
+        val icon = entity.state.icon?.toBitmapIcon() ?: DefaultMarkerIcon().toBitmapIcon()
+        setMarkerVisible(entity, false)
+        animateStartListener?.invoke(entity.state)
+        host.start(
+            MarkerAnimationOverlayEntry(
+                id = entity.state.id,
+                state = entity.state,
+                icon = icon,
+                animation = animation,
+                durationMillis = duration,
+                onFinished = {
+                    coroutine.launch {
+                        setMarkerVisible(entity, true)
+                        entity.state.animate(null)
+                        animateEndListener?.invoke(entity.state)
+                    }
+                },
+            ),
+        )
     }
 
     fun zoomToMetersPerPixel(
@@ -85,7 +142,7 @@ abstract class AbstractMarkerOverlayRenderer<
                 }
             }.onEach { t: Float ->
                 // 開始時の画面座標から緯度経度に戻す(垂直方向アニメーション起点)
-                val startLatLng = holder.fromScreenOffset(startPoint)!!
+                val startLatLng = holder.fromScreenOffset(startPoint) ?: return@onEach
 
                 // 緯度・経度を線形補間
                 val interpolatedLatitude = t * target.latitude + (1f - t) * startLatLng.latitude
@@ -98,7 +155,7 @@ abstract class AbstractMarkerOverlayRenderer<
                 entity.state.position = target
                 entity.state.animate(null)
                 animateEndListener?.invoke(entity.state)
-            }.launchIn(CoroutineScope(Dispatchers.Main))
+            }.launchIn(coroutine)
         }
     }
 
