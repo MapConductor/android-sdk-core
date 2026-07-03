@@ -22,14 +22,13 @@ android {
         minSdk = project.property("minSdk").toString().toInt()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+        aarMetadata {
+            minCompileSdk = project.property("compileSdk").toString().toInt()
+        }
     }
 
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion =
-            project.property("kotlinCompilerExtensionVersion").toString()
     }
 
     buildTypes {
@@ -63,10 +62,11 @@ android {
 
 dependencies {
     // Make Compose dependencies implementation instead of compileOnly for proper runtime support
+    implementation(platform(libs.androidx.compose.bom))
+    compileOnly(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     compileOnly(libs.androidx.ui.tooling.preview)
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.foundation)
     implementation(libs.net.sf.geographiclib)
     implementation(libs.jts.core)
