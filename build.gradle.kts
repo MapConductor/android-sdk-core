@@ -63,7 +63,6 @@ android {
 dependencies {
     // Make Compose dependencies implementation instead of compileOnly for proper runtime support
     implementation(platform(libs.androidx.compose.bom))
-    compileOnly(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     compileOnly(libs.androidx.ui.tooling.preview)
