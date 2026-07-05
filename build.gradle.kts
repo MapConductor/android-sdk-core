@@ -67,7 +67,6 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     compileOnly(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.foundation)
-    implementation(libs.net.sf.geographiclib)
     implementation(libs.jts.core)
 
     // Core dependencies - use api to avoid version conflicts

@@ -2,9 +2,10 @@
 
 ### Description
 
-A utility object that provides geodesic calculations using the GeographicLib library, based on the
-WGS84 ellipsoid. It offers methods for computing distances and interpolating points along a geodesic
-path.
+A utility object that provides geodesic calculations via Vincenty's formulae, based on the
+WGS84 ellipsoid (no external library dependency; falls back to a spherical approximation for the
+rare near-antipodal case where Vincenty fails to converge). It offers methods for computing distances
+and interpolating points along a geodesic path.
 
 ---
 

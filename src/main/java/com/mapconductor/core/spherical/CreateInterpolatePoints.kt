@@ -1,7 +1,6 @@
 package com.mapconductor.core.spherical
 
 import com.mapconductor.core.features.GeoPointInterface
-import net.sf.geographiclib.Geodesic
 
 fun createInterpolatePoints(
     points: List<GeoPointInterface>,
@@ -13,11 +12,10 @@ fun createInterpolatePoints(
 
     for (i in 1 until points.size) {
         val distance =
-            Geodesic.WGS84
-                .Inverse(
-                    points[i - 1].latitude, points[i - 1].longitude,
-                    points[i].latitude, points[i].longitude,
-                ).s12
+            GeographicLibCalculator.computeDistanceBetween(
+                points[i - 1],
+                points[i],
+            )
 
         val numSegments = (distance / maxSegmentLength).toInt().coerceAtLeast(1)
         val step = 1.0 / numSegments
