@@ -152,6 +152,7 @@ class LocalTileServer private constructor(
                     val method = request.method
                     val path = request.path.substringBefore('?').trim('/')
                     val keepAlive = shouldKeepAlive(request)
+                    Log.d("Server", "---->${path}")
 
                     if (method != "GET") {
                         writeResponse(

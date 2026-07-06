@@ -56,14 +56,18 @@ abstract class PolygonController<ActualPolygon>(
             }
 
             previous.forEach { remainId ->
-                polygonManager.removeEntity(remainId)?.let { removedEntity ->
+                polygonManager.getEntity(remainId)?.let { removedEntity ->
                     removed.add(removedEntity)
                 }
             }
 
-            // Remove polygon
+            // Remove from the map first, then forget the entities. If this sync is
+            // cancelled mid-removal (e.g. the collector flow emits again), the manager
+            // still tracks the leftovers so the next sync retries the removal instead
+            // of orphaning graphics on the map.
             if (removed.isNotEmpty()) {
                 renderer.onRemove(removed)
+                removed.forEach { polygonManager.removeEntity(it.state.id) }
             }
 
             // Add new polygons
