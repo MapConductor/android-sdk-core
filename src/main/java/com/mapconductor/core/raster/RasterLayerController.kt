@@ -1,5 +1,6 @@
 package com.mapconductor.core.raster
 
+import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
@@ -10,14 +11,14 @@ import kotlinx.coroutines.withContext
 abstract class RasterLayerController<ActualLayer : Any>(
     val rasterLayerManager: RasterLayerManagerInterface<ActualLayer>,
     open val renderer: RasterLayerOverlayRendererInterface<ActualLayer>,
-    override var clickListener: OnRasterLayerEventHandler? = null,
 ) : OverlayControllerInterface<
         RasterLayerState,
         RasterLayerEntityInterface<ActualLayer>,
         RasterLayerEvent,
-    > {
+    >, OnCameraChangeReceiverInterface {
     override val zIndex: Int = 0
     val semaphore = Semaphore(1)
+    var clickListener: OnRasterLayerEventHandler? = null
 
     // IDs managed via upsert/removeById — excluded from add()'s removal sweep
     private val upsertedIds = mutableSetOf<String>()

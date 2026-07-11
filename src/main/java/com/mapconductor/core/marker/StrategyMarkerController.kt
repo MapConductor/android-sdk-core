@@ -1,5 +1,6 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
@@ -10,12 +11,11 @@ import kotlinx.coroutines.sync.withPermit
 class StrategyMarkerController<ActualMarker>(
     private val strategy: MarkerRenderingStrategyInterface<ActualMarker>,
     private val renderer: MarkerOverlayRendererInterface<ActualMarker>,
-    override var clickListener: OnMarkerEventHandler? = null,
 ) : OverlayControllerInterface<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
         MarkerState,
-    > {
+    >, OnCameraChangeReceiverInterface {
     val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
     override val zIndex: Int = 10
     private var mapCameraPosition: MapCameraPosition? = null
@@ -28,6 +28,7 @@ class StrategyMarkerController<ActualMarker>(
     var dragEndListener: OnMarkerEventHandler? = null
     var animateStartListener: OnMarkerEventHandler? = null
     var animateEndListener: OnMarkerEventHandler? = null
+    var clickListener: OnMarkerEventHandler? = null
 
     init {
         renderer.animateStartListener = { state -> dispatchAnimateStart(state) }

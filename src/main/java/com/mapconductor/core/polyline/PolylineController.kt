@@ -1,5 +1,6 @@
 package com.mapconductor.core.polyline
 
+import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
@@ -9,15 +10,16 @@ import kotlinx.coroutines.sync.withPermit
 abstract class PolylineController<ActualPolyline>(
     val polylineManager: PolylineManagerInterface<ActualPolyline>,
     open val renderer: PolylineOverlayRendererInterface<ActualPolyline>,
-    override var clickListener: OnPolylineEventHandler? = null,
 ) : OverlayControllerInterface<
         PolylineState,
         PolylineEntityInterface<ActualPolyline>,
         PolylineEvent,
-    > {
+    >, OnCameraChangeReceiverInterface {
     override val zIndex: Int = 5
     val semaphore = Semaphore(1)
     private var currentCameraPosition: MapCameraPosition? = null
+
+    var clickListener: OnPolylineEventHandler? = null
 
     fun dispatchClick(event: PolylineEvent) {
         event.state.onClick?.invoke(event)

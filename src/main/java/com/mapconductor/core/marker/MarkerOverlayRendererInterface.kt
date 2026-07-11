@@ -1,8 +1,12 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.map.MapViewHolderInterface
+
 interface MarkerOverlayRendererInterface<ActualMarker> {
     var animateStartListener: OnMarkerEventHandler?
     var animateEndListener: OnMarkerEventHandler?
+
+    val holder: MapViewHolderInterface<*, *>
 
     interface AddParamsInterface {
         val state: MarkerState

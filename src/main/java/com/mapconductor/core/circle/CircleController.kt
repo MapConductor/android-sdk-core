@@ -2,14 +2,12 @@ package com.mapconductor.core.circle
 
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
 abstract class CircleController<ActualCircle>(
     val circleManager: CircleManagerInterface<ActualCircle>,
     open val renderer: CircleOverlayRendererInterface<ActualCircle>,
-    override var clickListener: OnCircleEventHandler? = null,
 ) : OverlayControllerInterface<
         CircleState,
         CircleEntityInterface<ActualCircle>,
@@ -17,6 +15,8 @@ abstract class CircleController<ActualCircle>(
     > {
     override val zIndex: Int = 3
     val semaphore = Semaphore(1)
+
+    var clickListener: OnCircleEventHandler? = null
 
     fun dispatchClick(event: CircleEvent) {
         event.state.onClick?.invoke(event)
@@ -144,8 +144,6 @@ abstract class CircleController<ActualCircle>(
     }
 
     override fun find(position: GeoPointInterface): CircleEntityInterface<ActualCircle>? = circleManager.find(position)
-
-    override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {}
 
     override fun destroy() {
         // No native resources to clean up for circles

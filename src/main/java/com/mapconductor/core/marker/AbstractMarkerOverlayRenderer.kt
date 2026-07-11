@@ -7,11 +7,11 @@ import com.mapconductor.core.projection.Earth
 import com.mapconductor.settings.Settings
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.time.Duration.Companion.milliseconds
 import android.os.SystemClock
 import android.view.animation.BounceInterpolator
 import android.view.animation.LinearInterpolator
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
@@ -23,7 +23,7 @@ abstract class AbstractMarkerOverlayRenderer<
     MapViewHolderType : MapViewHolderInterface<*, *>,
     ActualMarker,
 >(
-    val holder: MapViewHolderType,
+    override val holder: MapViewHolderType,
     val coroutine: CoroutineScope,
     val dropAnimateDuration: Long = Settings.Default.markerDropAnimateDuration,
     val bounceAnimateDuration: Long = Settings.Default.markerBounceAnimateDuration,
@@ -138,7 +138,7 @@ abstract class AbstractMarkerOverlayRenderer<
                     val elapsed = SystemClock.uptimeMillis() - startTime
                     t = min(1f, elapsed.toFloat() / duration)
                     emit(interpolator.getInterpolation(t))
-                    delay(16L)
+                    delay(16L.milliseconds)
                 }
             }.onEach { t: Float ->
                 // 開始時の画面座標から緯度経度に戻す(垂直方向アニメーション起点)
@@ -176,7 +176,7 @@ abstract class AbstractMarkerOverlayRenderer<
                     val elapsed = SystemClock.uptimeMillis() - startTime
                     t = interpolator.getInterpolation(min(1f, elapsed.toFloat() / duration))
                     emit(t)
-                    delay(16L)
+                    delay(16L.milliseconds)
                 }
             }.onEach { t ->
                 val startLatLng = holder.fromScreenOffset(startPoint) ?: return@onEach

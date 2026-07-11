@@ -9,7 +9,6 @@ import kotlinx.coroutines.sync.withPermit
 abstract class PolygonController<ActualPolygon>(
     val polygonManager: PolygonManagerInterface<ActualPolygon>,
     open val renderer: PolygonOverlayRendererInterface<ActualPolygon>,
-    override var clickListener: OnPolygonEventHandler? = null,
 ) : OverlayControllerInterface<
         PolygonState,
         PolygonEntityInterface<ActualPolygon>,
@@ -18,6 +17,7 @@ abstract class PolygonController<ActualPolygon>(
     override val zIndex: Int = 3
     val semaphore = Semaphore(1)
 
+    var clickListener: OnPolygonEventHandler? = null
     fun dispatchClick(event: PolygonEvent) {
         event.state.onClick?.invoke(event)
         clickListener?.invoke(event)
@@ -150,8 +150,6 @@ abstract class PolygonController<ActualPolygon>(
     override fun find(position: GeoPointInterface): PolygonEntityInterface<ActualPolygon>? =
         polygonManager
             .find(position)
-
-    override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {}
 
     override fun destroy() {
         // No native resources to clean up for polygons

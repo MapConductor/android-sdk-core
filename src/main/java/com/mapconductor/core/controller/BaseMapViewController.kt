@@ -4,10 +4,15 @@ import com.mapconductor.core.OnCameraMoveHandler
 import com.mapconductor.core.OnMapEventHandler
 import com.mapconductor.core.OnMapInitializedHandler
 import com.mapconductor.core.map.MapCameraPosition
+import com.mapconductor.core.map.MapViewHolderInterface
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 
 abstract class BaseMapViewController : MapViewControllerInterface {
+    abstract override val holder: MapViewHolderInterface<*, *>
+    abstract val defaultCoroutine: CoroutineScope
+    abstract val mainCoroutine: CoroutineScope
     private val overlayControllers = CopyOnWriteArrayList<OverlayControllerInterface<*, *, *>>()
     protected var cameraMoveStartCallback: OnCameraMoveHandler? = null
     protected var cameraMoveCallback: OnCameraMoveHandler? = null
@@ -17,38 +22,40 @@ abstract class BaseMapViewController : MapViewControllerInterface {
 
     protected var mapInitializedCallback: OnMapInitializedHandler? = null
 
-    override fun setCameraMoveStartListener(listener: OnCameraMoveHandler?) {
+    fun setCameraMoveStartListener(listener: OnCameraMoveHandler?) {
         this.cameraMoveStartCallback = listener
     }
 
-    override fun setCameraMoveListener(listener: OnCameraMoveHandler?) {
+    fun setCameraMoveListener(listener: OnCameraMoveHandler?) {
         this.cameraMoveCallback = listener
     }
 
-    override fun setCameraMoveEndListener(listener: OnCameraMoveHandler?) {
+    fun setCameraMoveEndListener(listener: OnCameraMoveHandler?) {
         this.cameraMoveEndCallback = listener
     }
 
-    override fun setMapClickListener(listener: OnMapEventHandler?) {
+    fun setMapClickListener(listener: OnMapEventHandler?) {
         this.mapClickCallback = listener
     }
 
-    override fun setMapLongClickListener(listener: OnMapEventHandler?) {
+    fun setMapLongClickListener(listener: OnMapEventHandler?) {
         this.mapLongClickCallback = listener
     }
 
-    protected fun registerController(controller: OverlayControllerInterface<*, *, *>) {
+    override fun registerOverlayController(controller: OverlayControllerInterface<*, *, *>) {
         if (overlayControllers.contains(controller)) return
         overlayControllers.add(controller)
     }
 
-    override fun registerOverlayController(controller: OverlayControllerInterface<*, *, *>) {
-        registerController(controller)
+    fun setMapInitializedListener(listener: OnMapInitializedHandler?) {
+        this.mapInitializedCallback = listener
     }
 
     protected suspend fun notifyMapCameraPosition(mapCameraPosition: MapCameraPosition) {
         overlayControllers.forEach {
-            it.onCameraChanged(mapCameraPosition)
+            if (it is OnCameraChangeReceiverInterface) {
+                it.onCameraChanged(mapCameraPosition)
+            }
         }
         cameraMoveCallback?.let { callBack ->
             callBack(mapCameraPosition)
@@ -61,6 +68,6 @@ abstract class BaseMapViewController : MapViewControllerInterface {
         // Stop camera/click listener jobs still running on this controller's
         // scope; without this the scope (and everything its jobs capture)
         // outlives the map.
-        coroutine.cancel()
+        defaultCoroutine.cancel()
     }
 }

@@ -2,14 +2,12 @@ package com.mapconductor.core.groundimage
 
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
 abstract class GroundImageController<ActualGroundImage>(
     val groundImageManager: GroundImageManagerInterface<ActualGroundImage>,
     open val renderer: GroundImageOverlayRendererInterface<ActualGroundImage>,
-    override var clickListener: OnGroundImageEventHandler? = null,
 ) : OverlayControllerInterface<
         GroundImageState,
         GroundImageEntityInterface<ActualGroundImage>,
@@ -17,6 +15,8 @@ abstract class GroundImageController<ActualGroundImage>(
     > {
     override val zIndex: Int = 2
     val semaphore = Semaphore(1)
+
+    var clickListener: OnGroundImageEventHandler? = null
 
     fun dispatchClick(event: GroundImageEvent) {
         event.state.onClick?.invoke(event)
@@ -145,8 +145,6 @@ abstract class GroundImageController<ActualGroundImage>(
     override fun find(position: GeoPointInterface): GroundImageEntityInterface<ActualGroundImage>? =
         groundImageManager
             .find(position)
-
-    override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {}
 
     override fun destroy() {
         // No native resources to clean up

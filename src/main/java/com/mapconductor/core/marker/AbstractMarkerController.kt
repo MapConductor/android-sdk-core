@@ -1,21 +1,19 @@
 package com.mapconductor.core.marker
 
 import com.mapconductor.core.controller.OverlayControllerInterface
-import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.yield
 
 abstract class AbstractMarkerController<ActualMarker>(
     val markerManager: MarkerManager<ActualMarker>,
-    renderer: MarkerOverlayRendererInterface<ActualMarker>,
-    override var clickListener: OnMarkerEventHandler? = null,
+    val renderer: MarkerOverlayRendererInterface<ActualMarker>,
+    var clickListener: OnMarkerEventHandler? = null,
 ) : OverlayControllerInterface<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
         MarkerState,
     > {
-    open val renderer: MarkerOverlayRendererInterface<ActualMarker> = renderer
     override val zIndex: Int = 10
     val semaphore = Semaphore(1)
     private val defaultMarkerIcon = DefaultMarkerIcon().toBitmapIcon()
@@ -59,14 +57,6 @@ abstract class AbstractMarkerController<ActualMarker>(
     fun dispatchAnimateEnd(state: MarkerState) {
         state.onAnimateEnd?.invoke(state)
         animateEndListener?.invoke(state)
-    }
-
-    protected fun setDraggingState(
-        markerState: MarkerState,
-        dragging: Boolean,
-    ) {
-        // Since this "isDragging" property is internal accessor,
-        // childViewControllers must call this method instead of "isDragging = true/false".
     }
 
     override suspend fun add(data: List<MarkerState>) {
@@ -245,10 +235,6 @@ abstract class AbstractMarkerController<ActualMarker>(
             renderer.onRemove(entities)
             markerManager.clear()
         }
-    }
-
-    override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {
-        // No-op for default marker flow.
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.mapconductor.core.map
 
 import com.mapconductor.core.controller.MapViewControllerInterface
+import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,8 @@ interface MapViewStateInterface<ActualMapDesignType> {
     )
 
     fun getMapViewHolder(): MapViewHolderInterface<*, *>?
+
+    fun getControllers(): List<OverlayControllerInterface<*, *, *>>?
 }
 
 abstract class MapViewState<ActualMapDesignType> : MapViewStateInterface<ActualMapDesignType> {
