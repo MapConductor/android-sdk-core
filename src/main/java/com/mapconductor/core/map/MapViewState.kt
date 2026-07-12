@@ -39,7 +39,7 @@ interface MapViewStateInterface<ActualMapDesignType> {
 
     fun getMapViewHolder(): MapViewHolderInterface<*, *>?
 
-    fun getControllers(): List<OverlayControllerInterface<*, *, *>>?
+    fun getControllers(): Map<String, OverlayControllerInterface<*, *>>?
 }
 
 abstract class MapViewState<ActualMapDesignType> : MapViewStateInterface<ActualMapDesignType> {

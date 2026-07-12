@@ -14,7 +14,6 @@ abstract class RasterLayerController<ActualLayer : Any>(
 ) : OverlayControllerInterface<
         RasterLayerState,
         RasterLayerEntityInterface<ActualLayer>,
-        RasterLayerEvent,
     >, OnCameraChangeReceiverInterface {
     override val zIndex: Int = 0
     val semaphore = Semaphore(1)

@@ -12,7 +12,6 @@ abstract class AbstractMarkerController<ActualMarker>(
 ) : OverlayControllerInterface<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
-        MarkerState,
     > {
     override val zIndex: Int = 10
     val semaphore = Semaphore(1)

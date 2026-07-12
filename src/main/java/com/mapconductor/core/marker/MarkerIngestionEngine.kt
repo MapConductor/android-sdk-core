@@ -47,19 +47,26 @@ object MarkerIngestionEngine {
                 val wasTiled = tiledMarkerIds.contains(state.id)
 
                 if (wantsTiled) {
-                    if (!wasTiled) {
-                        prevEntity.marker?.let { removedActualMarkers.add(prevEntity) }
-                        tiledMarkerIds.add(state.id)
+                    // A marker that was already tiled and hasn't actually changed (e.g. the same
+                    // full list was resent on an unrelated recompose) doesn't need to re-register
+                    // with the manager or bust the tile cache — that would force every visible
+                    // tile to be redrawn for a no-op update.
+                    val unchanged = wasTiled && prevEntity.fingerPrint == state.fingerPrint()
+                    if (!unchanged) {
+                        if (!wasTiled) {
+                            prevEntity.marker?.let { removedActualMarkers.add(prevEntity) }
+                            tiledMarkerIds.add(state.id)
+                        }
+                        markerManager.updateEntity(
+                            MarkerEntity(
+                                marker = null,
+                                state = state,
+                                visible = prevEntity.visible,
+                                isRendered = true,
+                            ),
+                        )
+                        tiledDataChanged = true
                     }
-                    markerManager.updateEntity(
-                        MarkerEntity(
-                            marker = null,
-                            state = state,
-                            visible = prevEntity.visible,
-                            isRendered = true,
-                        ),
-                    )
-                    tiledDataChanged = true
                 } else {
                     if (wasTiled) {
                         tiledMarkerIds.remove(state.id)

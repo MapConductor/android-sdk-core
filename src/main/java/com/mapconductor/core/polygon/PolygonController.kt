@@ -12,7 +12,6 @@ abstract class PolygonController<ActualPolygon>(
 ) : OverlayControllerInterface<
         PolygonState,
         PolygonEntityInterface<ActualPolygon>,
-        PolygonEvent,
     > {
     override val zIndex: Int = 3
     val semaphore = Semaphore(1)

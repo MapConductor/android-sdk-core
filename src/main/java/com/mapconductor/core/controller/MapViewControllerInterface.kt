@@ -19,9 +19,9 @@ interface MapViewControllerInterface {
         bounds: GeoRectBounds,
         padding: Int,
     )
-    fun registerOverlayController(controller: OverlayControllerInterface<*, *, *>)
+    fun registerOverlayController(controller: OverlayControllerInterface<*, *>)
 
-    fun getControllers(): List<OverlayControllerInterface<*, *, *>>
+    fun getControllers(): Map<String, OverlayControllerInterface<*, *>>
 
     fun destroy()
 }

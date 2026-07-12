@@ -13,8 +13,7 @@ class StrategyMarkerController<ActualMarker>(
     private val renderer: MarkerOverlayRendererInterface<ActualMarker>,
 ) : OverlayControllerInterface<
         MarkerState,
-        MarkerEntityInterface<ActualMarker>,
-        MarkerState,
+        MarkerEntityInterface<ActualMarker>
     >, OnCameraChangeReceiverInterface {
     val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
     override val zIndex: Int = 10

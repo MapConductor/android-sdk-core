@@ -10,8 +10,7 @@ abstract class GroundImageController<ActualGroundImage>(
     open val renderer: GroundImageOverlayRendererInterface<ActualGroundImage>,
 ) : OverlayControllerInterface<
         GroundImageState,
-        GroundImageEntityInterface<ActualGroundImage>,
-        GroundImageEvent,
+        GroundImageEntityInterface<ActualGroundImage>
     > {
     override val zIndex: Int = 2
     val semaphore = Semaphore(1)

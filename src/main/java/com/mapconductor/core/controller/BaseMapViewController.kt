@@ -13,7 +13,7 @@ abstract class BaseMapViewController : MapViewControllerInterface {
     abstract override val holder: MapViewHolderInterface<*, *>
     abstract val defaultCoroutine: CoroutineScope
     abstract val mainCoroutine: CoroutineScope
-    private val overlayControllers = CopyOnWriteArrayList<OverlayControllerInterface<*, *, *>>()
+    private val overlayControllers = CopyOnWriteArrayList<OverlayControllerInterface<*, *>>()
     protected var cameraMoveStartCallback: OnCameraMoveHandler? = null
     protected var cameraMoveCallback: OnCameraMoveHandler? = null
     protected var cameraMoveEndCallback: OnCameraMoveHandler? = null
@@ -42,7 +42,7 @@ abstract class BaseMapViewController : MapViewControllerInterface {
         this.mapLongClickCallback = listener
     }
 
-    override fun registerOverlayController(controller: OverlayControllerInterface<*, *, *>) {
+    override fun registerOverlayController(controller: OverlayControllerInterface<*, *>) {
         if (overlayControllers.contains(controller)) return
         overlayControllers.add(controller)
     }

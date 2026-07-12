@@ -11,7 +11,6 @@ abstract class CircleController<ActualCircle>(
 ) : OverlayControllerInterface<
         CircleState,
         CircleEntityInterface<ActualCircle>,
-        CircleEvent,
     > {
     override val zIndex: Int = 3
     val semaphore = Semaphore(1)
