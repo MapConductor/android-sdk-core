@@ -1,10 +1,12 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.ResourceProvider
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.map.MapCameraPosition
+import com.mapconductor.settings.Settings
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
@@ -96,9 +98,39 @@ class StrategyMarkerController<ActualMarker>(
 
     fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = strategy.markerManager.getEntity(id)
 
-    override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? =
-        strategy.markerManager
-            .findNearest(position)
+    override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
+        val nearest = strategy.markerManager.findNearest(position) ?: return null
+        val touchScreen = renderer.holder.toScreenOffset(position) ?: return null
+        val markerScreen = renderer.holder.toScreenOffset(nearest.state.position) ?: return null
+
+        val tolerancePx =
+            Settings.Default.tapTolerance.value
+                .toDouble() *
+                ResourceProvider.getDensity().toDouble()
+
+        val icon = nearest.state.icon ?: DefaultMarkerIcon()
+
+        val baseSizePx = ResourceProvider.dpToPxForBitmap(icon.iconSize)
+        val iconWidthPx = baseSizePx * icon.scale.toDouble()
+        val iconHeightPx = baseSizePx * icon.scale.toDouble()
+
+        val anchorX = icon.anchor.x.toDouble()
+        val anchorY = icon.anchor.y.toDouble()
+
+        val dx = (touchScreen.x - markerScreen.x).toDouble()
+        val dy = (touchScreen.y - markerScreen.y).toDouble()
+
+        val left = -anchorX * iconWidthPx - tolerancePx
+        val right = (1.0 - anchorX) * iconWidthPx + tolerancePx
+        val top = -anchorY * iconHeightPx - tolerancePx
+        val bottom = (1.0 - anchorY) * iconHeightPx + tolerancePx
+
+        return if (dx in left..right && dy in top..bottom) {
+            nearest
+        } else {
+            null
+        }
+    }
 
     override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {
         this.mapCameraPosition = mapCameraPosition

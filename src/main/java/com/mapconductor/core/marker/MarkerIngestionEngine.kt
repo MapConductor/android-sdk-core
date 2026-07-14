@@ -67,6 +67,7 @@ object MarkerIngestionEngine {
                                 state = state,
                                 visible = prevEntity.visible,
                                 isRendered = true,
+                                tiling = true,
                             ),
                         )
                         tiledDataChanged = true
@@ -85,6 +86,7 @@ object MarkerIngestionEngine {
                                     marker = prevEntity.marker,
                                     visible = prevEntity.visible,
                                     isRendered = true,
+                                    tiling = wasTiled,
                                 )
                             override val bitmapIcon: BitmapIcon = markerIcon
                             override val prev: MarkerEntityInterface<ActualMarker> = prevEntity
@@ -101,6 +103,7 @@ object MarkerIngestionEngine {
                             state = state,
                             visible = true,
                             isRendered = true,
+                            tiling = true,
                         ),
                     )
                     tiledDataChanged = true
