@@ -369,9 +369,24 @@ class MarkerTileRenderer<ActualMarker>(
         return output
     }
 
+    // renderTile() runs concurrently across LocalTileServer's worker threads. A fresh
+    // ByteArrayOutputStream starts at 32 bytes and doubles its backing array on every
+    // compress() call until it reaches the tile's steady-state size (often hundreds of KB
+    // for dense tiles), so a new instance per call re-triggers that regrowth every time.
+    // Keeping one per thread (reset, not recreated, before each use) lets the backing
+    // array settle at its steady-state size and be reused across tiles.
+    private val tileByteStream =
+        ThreadLocal.withInitial { ByteArrayOutputStream(16 * 1024) }
+
     private fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
-        val outputStream = ByteArrayOutputStream()
+        // ThreadLocal.get() is a Java generic method, so Kotlin sees its return type as
+        // nullable even though withInitial() guarantees a value; !! is safe here.
+        val outputStream = tileByteStream.get()!!
+        outputStream.reset()
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+        // toByteArray() still copies out a right-sized array: callers cache this array or
+        // hand it to a socket write, both of which need a stable array that isn't mutated
+        // by the next renderTile() call on this thread.
         return outputStream.toByteArray()
     }
 

@@ -1,5 +1,7 @@
 package com.mapconductor.core.marker
 
+import android.os.SystemClock
+import android.util.Log
 /**
  * Shared ingestion logic for marker controllers.
  *
@@ -27,6 +29,8 @@ object MarkerIngestionEngine {
         tiledMarkerIds: MutableSet<String>,
         shouldTile: (MarkerState) -> Boolean,
     ): Result {
+        val startedAt = SystemClock.elapsedRealtime()
+        markerTrace("ingest start count=${data.size} tilingEnabled=$tilingEnabled")
         val previousIds =
             markerManager
                 .allEntities()
@@ -112,6 +116,12 @@ object MarkerIngestionEngine {
             }
         }
 
+        markerTrace(
+            "diff complete input=${data.size} add=${added.size} update=${updated.size} " +
+                "remove=${removedActualMarkers.size} tiled=${tiledMarkerIds.size} " +
+                "elapsedMs=${SystemClock.elapsedRealtime() - startedAt}",
+        )
+
         // Remove stale entities from the manager (non-suspending, fine-grained locks inside)
         previousIds.forEach { remainId ->
             markerManager.removeEntity(remainId)?.let { removedEntity ->
@@ -128,7 +138,9 @@ object MarkerIngestionEngine {
         }
 
         if (added.isNotEmpty()) {
+            markerTrace("renderer onAdd start count=${added.size}")
             val actualMarkers = renderer.onAdd(added)
+            markerTrace("renderer onAdd end count=${added.size}")
             actualMarkers.forEachIndexed { index, actualMarker ->
                 actualMarker ?: return@forEachIndexed
                 val state = added[index].state
@@ -145,7 +157,9 @@ object MarkerIngestionEngine {
         }
 
         if (updated.isNotEmpty()) {
+            markerTrace("renderer onChange start count=${updated.size}")
             val actualMarkers = renderer.onChange(updated)
+            markerTrace("renderer onChange end count=${updated.size}")
             actualMarkers.forEachIndexed { index, actualMarker ->
                 val params = updated[index]
                 markerManager.updateEntity(
@@ -167,7 +181,19 @@ object MarkerIngestionEngine {
             }
         }
 
+        markerTrace("renderer postProcess start")
         renderer.onPostProcess()
+        markerTrace(
+            "ingest end count=${data.size} elapsedMs=${SystemClock.elapsedRealtime() - startedAt}",
+        )
         return Result(tiledDataChanged = tiledDataChanged, hasTiledMarkers = tiledMarkerIds.isNotEmpty())
+    }
+
+    private fun markerTrace(message: String) {
+        Log.d(
+            "MCMarkerTrace",
+            "[CoreSDK][Ingestion][t=${SystemClock.elapsedRealtime()}]" +
+                "[thread=${Thread.currentThread().name}] $message",
+        )
     }
 }
