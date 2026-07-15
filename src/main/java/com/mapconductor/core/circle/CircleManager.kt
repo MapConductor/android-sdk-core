@@ -41,7 +41,8 @@ class CircleManager<ActualCircle> : CircleManagerInterface<ActualCircle> {
         entities[entity.state.id] = entity
     }
 
-    override fun allEntities(): List<CircleEntityInterface<ActualCircle>> = entities.values.toList()
+    // ArrayList(values) avoids the size==1 race in Kotlin's toList() on concurrent maps.
+    override fun allEntities(): List<CircleEntityInterface<ActualCircle>> = ArrayList(entities.values)
 
     override fun clear() {
         entities.clear()

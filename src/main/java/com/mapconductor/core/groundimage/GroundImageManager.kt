@@ -1,6 +1,7 @@
 package com.mapconductor.core.groundimage
 
 import com.mapconductor.core.features.GeoPointInterface
+import java.util.concurrent.ConcurrentHashMap
 
 interface GroundImageManagerInterface<ActualGroundImage> {
     fun registerEntity(entity: GroundImageEntityInterface<ActualGroundImage>)
@@ -19,7 +20,7 @@ interface GroundImageManagerInterface<ActualGroundImage> {
 }
 
 class GroundImageManager<ActualGroundImage> : GroundImageManagerInterface<ActualGroundImage> {
-    private val entities = mutableMapOf<String, GroundImageEntityInterface<ActualGroundImage>>()
+    private val entities = ConcurrentHashMap<String, GroundImageEntityInterface<ActualGroundImage>>()
 
     override fun registerEntity(entity: GroundImageEntityInterface<ActualGroundImage>) {
         entities[entity.state.id] = entity
@@ -31,7 +32,8 @@ class GroundImageManager<ActualGroundImage> : GroundImageManagerInterface<Actual
 
     override fun hasEntity(id: String): Boolean = entities.containsKey(id)
 
-    override fun allEntities(): List<GroundImageEntityInterface<ActualGroundImage>> = entities.values.toList()
+    // ArrayList(values) avoids the size==1 race in Kotlin's toList() on concurrent maps.
+    override fun allEntities(): List<GroundImageEntityInterface<ActualGroundImage>> = ArrayList(entities.values)
 
     override fun clear() {
         entities.clear()

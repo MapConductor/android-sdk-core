@@ -7,6 +7,7 @@ import com.mapconductor.core.geocell.HexGeocell
 import com.mapconductor.core.geocell.HexGeocellInterface
 import com.mapconductor.core.projection.Earth
 import com.mapconductor.core.spherical.Spherical
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -26,7 +27,7 @@ open class MarkerManager<ActualMarker>(
     val minMarkerCount: Int,
 ) {
     // Primary storage - single source of truth
-    private val entities = mutableMapOf<String, MarkerEntityInterface<ActualMarker>>()
+    private val entities = ConcurrentHashMap<String, MarkerEntityInterface<ActualMarker>>()
 
     // Lazy-initialized spatial index only when needed
     @Volatile

@@ -8,6 +8,7 @@ import com.mapconductor.core.spherical.calculateMetersPerPixel
 import com.mapconductor.core.spherical.isPointOnLinearLine
 import com.mapconductor.core.spherical.pointOnGeodesicSegmentOrNull
 import com.mapconductor.settings.Settings
+import java.util.concurrent.ConcurrentHashMap
 import android.util.Log
 
 data class PolylineHitResult<ActualPolyline>(
@@ -49,7 +50,7 @@ class PolylineManager<ActualPolyline> : PolylineManagerInterface<ActualPolyline>
         }
     }
 
-    private val entities = mutableMapOf<String, PolylineEntityInterface<ActualPolyline>>()
+    private val entities = ConcurrentHashMap<String, PolylineEntityInterface<ActualPolyline>>()
 
     override fun registerEntity(entity: PolylineEntityInterface<ActualPolyline>) {
         entities[entity.state.id] = entity
@@ -61,7 +62,8 @@ class PolylineManager<ActualPolyline> : PolylineManagerInterface<ActualPolyline>
 
     override fun hasEntity(id: String): Boolean = entities.containsKey(id)
 
-    override fun allEntities(): List<PolylineEntityInterface<ActualPolyline>> = entities.values.toList()
+    // ArrayList(values) avoids the size==1 race in Kotlin's toList() on concurrent maps.
+    override fun allEntities(): List<PolylineEntityInterface<ActualPolyline>> = ArrayList(entities.values)
 
     override fun clear() {
         entities.clear()

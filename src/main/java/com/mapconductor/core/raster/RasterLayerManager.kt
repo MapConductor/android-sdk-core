@@ -1,6 +1,7 @@
 package com.mapconductor.core.raster
 
 import com.mapconductor.core.features.GeoPointInterface
+import java.util.concurrent.ConcurrentHashMap
 
 interface RasterLayerManagerInterface<ActualLayer> {
     fun registerEntity(entity: RasterLayerEntityInterface<ActualLayer>)
@@ -19,7 +20,7 @@ interface RasterLayerManagerInterface<ActualLayer> {
 }
 
 class RasterLayerManager<ActualLayer> : RasterLayerManagerInterface<ActualLayer> {
-    private val entities = mutableMapOf<String, RasterLayerEntityInterface<ActualLayer>>()
+    private val entities = ConcurrentHashMap<String, RasterLayerEntityInterface<ActualLayer>>()
 
     override fun registerEntity(entity: RasterLayerEntityInterface<ActualLayer>) {
         entities[entity.state.id] = entity
@@ -31,7 +32,10 @@ class RasterLayerManager<ActualLayer> : RasterLayerManagerInterface<ActualLayer>
 
     override fun hasEntity(id: String): Boolean = entities.containsKey(id)
 
-    override fun allEntities(): List<RasterLayerEntityInterface<ActualLayer>> = entities.values.toList()
+    // ArrayList(values) copies via toArray(); Kotlin's toList() has a size==1 fast path that
+    // calls iterator().next() and throws NoSuchElementException when another thread removes
+    // the last entry between the size read and the iteration.
+    override fun allEntities(): List<RasterLayerEntityInterface<ActualLayer>> = ArrayList(entities.values)
 
     override fun clear() {
         entities.clear()

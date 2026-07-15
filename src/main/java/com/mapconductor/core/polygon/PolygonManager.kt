@@ -3,6 +3,7 @@ package com.mapconductor.core.polygon
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.normalizeLng
 import com.mapconductor.core.spherical.createInterpolatePoints
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -25,7 +26,7 @@ interface PolygonManagerInterface<ActualPolygon> {
 }
 
 class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
-    private val entities = mutableMapOf<String, PolygonEntityInterface<ActualPolygon>>()
+    private val entities = ConcurrentHashMap<String, PolygonEntityInterface<ActualPolygon>>()
 
     override fun registerEntity(entity: PolygonEntityInterface<ActualPolygon>) {
         entities[entity.state.id] = entity
@@ -37,7 +38,8 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
 
     override fun hasEntity(id: String): Boolean = entities.containsKey(id)
 
-    override fun allEntities(): List<PolygonEntityInterface<ActualPolygon>> = entities.values.toList()
+    // ArrayList(values) avoids the size==1 race in Kotlin's toList() on concurrent maps.
+    override fun allEntities(): List<PolygonEntityInterface<ActualPolygon>> = ArrayList(entities.values)
 
     override fun clear() {
         entities.clear()
