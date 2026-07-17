@@ -1,9 +1,11 @@
 ﻿package com.mapconductor.core.features
 
+import java.io.Serializable
+
 class GeoRectBounds(
     southWest: GeoPoint? = null,
     northEast: GeoPoint? = null,
-) {
+) : Serializable {
     private var _southWest: GeoPoint? = southWest
     private var _northEast: GeoPoint? = northEast
 

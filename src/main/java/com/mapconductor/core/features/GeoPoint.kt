@@ -1,6 +1,7 @@
 package com.mapconductor.core.features
 
 import com.mapconductor.core.toFixed
+import java.io.Serializable
 import kotlin.math.abs
 
 interface GeoPointInterface {
@@ -15,7 +16,7 @@ data class GeoPoint(
     override val latitude: Double,
     override val longitude: Double,
     override val altitude: Double = 0.0,
-) : GeoPointInterface {
+) : GeoPointInterface, Serializable {
     fun toUrlValue(precision: Int = 6): String = "${latitude.toFixed(precision)},${longitude.toFixed(precision)}"
 
     override fun equals(other: Any?): Boolean {

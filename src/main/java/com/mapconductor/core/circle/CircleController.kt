@@ -131,6 +131,7 @@ abstract class CircleController<ActualCircle>(
                     )
                 circleManager.registerEntity(entity)
             }
+            renderer.onPostProcess()
         }
     }
 
@@ -139,6 +140,7 @@ abstract class CircleController<ActualCircle>(
             val entities: List<CircleEntityInterface<ActualCircle>> = circleManager.allEntities()
             renderer.onRemove(entities)
             circleManager.clear()
+            renderer.onPostProcess()
         }
     }
 

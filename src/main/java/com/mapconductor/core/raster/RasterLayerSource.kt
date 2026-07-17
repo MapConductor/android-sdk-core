@@ -1,5 +1,6 @@
 package com.mapconductor.core.raster
 
+import com.mapconductor.core.map.AttributionRule
 import java.io.Serializable
 
 enum class TileScheme {
@@ -13,7 +14,7 @@ sealed class RasterLayerSource : Serializable {
         val tileSize: Int = DEFAULT_TILE_SIZE,
         val minZoom: Int? = null,
         val maxZoom: Int? = null,
-        val attribution: String? = null,
+        val attributionRules: List<AttributionRule> = emptyList(),
         val scheme: TileScheme = TileScheme.XYZ,
     ) : RasterLayerSource()
 
