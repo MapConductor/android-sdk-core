@@ -21,6 +21,8 @@ abstract class BaseMapViewController : MapViewControllerInterface {
     protected var mapLongClickCallback: OnMapEventHandler? = null
 
     protected var mapInitializedCallback: OnMapInitializedHandler? = null
+    private var mapInitialized: Boolean = false
+    private var mapInitializedCallbackDelivered: Boolean = false
 
     fun setCameraMoveStartListener(listener: OnCameraMoveHandler?) {
         this.cameraMoveStartCallback = listener
@@ -49,6 +51,26 @@ abstract class BaseMapViewController : MapViewControllerInterface {
 
     fun setMapInitializedListener(listener: OnMapInitializedHandler?) {
         this.mapInitializedCallback = listener
+        deliverMapInitializedCallbackIfReady()
+    }
+
+    /**
+     * Records map initialization and delivers it once the listener is available.
+     *
+     * Some SDK controllers finish initialization while their Compose host is still
+     * installing callbacks. Keeping this notification sticky prevents a completed
+     * initialization from being lost in that window.
+     */
+    protected fun notifyMapInitialized() {
+        mapInitialized = true
+        deliverMapInitializedCallbackIfReady()
+    }
+
+    private fun deliverMapInitializedCallbackIfReady() {
+        if (!mapInitialized || mapInitializedCallbackDelivered) return
+        val callback = mapInitializedCallback ?: return
+        mapInitializedCallbackDelivered = true
+        callback.invoke()
     }
 
     protected suspend fun notifyMapCameraPosition(mapCameraPosition: MapCameraPosition) {
