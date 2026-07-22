@@ -19,9 +19,9 @@ import kotlin.math.sqrt
  * matching react/ios behavior exactly.
  */
 object GeographicLibCalculator {
-    private const val FLATTENING = 1.0 / 298.257223563
+    private const val FLATTENING = Earth.FLATTENING
     private const val SEMI_MAJOR_AXIS = Earth.RADIUS_METERS
-    private const val SEMI_MINOR_AXIS = SEMI_MAJOR_AXIS * (1.0 - FLATTENING)
+    private const val SEMI_MINOR_AXIS = Earth.SEMI_MINOR_AXIS_METERS
 
     private data class InverseResult(
         val distanceMeters: Double,
