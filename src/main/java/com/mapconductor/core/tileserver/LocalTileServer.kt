@@ -314,7 +314,10 @@ class LocalTileServer private constructor(
         }
 
         val provider = providers[routeId] ?: return null
-        val bytes = provider.renderTile(TileRequest(x = x, y = y, z = z)) ?: return null
+        val bytes =
+            provider.renderTile(
+                TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
+            ) ?: return null
         val cacheControl =
             if (forceNoStoreCache) {
                 NO_STORE_CACHE_CONTROL
@@ -336,8 +339,15 @@ class LocalTileServer private constructor(
         val yIndex = if (withCacheKey) 6 else 5
         val z = segments.getOrNull(zIndex)?.toIntOrNull() ?: return null
         val x = segments.getOrNull(xIndex)?.toIntOrNull() ?: return null
-        val y = segments.getOrNull(yIndex)?.substringBefore('.')?.toIntOrNull() ?: return null
-        return TileKey(routeId = routeId, tileSize = tileSize, z = z, x = x, y = y)
+        val tileCoordinate = segments.getOrNull(yIndex)?.let(::parseTileCoordinate) ?: return null
+        return TileKey(
+            routeId = routeId,
+            tileSize = tileSize,
+            z = z,
+            x = x,
+            y = tileCoordinate.y,
+            pixelRatio = tileCoordinate.pixelRatio,
+        )
     }
 
     private fun cacheHeaders(cacheControl: String): Map<String, String> =
@@ -399,6 +409,7 @@ class LocalTileServer private constructor(
         val z: Int,
         val x: Int,
         val y: Int,
+        val pixelRatio: Int,
     )
 
     companion object {
@@ -406,6 +417,7 @@ class LocalTileServer private constructor(
         private const val MAX_KEEP_ALIVE_REQUESTS = 200
         private const val MAX_HEADER_COUNT = 64
         private const val MAX_LINE_LENGTH = 8192
+
         // Tile rendering is CPU-bound (canvas + PNG encode), so more workers than
         // cores adds contention, not throughput. The deep queue absorbs request
         // bursts (e.g. ArcGIS fetching several LODs during a zoom animation)
@@ -432,3 +444,19 @@ class LocalTileServer private constructor(
         }
     }
 }
+
+internal data class TileCoordinate(
+    val y: Int,
+    val pixelRatio: Int,
+)
+
+internal fun parseTileCoordinate(fileName: String): TileCoordinate? {
+    val match = TILE_FILE_NAME_PATTERN.matchEntire(fileName) ?: return null
+    val y = match.groupValues[1].toIntOrNull() ?: return null
+    val pixelRatio = match.groupValues[2].toIntOrNull() ?: 1
+    if (pixelRatio !in 1..MAX_TILE_PIXEL_RATIO) return null
+    return TileCoordinate(y = y, pixelRatio = pixelRatio)
+}
+
+private val TILE_FILE_NAME_PATTERN = Regex("""^(\d+)(?:@(\d+)x)?\.png$""")
+private const val MAX_TILE_PIXEL_RATIO = 3
