@@ -140,9 +140,13 @@ data class PolygonFingerPrint(
     val extra: Int,
 )
 
-data class PolygonEvent(
+class PolygonEvent(
     val state: PolygonState,
-    val clicked: GeoPointInterface,
-)
+    clicked: GeoPointInterface,
+) {
+    // 生成時に wrap して [-180,180] / [-90,90] に正規化する（日付変更線対策）。
+    // 正規化をここ（イベント型＝出口）に一元化することで、どの配送経路でも wrap 漏れが起きない。
+    val clicked: GeoPointInterface = clicked.wrap()
+}
 
 typealias OnPolygonEventHandler = (PolygonEvent) -> Unit

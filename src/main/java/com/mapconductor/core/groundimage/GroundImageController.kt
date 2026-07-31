@@ -18,6 +18,7 @@ abstract class GroundImageController<ActualGroundImage>(
     var clickListener: OnGroundImageEventHandler? = null
 
     fun dispatchClick(event: GroundImageEvent) {
+        // 配送座標の wrap は GroundImageEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)
         clickListener?.invoke(event)
     }

@@ -21,6 +21,7 @@ abstract class PolylineController<ActualPolyline>(
     var clickListener: OnPolylineEventHandler? = null
 
     fun dispatchClick(event: PolylineEvent) {
+        // 配送座標の wrap は PolylineEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)
         clickListener?.invoke(event)
     }

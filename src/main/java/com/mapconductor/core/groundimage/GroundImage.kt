@@ -75,9 +75,13 @@ data class GroundImageFingerPrint(
     val extra: Int,
 )
 
-data class GroundImageEvent(
+class GroundImageEvent(
     val state: GroundImageState,
-    val clicked: GeoPoint?,
-)
+    clicked: GeoPoint?,
+) {
+    // 生成時に wrap して [-180,180] / [-90,90] に正規化する（日付変更線対策）。
+    // 正規化をここ（イベント型＝出口）に一元化することで、どの配送経路でも wrap 漏れが起きない。
+    val clicked: GeoPoint? = clicked?.let { GeoPoint.from(it.wrap()) }
+}
 
 typealias OnGroundImageEventHandler = (GroundImageEvent) -> Unit

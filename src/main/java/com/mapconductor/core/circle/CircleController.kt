@@ -18,6 +18,7 @@ abstract class CircleController<ActualCircle>(
     var clickListener: OnCircleEventHandler? = null
 
     fun dispatchClick(event: CircleEvent) {
+        // 配送座標の wrap は CircleEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)
         clickListener?.invoke(event)
     }

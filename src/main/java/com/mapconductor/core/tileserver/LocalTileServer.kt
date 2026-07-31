@@ -372,6 +372,9 @@ class LocalTileServer private constructor(
             headers.append("Content-Type: ").append(contentType).append("\r\n")
             headers.append("Content-Length: ").append(body.size).append("\r\n")
             headers.append("Connection: ").append(if (keepAlive) "keep-alive" else "close").append("\r\n")
+            // WebView ベースの地図 SDK（Longdo / MapTiler 等）は MapLibre GL JS の fetch でタイルを取得する。
+            // ローカルサーバは https のページから見て別オリジンのため、CORS を許可しないと取得がブロックされる。
+            headers.append("Access-Control-Allow-Origin: *\r\n")
             for ((key, value) in extraHeaders) {
                 headers
                     .append(key)

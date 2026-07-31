@@ -116,9 +116,14 @@ data class PolylineFingerPrint(
     val extra: Int,
 )
 
-data class PolylineEvent(
+class PolylineEvent(
     val state: PolylineState,
-    val clicked: GeoPointInterface,
-)
+    clicked: GeoPointInterface,
+) {
+    // 生成時に wrap して [-180,180] / [-90,90] に正規化する（日付変更線対策）。
+    // 正規化をここ（イベント型＝出口）に一元化することで、コア/独自 Conductor/将来のプロバイダの
+    // どの配送経路を通っても wrap 漏れが起きない。ヒットテストの入力座標は wrap しないこと。
+    val clicked: GeoPointInterface = clicked.wrap()
+}
 
 typealias OnPolylineEventHandler = (PolylineEvent) -> Unit
