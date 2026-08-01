@@ -42,7 +42,7 @@ interface PolylineManagerInterface<ActualPolyline> {
 
 class PolylineManager<ActualPolyline> : PolylineManagerInterface<ActualPolyline> {
     companion object {
-        private const val DEBUG_FIND = true
+        private const val DEBUG_FIND = false
         private const val TAG = "PolylineManagerInterface"
 
         private fun d(msg: String) {

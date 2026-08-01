@@ -2,7 +2,6 @@ package com.mapconductor.core.polyline
 
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.spherical.Spherical
-import android.util.Log
 
 interface PolylineEntityInterface<ActualPolyline> {
     val polyline: ActualPolyline
@@ -19,7 +18,6 @@ class PolylineEntity<ActualPolyline>(
 
     private var cachedBounds: GeoRectBounds? = null
     private var boundsFingerprint: Int? = null
-    private val tag = "PolylineEntityInterface"
 
     override val bounds: GeoRectBounds
         get() {
@@ -27,7 +25,6 @@ class PolylineEntity<ActualPolyline>(
             if (cachedBounds == null || boundsFingerprint != currentFingerprint) {
                 cachedBounds = calculateBounds()
                 boundsFingerprint = currentFingerprint
-                Log.d(tag, "calc bounds id=${state.id} -> $cachedBounds")
             }
             return cachedBounds!!
         }

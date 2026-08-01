@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mapconductor.core.ComponentState
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.marker.MarkerState
 import java.io.Serializable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -115,7 +114,7 @@ class CircleState(
         )
 
     override fun equals(other: Any?): Boolean {
-        val otherState = (other as? MarkerState) ?: return false
+        val otherState = (other as? CircleState) ?: return false
         return hashCode() == otherState.hashCode()
     }
 
