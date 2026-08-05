@@ -103,29 +103,7 @@ class StrategyMarkerController<ActualMarker>(
         val touchScreen = renderer.holder.toScreenOffset(position) ?: return null
         val markerScreen = renderer.holder.toScreenOffset(nearest.state.position) ?: return null
 
-        val tolerancePx =
-            Settings.Default.tapTolerance.value
-                .toDouble() *
-                ResourceProvider.getDensity().toDouble()
-
-        val icon = nearest.state.icon ?: DefaultMarkerIcon()
-
-        val baseSizePx = ResourceProvider.dpToPxForBitmap(icon.iconSize)
-        val iconWidthPx = baseSizePx * icon.scale.toDouble()
-        val iconHeightPx = baseSizePx * icon.scale.toDouble()
-
-        val anchorX = icon.anchor.x.toDouble()
-        val anchorY = icon.anchor.y.toDouble()
-
-        val dx = (touchScreen.x - markerScreen.x).toDouble()
-        val dy = (touchScreen.y - markerScreen.y).toDouble()
-
-        val left = -anchorX * iconWidthPx - tolerancePx
-        val right = (1.0 - anchorX) * iconWidthPx + tolerancePx
-        val top = -anchorY * iconHeightPx - tolerancePx
-        val bottom = (1.0 - anchorY) * iconHeightPx + tolerancePx
-
-        return if (dx in left..right && dy in top..bottom) {
+        return if (MarkerHitTest.hitsIcon(touchScreen, markerScreen, nearest.state)) {
             nearest
         } else {
             null

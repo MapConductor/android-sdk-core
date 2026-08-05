@@ -37,7 +37,7 @@ point east of the antimeridian (e.g., near Fiji) to a point west of it (e.g., ne
 ```kotlin
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.spherical.Spherical // Assuming Spherical.sphericalInterpolate exists
+import com.mapconductor.core.spherical.Spherical // Assuming Spherical.interpolate exists
 import com.mapconductor.core.spherical.interpolateAtMeridianGeodesic
 
 // Mock implementations for demonstration purposes
@@ -45,7 +45,7 @@ import com.mapconductor.core.spherical.interpolateAtMeridianGeodesic
 object Spherical {
     // A simplified mock of spherical interpolation for the example to run.
     // The actual implementation is more complex.
-    fun sphericalInterpolate(from: GeoPointInterface, to: GeoPointInterface, fraction: Double): GeoPoint {
+    fun interpolate(from: GeoPointInterface, to: GeoPointInterface, fraction: Double): GeoPoint {
         val lat = from.latitude + (to.latitude - from.latitude) * fraction
         val lon = from.longitude + (to.longitude - from.longitude) * fraction
         val alt = (from.altitude ?: 0.0) + ((to.altitude ?: 0.0) - (from.altitude ?: 0.0)) * fraction

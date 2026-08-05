@@ -353,7 +353,7 @@ println("Clockwise signed area: $signedAreaCW")
 
 ---
 
-## `sphericalInterpolate`
+## `interpolate`
 
 Interpolates between two points along a great-circle path using Spherical Linear Interpolation
 (Slerp).
@@ -361,7 +361,7 @@ Interpolates between two points along a great-circle path using Spherical Linear
 ### Signature
 
 ```kotlin
-fun sphericalInterpolate(
+fun interpolate(
     from: GeoPointInterface,
     to: GeoPointInterface,
     fraction: Double
@@ -399,7 +399,7 @@ val start = GeoPoint(latitude = 37.7749, longitude = -122.4194) // San Francisco
 val end = GeoPoint(latitude = 40.7128, longitude = -74.0060)   // New York
 
 // Find the point halfway between SF and NY along the great circle
-val midpoint = Spherical.sphericalInterpolate(start, end, 0.5)
+val midpoint = Spherical.interpolate(start, end, 0.5)
 
 println("Midpoint: ${midpoint.latitude}, ${midpoint.longitude}")
 ```
@@ -423,7 +423,7 @@ fun linearInterpolate(
 ### Description
 
 This method treats latitude and longitude as coordinates on a Cartesian plane and performs a simple
-linear interpolation. It is computationally faster than `sphericalInterpolate` but is less accurate,
+linear interpolation. It is computationally faster than `interpolate` but is less accurate,
 especially over long distances, as it does not account for Earth's curvature.
 
 A key feature is its handling of longitude: it automatically interpolates along the shorter of the

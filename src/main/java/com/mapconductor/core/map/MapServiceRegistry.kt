@@ -28,6 +28,17 @@ class MutableMapServiceRegistry : MapServiceRegistry {
         services[key] = value
     }
 
+    /**
+     * 登録済みのサービスを1件だけ取り消す。未登録のキーを渡しても何も起きない。
+     *
+     * [clear] がレジストリ全体を空にするのに対し、こちらは他の capability を残したまま
+     * 1つだけ取り下げたいプラグイン向け。ios-sdk の
+     * `MutableMapServiceRegistry.remove(_:)` と同じ意味論。
+     */
+    fun <T : Any> remove(key: MapServiceKey<T>) {
+        services.remove(key)
+    }
+
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> get(key: MapServiceKey<T>): T? = services[key] as? T
 }

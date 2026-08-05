@@ -24,6 +24,12 @@ interface MapViewControllerInterface {
      */
     fun setCameraRestriction(restriction: CameraRestriction?) {}
 
+    /**
+     * Applies the gesture flags in [MapUISettings]. Providers whose map SDK can
+     * toggle gestures override this; the default is a no-op.
+     */
+    fun applyUISettings(settings: com.mapconductor.core.map.MapUISettings) {}
+
     fun animateCamera(
         position: MapCameraPosition,
         duration: Long,

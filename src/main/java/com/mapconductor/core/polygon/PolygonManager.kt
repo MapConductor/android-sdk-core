@@ -2,7 +2,7 @@ package com.mapconductor.core.polygon
 
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.normalizeLng
-import com.mapconductor.core.spherical.createInterpolatePoints
+import com.mapconductor.core.spherical.WGS84Geodesic
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.math.max
@@ -58,7 +58,7 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
             // Densify edges to better approximate geodesic/linear edges
             val ring =
                 try {
-                    if (state.geodesic) createInterpolatePoints(basePoints) else basePoints
+                    if (state.geodesic) WGS84Geodesic.createInterpolatePoints(basePoints) else basePoints
                 } catch (_: Exception) {
                     basePoints
                 }
@@ -75,7 +75,7 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
                     if (hole.size < 3) continue
                     val holeRing =
                         try {
-                            if (state.geodesic) createInterpolatePoints(hole) else hole
+                            if (state.geodesic) WGS84Geodesic.createInterpolatePoints(hole) else hole
                         } catch (_: Exception) {
                             hole
                         }

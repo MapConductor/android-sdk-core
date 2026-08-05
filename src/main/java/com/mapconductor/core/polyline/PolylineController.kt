@@ -37,6 +37,12 @@ abstract class PolylineController<ActualPolyline>(
             data.forEach { state ->
                 if (previous.contains(state.id)) {
                     val prevEntity = polylineManager.getEntity(state.id)!!
+                    if (state.fingerPrint() == prevEntity.fingerPrint) {
+                        // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
+                        polylineManager.registerEntity(PolylineEntity(state = state, polyline = prevEntity.polyline))
+                        previous.remove(state.id)
+                        return@forEach
+                    }
                     updated.add(
                         object : PolylineOverlayRendererInterface.ChangeParamsInterface<ActualPolyline> {
                             override val current: PolylineEntityInterface<ActualPolyline> =

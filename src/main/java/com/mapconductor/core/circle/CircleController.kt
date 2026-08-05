@@ -34,6 +34,14 @@ abstract class CircleController<ActualCircle>(
             data.forEach { state ->
                 if (previous.contains(state.id)) {
                     val prevEntity = circleManager.getEntity(state.id)!!
+                    if (state.fingerPrint() == prevEntity.fingerPrint) {
+                        // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する
+                        // （react-sdk と同じ。composition ごとに全オーバーレイへ onChange を
+                        //  再実行する無駄・チラつきを避ける）。
+                        circleManager.registerEntity(CircleEntity(state = state, circle = prevEntity.circle))
+                        previous.remove(state.id)
+                        return@forEach
+                    }
                     updated.add(
                         object : CircleOverlayRendererInterface.ChangeParamsInterface<ActualCircle> {
                             override val current: CircleEntityInterface<ActualCircle> =

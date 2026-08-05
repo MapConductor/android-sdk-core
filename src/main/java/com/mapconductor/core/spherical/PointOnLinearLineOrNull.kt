@@ -10,7 +10,7 @@ import kotlin.math.sqrt
  * position が from–to の「直線（平面）線分」から threshold[m] 以内か判定。
  * 地球の丸みは無視し、経度は短い差分を用いて unwrap します（±180°跨ぎ対応）。
  */
-fun isPointOnLinearLine(
+internal fun linearPointOnLineOrNull(
     from: GeoPointInterface,
     to: GeoPointInterface,
     position: GeoPointInterface,

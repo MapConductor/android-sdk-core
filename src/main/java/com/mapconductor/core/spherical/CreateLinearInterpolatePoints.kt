@@ -10,7 +10,7 @@ import com.mapconductor.core.features.GeoPointInterface
  * GeoJSON を渡すプロバイダ（MapTiler/Longdo 等）の描画が極端に遅くなるため、
  * [maxSegmentLength] を超えるセグメントのみ分割する。
  */
-fun createLinearInterpolatePoints(
+internal fun densifyAlongStraightLine(
     points: List<GeoPointInterface>,
     // 最大セグメント長（メートル）
     maxSegmentLength: Double = 10000.0,
@@ -19,7 +19,7 @@ fun createLinearInterpolatePoints(
     results.add(points[0])
     for (i in 1 until points.size) {
         val distance =
-            GeographicLibCalculator.computeDistanceBetween(
+            WGS84Geodesic.computeDistanceBetween(
                 points[i - 1],
                 points[i],
             )
@@ -30,7 +30,7 @@ fun createLinearInterpolatePoints(
         var fraction = step
         while (fraction < 1.0) {
             val point =
-                Spherical.linearInterpolate(
+                Planar.interpolate(
                     from = points[i - 1],
                     to = points[i],
                     fraction = fraction,

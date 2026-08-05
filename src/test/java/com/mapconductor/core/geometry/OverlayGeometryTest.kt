@@ -3,8 +3,8 @@ package com.mapconductor.core.geometry
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.normalize
-import com.mapconductor.core.spherical.createInterpolatePoints
-import com.mapconductor.core.spherical.createLinearInterpolatePoints
+import com.mapconductor.core.spherical.WGS84Geodesic
+import com.mapconductor.core.spherical.Planar
 import com.mapconductor.core.spherical.splitByMeridian
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -27,8 +27,8 @@ class OverlayGeometryTest {
         geodesic: Boolean,
     ): List<GeoPointInterface> =
         when (geodesic) {
-            true -> createInterpolatePoints(points)
-            false -> createLinearInterpolatePoints(points)
+            true -> WGS84Geodesic.createInterpolatePoints(points)
+            false -> Planar.createInterpolatePoints(points)
         }.map { it.normalize() }
 
     @Test

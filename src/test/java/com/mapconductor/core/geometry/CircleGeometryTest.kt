@@ -2,7 +2,7 @@ package com.mapconductor.core.geometry
 
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.normalize
-import com.mapconductor.core.spherical.GeographicLibCalculator
+import com.mapconductor.core.spherical.WGS84Geodesic
 import com.mapconductor.core.spherical.Spherical
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -28,7 +28,7 @@ class CircleGeometryTest {
         val ring = circleToRing(tokyo, radius, geodesic = false)
         assertEquals(DEFAULT_CIRCLE_SEGMENTS, ring.size)
         ring.forEach { p ->
-            val d = GeographicLibCalculator.computeDistanceBetween(tokyo, p)
+            val d = WGS84Geodesic.computeDistanceBetween(tokyo, p)
             // 局所平面近似なので 1% 以内で半径に一致すること
             assertTrue("distance=$d", d in radius * 0.99..radius * 1.01)
         }

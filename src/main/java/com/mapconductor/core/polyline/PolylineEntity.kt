@@ -49,7 +49,7 @@ class PolylineEntity<ActualPolyline>(
             val samples = 32
             for (s in 1..samples) {
                 val f = s.toDouble() / samples
-                val sp = Spherical.sphericalInterpolate(p1, p2, f)
+                val sp = Spherical.interpolate(p1, p2, f)
                 bounds.extend(sp)
             }
         }

@@ -4,16 +4,16 @@ import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
 import kotlin.math.min
 
-fun pointOnGeodesicSegmentOrNull(
+internal fun geodesicPointOnLineOrNull(
     from: GeoPointInterface,
     to: GeoPointInterface,
     position: GeoPointInterface,
     thresholdMeters: Double,
 ): Pair<GeoPointInterface, Double>? {
-    val totalDistance = GeographicLibCalculator.computeDistanceBetween(from, to)
+    val totalDistance = WGS84Geodesic.computeDistanceBetween(from, to)
 
     if (totalDistance == 0.0) {
-        val distPosFrom = GeographicLibCalculator.computeDistanceBetween(from, position)
+        val distPosFrom = WGS84Geodesic.computeDistanceBetween(from, position)
         return if (distPosFrom <= thresholdMeters) {
             Pair(GeoPoint(from.latitude, from.longitude, from.altitude ?: 0.0), distPosFrom)
         } else {
@@ -30,11 +30,11 @@ fun pointOnGeodesicSegmentOrNull(
         val m1 = left + (right - left) / 3.0
         val m2 = right - (right - left) / 3.0
 
-        val point1 = GeographicLibCalculator.interpolate(from, to, m1)
-        val dist1 = GeographicLibCalculator.computeDistanceBetween(point1, position)
+        val point1 = WGS84Geodesic.interpolate(from, to, m1)
+        val dist1 = WGS84Geodesic.computeDistanceBetween(point1, position)
 
-        val point2 = GeographicLibCalculator.interpolate(from, to, m2)
-        val dist2 = GeographicLibCalculator.computeDistanceBetween(point2, position)
+        val point2 = WGS84Geodesic.interpolate(from, to, m2)
+        val dist2 = WGS84Geodesic.computeDistanceBetween(point2, position)
 
         if (dist1 > dist2) {
             left = m1
@@ -47,8 +47,8 @@ fun pointOnGeodesicSegmentOrNull(
 
     // 線分外の判定
     if (bestFraction <= 0.0 || bestFraction >= 1.0) {
-        val distFrom = GeographicLibCalculator.computeDistanceBetween(from, position)
-        val distTo = GeographicLibCalculator.computeDistanceBetween(to, position)
+        val distFrom = WGS84Geodesic.computeDistanceBetween(from, position)
+        val distTo = WGS84Geodesic.computeDistanceBetween(to, position)
 
         val actualMin = min(distFrom, distTo)
         if (actualMin > thresholdMeters) return null
@@ -63,9 +63,9 @@ fun pointOnGeodesicSegmentOrNull(
         )
     }
 
-    val closestPoint = GeographicLibCalculator.interpolate(from, to, bestFraction)
+    val closestPoint = WGS84Geodesic.interpolate(from, to, bestFraction)
 
-    val minDistance = GeographicLibCalculator.computeDistanceBetween(closestPoint, position)
+    val minDistance = WGS84Geodesic.computeDistanceBetween(closestPoint, position)
 
     if (minDistance > thresholdMeters) return null
 

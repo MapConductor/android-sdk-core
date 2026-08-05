@@ -61,6 +61,26 @@ class GroundImageState(
         return result
     }
 
+    // ios-sdk / react-sdk の GroundImageState.copy() と揃えるための copy。
+    fun copy(
+        bounds: GeoRectBounds = this.bounds,
+        image: Drawable = this.image,
+        opacity: Float = this.opacity,
+        tileSize: Int = this.tileSize,
+        id: String? = this.id,
+        extra: Serializable? = this.extra,
+        onClick: OnGroundImageEventHandler? = this.onClick,
+    ): GroundImageState =
+        GroundImageState(
+            bounds = bounds,
+            image = image,
+            opacity = opacity,
+            tileSize = tileSize,
+            id = id,
+            extra = extra,
+            onClick = onClick,
+        )
+
     override fun equals(other: Any?): Boolean = (other as? GroundImageState)?.hashCode() == this.hashCode()
 
     override fun hashCode(): Int = fingerPrint().hashCode()

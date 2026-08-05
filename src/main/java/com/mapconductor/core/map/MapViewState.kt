@@ -1,5 +1,8 @@
 package com.mapconductor.core.map
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.mapconductor.core.controller.MapViewControllerInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPoint
@@ -21,6 +24,9 @@ interface MapViewStateInterface<ActualMapDesignType> {
     val id: String
     val cameraPosition: MapCameraPosition
     var mapDesignType: ActualMapDesignType
+
+    /** Which map gestures the user may perform. See [MapUISettings]. */
+    var uiSettings: MapUISettings
 
     fun moveCameraTo(
         cameraPosition: MapCameraPosition,
@@ -44,6 +50,9 @@ interface MapViewStateInterface<ActualMapDesignType> {
 
 abstract class MapViewState<ActualMapDesignType> : MapViewStateInterface<ActualMapDesignType> {
     private val tag = this.javaClass.name
+
+    // Backed by Compose state so flipping a gesture flag recomposes the map view.
+    override var uiSettings: MapUISettings by mutableStateOf(MapUISettings.Default)
 }
 
 interface MapOverlayInterface<DataType> {

@@ -1,9 +1,9 @@
-# isPointOnLinearLine
+# pointOnLinearLineOrNull
 
 #### Signature
 
 ```kotlin
-fun isPointOnLinearLine(
+fun pointOnLinearLineOrNull(
     from: GeoPointInterface,
     to: GeoPointInterface,
     position: GeoPointInterface,
@@ -64,7 +64,7 @@ fun main() {
     val closePosition = GeoPoint(latitude = 35.670000, longitude = 139.756000)
     val threshold = 500.0 // 500 meters
 
-    val resultOnLine = isPointOnLinearLine(fromPoint, toPoint, closePosition, threshold)
+    val resultOnLine = pointOnLinearLineOrNull(fromPoint, toPoint, closePosition, threshold)
 
     if (resultOnLine != null) {
         val (closestPoint, distance) = resultOnLine
@@ -83,7 +83,7 @@ fun main() {
 
     // Case 2: A point far from the line segment
     val farPosition = GeoPoint(latitude = 35.710063, longitude = 139.8107) // Tokyo Skytree
-    val resultOffLine = isPointOnLinearLine(fromPoint, toPoint, farPosition, threshold)
+    val resultOffLine = pointOnLinearLineOrNull(fromPoint, toPoint, farPosition, threshold)
 
     if (resultOffLine != null) {
         val (closestPoint, distance) = resultOffLine

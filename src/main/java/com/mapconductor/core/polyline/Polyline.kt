@@ -97,7 +97,7 @@ class PolylineState(
             id = this.id.hashCode(),
             strokeColor = this@PolylineState.strokeColor.hashCode(),
             strokeWidth = this@PolylineState.strokeWidth.hashCode(),
-            geodesic = geodesic.toString().hashCode(),
+            geodesic = geodesic.hashCode(),
             zIndex = zIndex.hashCode(),
             points = listHashCode(points),
             extra = extra?.hashCode() ?: 0,

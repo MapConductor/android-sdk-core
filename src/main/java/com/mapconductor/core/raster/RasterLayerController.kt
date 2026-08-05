@@ -46,6 +46,14 @@ abstract class RasterLayerController<ActualLayer : Any>(
                 data.forEach { state ->
                     if (previous.contains(state.id)) {
                         val prevEntity = rasterLayerManager.getEntity(state.id) ?: return@forEach
+                        if (state.fingerPrint() == prevEntity.fingerPrint) {
+                            // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
+                            rasterLayerManager.registerEntity(
+                                RasterLayerEntity(layer = prevEntity.layer, state = stateSnapshot(state)),
+                            )
+                            previous.remove(state.id)
+                            return@forEach
+                        }
                         updated.add(
                             object : RasterLayerOverlayRendererInterface.ChangeParamsInterface<ActualLayer> {
                                 override val current: RasterLayerEntityInterface<ActualLayer> =

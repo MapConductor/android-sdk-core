@@ -2,7 +2,7 @@ package com.mapconductor.core.spherical
 
 import com.mapconductor.core.features.GeoPointInterface
 
-fun createInterpolatePoints(
+internal fun densifyAlongGeodesic(
     points: List<GeoPointInterface>,
     // 最大セグメント長（メートル）
     maxSegmentLength: Double = 10000.0,
@@ -12,7 +12,7 @@ fun createInterpolatePoints(
 
     for (i in 1 until points.size) {
         val distance =
-            GeographicLibCalculator.computeDistanceBetween(
+            WGS84Geodesic.computeDistanceBetween(
                 points[i - 1],
                 points[i],
             )
@@ -23,7 +23,7 @@ fun createInterpolatePoints(
         var fraction = step
         while (fraction < 1.0) {
             val point =
-                GeographicLibCalculator.interpolate(
+                WGS84Geodesic.interpolate(
                     points[i - 1], points[i], fraction,
                 )
             results.add(point)

@@ -5,8 +5,8 @@ import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.map.MapCameraPosition
 import com.mapconductor.core.spherical.calculateMetersPerPixel
-import com.mapconductor.core.spherical.isPointOnLinearLine
-import com.mapconductor.core.spherical.pointOnGeodesicSegmentOrNull
+import com.mapconductor.core.spherical.Planar
+import com.mapconductor.core.spherical.WGS84Geodesic
 import com.mapconductor.settings.Settings
 import java.util.concurrent.ConcurrentHashMap
 import android.util.Log
@@ -89,14 +89,14 @@ class PolylineManager<ActualPolyline> : PolylineManagerInterface<ActualPolyline>
                 if (visibleRegion == null || visibleRegion.intersects(box)) {
                     when (entity.state.geodesic) {
                         true ->
-                            pointOnGeodesicSegmentOrNull(
+                            WGS84Geodesic.pointOnLineOrNull(
                                 entity.state.points[i],
                                 entity.state.points[i + 1],
                                 position,
                                 threshold,
                             )
                         false ->
-                            isPointOnLinearLine(
+                            Planar.pointOnLineOrNull(
                                 entity.state.points[i],
                                 entity.state.points[i + 1],
                                 position,

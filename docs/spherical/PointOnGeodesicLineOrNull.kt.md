@@ -1,9 +1,9 @@
-# pointOnGeodesicSegmentOrNull
+# pointOnGeodesicLineOrNull
 
 ## Signature
 
 ```kotlin
-fun pointOnGeodesicSegmentOrNull(
+fun pointOnGeodesicLineOrNull(
     from: GeoPointInterface,
     to: GeoPointInterface,
     position: GeoPointInterface,
@@ -58,7 +58,7 @@ A nullable `Pair` object.
 
 ```kotlin
 import com.mapconductor.core.features.GeoPoint
-import com.mapconductor.core.spherical.pointOnGeodesicSegmentOrNull
+import com.mapconductor.core.spherical.pointOnGeodesicLineOrNull
 
 // Define the start and end points of the geodesic segment
 val startPoint = GeoPoint(latitude = 35.681236, longitude = 139.767125) // Tokyo Station
@@ -71,7 +71,7 @@ val testPosition = GeoPoint(latitude = 35.670000, longitude = 139.755000)
 val threshold = 500.0
 
 // Find the closest point on the segment to our test position
-val result = pointOnGeodesicSegmentOrNull(
+val result = pointOnGeodesicLineOrNull(
     from = startPoint,
     to = endPoint,
     position = testPosition,
@@ -89,7 +89,7 @@ if (result != null) {
 
 // Example where the position is too far
 val farPosition = GeoPoint(latitude = 35.710063, longitude = 139.8107) // Tokyo Skytree
-val farResult = pointOnGeodesicSegmentOrNull(
+val farResult = pointOnGeodesicLineOrNull(
     from = startPoint,
     to = endPoint,
     position = farPosition,

@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
-import com.mapconductor.core.spherical.createInterpolatePoints
+import com.mapconductor.core.spherical.WGS84Geodesic
 import com.mapconductor.core.spherical.splitByMeridian
 import com.mapconductor.core.tileserver.TileProviderInterface
 import com.mapconductor.core.tileserver.TileRequest
@@ -89,7 +89,7 @@ class PolygonRasterTileRenderer(
                 val densified =
                     if (geodesic) {
                         try {
-                            createInterpolatePoints(fragment)
+                            WGS84Geodesic.createInterpolatePoints(fragment)
                         } catch (_: Exception) {
                             fragment
                         }

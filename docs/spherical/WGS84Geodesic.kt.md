@@ -1,21 +1,23 @@
-# WGS84Geodesic
+# `WGS84Geodesic`
 
-The `WGS84Geodesic` object provides a collection of utility functions for performing geodesic
-calculations on the WGS84 ellipsoid, which is the reference coordinate system used by the Global
-Positioning System (GPS). These functions are designed for high accuracy and are compatible with
-standard geodesic computations, such as those used by Google Maps.
+### Description
 
-This utility handles calculations for distance, heading (azimuth), and path interpolation between
-geographic coordinates.
+A utility object that provides geodesic calculations via Vincenty's formulae, based on the
+WGS84 ellipsoid (no external library dependency; falls back to a spherical approximation for the
+rare near-antipodal case where Vincenty fails to converge). It exposes the **same method set as
+`Spherical`** — `computeDistanceBetween`, `computeHeading`, `computeOffset`, `computeOffsetOrigin`,
+`computeLength`, `computeArea` / `computeSignedArea` (ellipsoidal, authalic-sphere), `interpolate`,
+and `linearInterpolate` — so you can swap `Spherical` (globe) for `WGS84Geodesic` (WGS84) without
+changing call sites. The two methods documented below are the geodesic-specific essentials;
+the rest mirror their `Spherical` counterparts.
 
 ---
 
-## `computeDistanceBetween`
+## Methods
 
-Calculates the shortest distance (geodesic) between two points on the surface of the WGS84
-ellipsoid. This method implements Vincenty's inverse formula for high accuracy.
+### `computeDistanceBetween`
 
-### Signature
+#### Signature
 
 ```kotlin
 fun computeDistanceBetween(
@@ -24,107 +26,47 @@ fun computeDistanceBetween(
 ): Double
 ```
 
-### Description
+#### Description
 
-This function computes the geodesic distance in meters between a starting point (`from`) and an
-ending point (`to`). The calculation is based on Vincenty's inverse formula, which is an iterative
-method that is highly accurate for all distances on an ellipsoid. It is a robust alternative to the
-Haversine formula, which assumes a perfect sphere.
+Calculates the shortest distance (geodesic) between two geographical points on the WGS84 ellipsoid.
 
-### Parameters
+#### Parameters
 
 - `from`
     - Type: `GeoPointInterface`
     - Description: The starting geographical point.
 - `to`
     - Type: `GeoPointInterface`
-    - Description: The destination geographical point.
+    - Description: The ending geographical point.
 
-### Returns
+#### Returns
 
-`Double` - The geodesic distance between the two points in meters. Returns `0.0` if the points are
-identical or if the algorithm fails to converge.
+**`Double`**
 
-### Example
+The geodesic distance between the two points in meters.
 
-```kotlin
-import com.mapconductor.core.features.GeoPoint
-import com.mapconductor.core.spherical.WGS84Geodesic
-
-fun main() {
-    val newYork = GeoPoint(latitude = 40.7128, longitude = -74.0060)
-    val london = GeoPoint(latitude = 51.5074, longitude = -0.1278)
-
-    val distance = WGS84Geodesic.computeDistanceBetween(newYork, london)
-
-    // The distance is approximately 5,570,224.5 meters
-    println("Distance between New York and London: $distance meters")
-}
-```
-
----
-
-## `computeHeading`
-
-Calculates the initial bearing (forward azimuth) from a starting point to a destination point on the
-WGS84 ellipsoid.
-
-### Signature
-
-```kotlin
-fun computeHeading(
-    from: GeoPointInterface,
-    to: GeoPointInterface
-): Double
-```
-
-### Description
-
-This function determines the initial heading, in degrees, for the shortest path (geodesic) from the
-`from` point to the `to` point. The heading is measured clockwise from true north.
-
-### Parameters
-
-- `from`
-    - Type: `GeoPointInterface`
-    - Description: The starting geographical point.
-- `to`
-    - Type: `GeoPointInterface`
-    - Description: The destination geographical point.
-
-### Returns
-
-`Double` - The initial heading in degrees, normalized to a range of `-180` to `180`.
-- `0°` is North
-- `90°` is East
-- `180°` or `-180°` is South
-- `-90°` is West
-
-### Example
+#### Example
 
 ```kotlin
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.spherical.WGS84Geodesic
 
-fun main() {
-    val startPoint = GeoPoint(latitude = 40.7128, longitude = -74.0060) // New York
-    val endPoint = GeoPoint(latitude = 51.5074, longitude = -0.1278)   // London
+// Define two points (e.g., San Francisco and Los Angeles)
+val sf = GeoPoint(37.7749, -122.4194)
+val la = GeoPoint(34.0522, -118.2437)
 
-    val heading = WGS84Geodesic.computeHeading(startPoint, endPoint)
+// Calculate the distance between them
+val distanceInMeters = WGS84Geodesic.computeDistanceBetween(sf, la)
 
-    // The initial heading is approximately 51.2 degrees
-    println("Initial heading from New York to London: $heading degrees")
-}
+println("Distance: $distanceInMeters meters")
+// Expected output might be around: Distance: 559120.539653327 meters
 ```
 
 ---
 
-## `interpolate`
+### `interpolate`
 
-Calculates an intermediate geographical point along the great-circle path between two points using
-spherical linear interpolation (Slerp).
-
-### Signature
+#### Signature
 
 ```kotlin
 fun interpolate(
@@ -134,49 +76,54 @@ fun interpolate(
 ): GeoPoint
 ```
 
-### Description
+#### Description
 
-This function finds a `GeoPoint` that lies at a specified fraction of the distance along the path
-from a starting point to a destination point. It uses Spherical Linear Interpolation (Slerp), which
-provides a good approximation for short to medium distances by treating the Earth as a sphere. For
-the highest precision over long distances, Vincenty's direct formula would be required.
+Calculates an intermediate point along the geodesic line between two given points. The position of
+the intermediate point is determined by a fraction of the total distance.
 
-Altitude is interpolated linearly. If only one of the points has an altitude, that altitude is used
-for the interpolated point.
+The altitude of the resulting point is interpolated as follows:
+- If both `from` and `to` have an altitude, the new altitude is linearly interpolated.
+- If only one point has an altitude, its altitude is used for the result.
+- If neither point has an altitude, the resulting altitude is `0.0`.
 
-### Parameters
+#### Parameters
 
 - `from`
     - Type: `GeoPointInterface`
     - Description: The starting geographical point.
 - `to`
     - Type: `GeoPointInterface`
-    - Description: The destination geographical point.
+    - Description: The ending geographical point.
 - `fraction`
     - Type: `Double`
-    - Description: The fraction of the distance from the `from` point to the `to` point. Must be
-      between `0.0` (returns `from`) and `1.0` (returns `to`).
+    - Description: The fractional distance from the `from` point towards the `to` point. A value of
+      `0.0` returns the `from` point, and `1.0` returns the `to` point.
 
-### Returns
+#### Returns
 
-`GeoPoint` - The new `GeoPoint` at the specified fractional distance along the path.
+**`GeoPoint`**
 
-### Example
+A new `GeoPoint` object representing the interpolated point, including the calculated latitude,
+longitude, and altitude.
+
+#### Example
 
 ```kotlin
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.spherical.WGS84Geodesic
 
-fun main() {
-    val startPoint = GeoPoint(latitude = 40.7128, longitude = -74.0060, altitude = 10.0)
-    val endPoint = GeoPoint(latitude = 51.5074, longitude = -0.1278, altitude = 20.0)
+// Define two points with altitude
+val startPoint = GeoPoint(latitude = 37.7749, longitude = -122.4194, altitude = 10.0)
+val endPoint = GeoPoint(latitude = 34.0522, longitude = -118.2437, altitude = 110.0)
 
-    // Find the midpoint (fraction = 0.5)
-    val midPoint = WGS84Geodesic.interpolate(startPoint, endPoint, 0.5)
+// Find the midpoint (fraction = 0.5)
+val midPoint = WGS84Geodesic.interpolate(startPoint, endPoint, 0.5)
 
-    println("Midpoint:")
-    println("  Latitude: ${midPoint.latitude}")
-    println("  Longitude: ${midPoint.longitude}")
-    println("  Altitude: ${midPoint.altitude}") // Expected altitude: 15.0
-}
+println("Midpoint Latitude: ${midPoint.latitude}")
+println("Midpoint Longitude: ${midPoint.longitude}")
+println("Midpoint Altitude: ${midPoint.altitude}")
+// Expected output:
+// Midpoint Latitude: 35.9185...
+// Midpoint Longitude: -120.3219...
+// Midpoint Altitude: 60.0
 ```

@@ -34,6 +34,12 @@ abstract class PolygonController<ActualPolygon>(
             data.forEach { state ->
                 if (previous.contains(state.id)) {
                     val prevEntity = polygonManager.getEntity(state.id)!!
+                    if (state.fingerPrint() == prevEntity.fingerPrint) {
+                        // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
+                        polygonManager.registerEntity(PolygonEntity(state = state, polygon = prevEntity.polygon))
+                        previous.remove(state.id)
+                        return@forEach
+                    }
                     updated.add(
                         object : PolygonOverlayRendererInterface.ChangeParamsInterface<ActualPolygon> {
                             override val current: PolygonEntityInterface<ActualPolygon> =
@@ -136,6 +142,8 @@ abstract class PolygonController<ActualPolygon>(
                     )
                 polygonManager.registerEntity(entity)
             }
+            // ios-sdk / react-sdk と同じく update() でも onPostProcess を呼んで単一更新をコミットする。
+            renderer.onPostProcess()
         }
     }
 

@@ -93,7 +93,7 @@ class PolygonState(
             strokeColor = this@PolygonState.strokeColor.hashCode(),
             strokeWidth = this@PolygonState.strokeWidth.hashCode(),
             fillColor = this@PolygonState.fillColor.hashCode(),
-            geodesic = geodesic.toString().hashCode(),
+            geodesic = geodesic.hashCode(),
             zIndex = zIndex,
             points = listHashCode(points),
             holes = nestedListHashCode(holes),

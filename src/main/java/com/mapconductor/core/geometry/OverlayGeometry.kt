@@ -4,8 +4,8 @@ import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.normalize
 import com.mapconductor.core.normalizeLng
-import com.mapconductor.core.spherical.createInterpolatePoints
-import com.mapconductor.core.spherical.createLinearInterpolatePoints
+import com.mapconductor.core.spherical.WGS84Geodesic
+import com.mapconductor.core.spherical.Planar
 import com.mapconductor.core.spherical.splitByMeridian
 
 /*
@@ -21,8 +21,8 @@ fun densifyAndNormalize(
     geodesic: Boolean,
 ): List<GeoPointInterface> =
     when (geodesic) {
-        true -> createInterpolatePoints(points)
-        false -> createLinearInterpolatePoints(points)
+        true -> WGS84Geodesic.createInterpolatePoints(points)
+        false -> Planar.createInterpolatePoints(points)
     }.map { it.normalize() }
 
 /**

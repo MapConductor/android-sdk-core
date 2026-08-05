@@ -87,13 +87,7 @@ class CircleState(
         geodesic: Boolean = this.geodesic,
         strokeColor: Color = this.strokeColor,
         strokeWidth: Dp = this.strokeWidth,
-        fillColor: Color =
-            Color(
-                red = 255,
-                green = 255,
-                blue = 255,
-                alpha = 127,
-            ),
+        fillColor: Color = this.fillColor,
         id: String? = this.id,
         zIndex: Int? = this.zIndex,
         extra: Serializable? = this.extra,
