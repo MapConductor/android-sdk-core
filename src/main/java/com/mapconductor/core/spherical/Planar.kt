@@ -58,6 +58,5 @@ object Planar {
         to: GeoPointInterface,
         position: GeoPointInterface,
         thresholdMeters: Double,
-    ): Pair<GeoPointInterface, Double>? =
-        linearPointOnLineOrNull(from, to, position, thresholdMeters)
+    ): Pair<GeoPointInterface, Double>? = linearPointOnLineOrNull(from, to, position, thresholdMeters)
 }

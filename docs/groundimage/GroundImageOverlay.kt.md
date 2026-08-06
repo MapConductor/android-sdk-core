@@ -6,14 +6,14 @@ with a parent `MapView`.
 ## Signature
 
 ```kotlin
-val LocalGroundImageCollector: compositionLocalOf<ChildCollector<GroundImageState>>
+val LocalGroundImageCollector: compositionLocalOf<OverlayCollectorInterface<GroundImageState>>
 ```
 
 ## Description
 
 `LocalGroundImageCollector` is a Jetpack Compose `CompositionLocal` used internally to manage ground
 image states within a `MapView`. Its primary purpose is to provide a
-`ChildCollector<GroundImageState>` down the composable tree.
+`OverlayCollectorInterface<GroundImageState>` down the composable tree.
 
 This allows child `GroundImage` composables to add their state objects to a central collection
 managed by the `MapView`. If a `GroundImage` is declared outside the scope of a `MapView`, this

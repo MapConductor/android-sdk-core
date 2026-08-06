@@ -10,7 +10,7 @@ abstract class GroundImageController<ActualGroundImage>(
     open val renderer: GroundImageOverlayRendererInterface<ActualGroundImage>,
 ) : OverlayControllerInterface<
         GroundImageState,
-        GroundImageEntityInterface<ActualGroundImage>
+        GroundImageEntityInterface<ActualGroundImage>,
     > {
     override val zIndex: Int = 2
     val semaphore = Semaphore(1)
@@ -36,7 +36,8 @@ abstract class GroundImageController<ActualGroundImage>(
                     val prevEntity = groundImageManager.getEntity(state.id)!!
                     if (state.fingerPrint() == prevEntity.fingerPrint) {
                         // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
-                        groundImageManager.registerEntity(GroundImageEntity(groundImage = prevEntity.groundImage, state = state))
+                        groundImageManager
+                            .registerEntity(GroundImageEntity(groundImage = prevEntity.groundImage, state = state))
                         previous.remove(state.id)
                         return@forEach
                     }

@@ -16,7 +16,8 @@ data class GeoPoint(
     override val latitude: Double,
     override val longitude: Double,
     override val altitude: Double = 0.0,
-) : GeoPointInterface, Serializable {
+) : GeoPointInterface,
+    Serializable {
     fun toUrlValue(precision: Int = 6): String = "${latitude.toFixed(precision)},${longitude.toFixed(precision)}"
 
     override fun equals(other: Any?): Boolean {

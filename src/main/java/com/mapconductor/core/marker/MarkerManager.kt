@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
+import android.util.Log
 
 /**
  * Memory usage statistics for MarkerManager optimization
@@ -53,17 +54,17 @@ open class MarkerManager<ActualMarker>(
     }
 
     open fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? {
-        checkNotDestroyed()
+        if (!usable("getEntity")) return null
         return entities.get(id)
     }
 
     open fun hasEntity(id: String): Boolean {
-        checkNotDestroyed()
+        if (!usable("hasEntity")) return false
         return entities.containsKey(id)
     }
 
     open fun removeEntity(id: String): MarkerEntityInterface<ActualMarker>? {
-        checkNotDestroyed()
+        if (!usable("removeEntity")) return null
         val removed = entities.remove(id)
         if (removed != null) {
             // Only update spatial index if it exists
@@ -78,14 +79,15 @@ open class MarkerManager<ActualMarker>(
         pixels: Double,
         tileSize: Int = 256,
     ): Double {
-        checkNotDestroyed()
+        // 純粋な計算で内部状態を触らないため、破棄後でも警告だけ出して計算を続ける。
+        usable("metersPerPixel")
         // Optimized calculation without native reflection calls
         val pixelsAtZoom = tileSize * Math.pow(2.0, zoom)
         return Earth.CIRCUMFERENCE_METERS / pixelsAtZoom * Math.cos(Math.toRadians(position.latitude)) * pixels
     }
 
     open fun findNearest(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
-        checkNotDestroyed()
+        if (!usable("findNearest")) return null
 
         if (entities.size > minMarkerCount) { // Use spatial index for larger datasets
             val registry = ensureCellRegistry() // must be called outside read lock to avoid write-lock upgrade deadlock
@@ -119,14 +121,14 @@ open class MarkerManager<ActualMarker>(
     }
 
     open fun findByIdPrefix(prefix: String): List<HexCell> {
-        checkNotDestroyed()
+        if (!usable("findByIdPrefix")) return emptyList()
         semaphore.read {
             return cellRegistry?.findByIdPrefix(prefix) ?: emptyList()
         }
     }
 
     open fun registerEntity(entity: MarkerEntityInterface<ActualMarker>) {
-        checkNotDestroyed()
+        if (!usable("registerEntity")) return
         semaphore.write {
             entities[entity.state.id] = entity
             // Only update spatial index if it exists
@@ -152,7 +154,7 @@ open class MarkerManager<ActualMarker>(
     }
 
     open fun updateEntity(entity: MarkerEntityInterface<ActualMarker>) {
-        checkNotDestroyed()
+        if (!usable("updateEntity")) return
         semaphore.write {
             entities[entity.state.id] = entity
             // Only update spatial index if it exists
@@ -161,7 +163,7 @@ open class MarkerManager<ActualMarker>(
     }
 
     open fun allEntities(): List<MarkerEntityInterface<ActualMarker>> {
-        checkNotDestroyed()
+        if (!usable("allEntities")) return emptyList()
         semaphore.read {
             return entities.values.toList()
         }
@@ -171,7 +173,7 @@ open class MarkerManager<ActualMarker>(
      * Get memory usage statistics for debugging and optimization
      */
     fun getMemoryStats(): MarkerManagerStats {
-        checkNotDestroyed()
+        usable("getMemoryStats")
         return MarkerManagerStats(
             entityCount = entities.size,
             hasSpatialIndex = cellRegistry != null,
@@ -189,7 +191,7 @@ open class MarkerManager<ActualMarker>(
     }
 
     open fun clear() {
-        checkNotDestroyed()
+        if (!usable("clear")) return
         entities.clear()
         cellRegistry?.clear()
     }
@@ -197,15 +199,22 @@ open class MarkerManager<ActualMarker>(
     fun findMarkersInBounds(
         bounds: com.mapconductor.core.features.GeoRectBounds,
     ): List<MarkerEntityInterface<ActualMarker>> {
-        checkNotDestroyed()
+        if (!usable("findMarkersInBounds")) return emptyList()
         if (bounds.isEmpty) return emptyList()
 
-        // For spatial queries, ensure the cell registry is initialized
-        if (entities.size > minMarkerCount) { // Only use spatial index for larger datasets
+        // For spatial queries, ensure the cell registry is initialized.
+        // `bounds.isEmpty` above already rules out a null corner, so the !! was
+        // safe — but it read as if it might not be, and `center` is a computed
+        // property that rebuilt the point on every access. Binding both up front
+        // states the precondition once and matches ios-sdk's `if count > n,
+        // let center = ..., let northEast = ...` shape.
+        val center = bounds.center
+        val northEast = bounds.northEast
+        if (entities.size > minMarkerCount && center != null && northEast != null) { // Only use spatial index for larger datasets
             val registry = ensureCellRegistry()
             semaphore.read {
-                val distance = Spherical.computeDistanceBetween(bounds.center!!, bounds.northEast!!)
-                val hexCells = registry.findWithinRadiusWithDistance(bounds.center!!, distance)
+                val distance = Spherical.computeDistanceBetween(center, northEast)
+                val hexCells = registry.findWithinRadiusWithDistance(center, distance)
                 val entryIDs: List<String> =
                     hexCells
                         .map { registry.getEntryIDsByHexCell(it.cell) }
@@ -236,10 +245,22 @@ open class MarkerManager<ActualMarker>(
         }
     }
 
-    private fun checkNotDestroyed() {
+    /**
+     * 破棄後のアクセスかどうかを返す。破棄後なら警告ログを出して `false` を返す。
+     *
+     * 以前は `IllegalStateException` を投げていたが、プロバイダ切り替えやビュー破棄の際に
+     * 実行中の非同期処理（Combine/Flow の配送や進行中のレンダラ往復）が destroy 直後に
+     * 到着するのは正常な競合であり、そこでクラッシュさせる理由がない。
+     * destroy() は全状態をクリアするので、破棄後の操作は空状態への no-op で足りる。
+     * ios-sdk / react-sdk と同じ「ログを出して無視する」セマンティクスに揃えた
+     * （react-sdk の `console.warn(... ignored)` と同じく、書き込み系も実行しない）。
+     */
+    private fun usable(operation: String): Boolean {
         if (isDestroyed) {
-            throw IllegalStateException("MarkerManager has been destroyed")
+            Log.w(TAG, "MarkerManager.$operation called after destroy (ignored)")
+            return false
         }
+        return true
     }
 
     protected open fun finalize() {
@@ -247,6 +268,8 @@ open class MarkerManager<ActualMarker>(
     }
 
     companion object {
+        private const val TAG = "MapConductor"
+
         fun <ActualMarker> defaultManager(
             geocell: HexGeocellInterface? = null,
             minMarkerCount: Int = 2000,

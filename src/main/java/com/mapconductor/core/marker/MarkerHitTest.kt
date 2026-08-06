@@ -48,7 +48,9 @@ object MarkerHitTest {
             iconHeightPx = iconSizePx,
             anchorX = icon.anchor.x.toDouble(),
             anchorY = icon.anchor.y.toDouble(),
-            tolerancePx = Settings.Default.tapTolerance.value.toDouble() * density,
+            tolerancePx =
+                Settings.Default.tapTolerance.value
+                    .toDouble() * density,
         )
     }
 

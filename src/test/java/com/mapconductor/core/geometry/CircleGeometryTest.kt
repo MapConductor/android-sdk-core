@@ -2,8 +2,8 @@ package com.mapconductor.core.geometry
 
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.normalize
-import com.mapconductor.core.spherical.WGS84Geodesic
 import com.mapconductor.core.spherical.Spherical
+import com.mapconductor.core.spherical.WGS84Geodesic
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

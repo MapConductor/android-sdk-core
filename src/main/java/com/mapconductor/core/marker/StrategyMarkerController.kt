@@ -1,12 +1,10 @@
 package com.mapconductor.core.marker
 
-import com.mapconductor.core.ResourceProvider
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.map.MapCameraPosition
-import com.mapconductor.settings.Settings
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
@@ -15,8 +13,9 @@ class StrategyMarkerController<ActualMarker>(
     private val renderer: MarkerOverlayRendererInterface<ActualMarker>,
 ) : OverlayControllerInterface<
         MarkerState,
-        MarkerEntityInterface<ActualMarker>
-    >, OnCameraChangeReceiverInterface {
+        MarkerEntityInterface<ActualMarker>,
+    >,
+    OnCameraChangeReceiverInterface {
     val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
     override val zIndex: Int = 10
     private var mapCameraPosition: MapCameraPosition? = null

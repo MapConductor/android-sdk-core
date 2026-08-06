@@ -83,8 +83,7 @@ object WGS84Geodesic {
         to: GeoPointInterface,
         position: GeoPointInterface,
         thresholdMeters: Double,
-    ): Pair<GeoPointInterface, Double>? =
-        geodesicPointOnLineOrNull(from, to, position, thresholdMeters)
+    ): Pair<GeoPointInterface, Double>? = geodesicPointOnLineOrNull(from, to, position, thresholdMeters)
 
     /**
      * Ellipsoidal (authalic-sphere) polygon area. Maps geodetic latitudes to
@@ -115,9 +114,11 @@ object WGS84Geodesic {
         val sinPhi = sin(Math.toRadians(latitudeDeg))
         val q =
             (1 - ECCENTRICITY_SQ) *
-                (sinPhi / (1 - ECCENTRICITY_SQ * sinPhi * sinPhi) -
-                    (1 / (2 * ECCENTRICITY)) *
-                        ln((1 - ECCENTRICITY * sinPhi) / (1 + ECCENTRICITY * sinPhi)))
+                (
+                    sinPhi / (1 - ECCENTRICITY_SQ * sinPhi * sinPhi) -
+                        (1 / (2 * ECCENTRICITY)) *
+                        ln((1 - ECCENTRICITY * sinPhi) / (1 + ECCENTRICITY * sinPhi))
+                )
         return q / AUTHALIC_QP
     }
 
@@ -205,7 +206,7 @@ object WGS84Geodesic {
 
         val uSq =
             cosSqAlpha * (SEMI_MAJOR_AXIS * SEMI_MAJOR_AXIS - SEMI_MINOR_AXIS * SEMI_MINOR_AXIS) /
-            (SEMI_MINOR_AXIS * SEMI_MINOR_AXIS)
+                (SEMI_MINOR_AXIS * SEMI_MINOR_AXIS)
         val ellipsoidFactor = 1 + uSq / 16384 * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)))
         val correctionTerm = uSq / 1024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)))
         val deltaSigma =
@@ -245,7 +246,7 @@ object WGS84Geodesic {
         val cosSqAlpha = 1 - sinAlpha * sinAlpha
         val uSq =
             cosSqAlpha * (SEMI_MAJOR_AXIS * SEMI_MAJOR_AXIS - SEMI_MINOR_AXIS * SEMI_MINOR_AXIS) /
-            (SEMI_MINOR_AXIS * SEMI_MINOR_AXIS)
+                (SEMI_MINOR_AXIS * SEMI_MINOR_AXIS)
         val ellipsoidFactor = 1 + uSq / 16384 * (4096 + uSq * (-768 + uSq * (320 - 175 * uSq)))
         val correctionTerm = uSq / 1024 * (256 + uSq * (-128 + uSq * (74 - 47 * uSq)))
 
@@ -288,11 +289,11 @@ object WGS84Geodesic {
         val correctionFactor = FLATTENING / 16 * cosSqAlpha * (4 + FLATTENING * (4 - 3 * cosSqAlpha))
         val longitudeDifference =
             lambda - (1 - correctionFactor) * FLATTENING * sinAlpha *
-            (
-                sigma +
-                    correctionFactor * sinSigma *
-                    (cos2SigmaM + correctionFactor * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM))
-            )
+                (
+                    sigma +
+                        correctionFactor * sinSigma *
+                        (cos2SigmaM + correctionFactor * cosSigma * (-1 + 2 * cos2SigmaM * cos2SigmaM))
+                )
         val lon2 = lon1 + longitudeDifference
 
         return Pair(Math.toDegrees(lat2), normalizeLng(Math.toDegrees(lon2)))
@@ -308,7 +309,7 @@ object WGS84Geodesic {
         val deltaLng = Math.toRadians(to.longitude - from.longitude)
         val a =
             sin(deltaLat / 2) * sin(deltaLat / 2) +
-            cos(lat1) * cos(lat2) * sin(deltaLng / 2) * sin(deltaLng / 2)
+                cos(lat1) * cos(lat2) * sin(deltaLng / 2) * sin(deltaLng / 2)
         val centralAngle = 2 * atan2(sqrt(a), sqrt(1 - a))
         val y = sin(deltaLng) * cos(lat2)
         val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(deltaLng)

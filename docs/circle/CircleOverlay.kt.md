@@ -3,12 +3,12 @@
 **Signature**
 
 ```kotlin
-val LocalCircleCollector: ProvidableCompositionLocal<ChildCollector<CircleState>>
+val LocalCircleCollector: ProvidableCompositionLocal<OverlayCollectorInterface<CircleState>>
 ```
 
 **Description**
 
-A `CompositionLocal` that provides access to a `ChildCollector` for `CircleState` objects. This
+A `CompositionLocal` that provides access to a `OverlayCollectorInterface` for `CircleState` objects. This
 collector is used internally by circle-related composables (e.g., `<Circle />`) to register their
 state with the parent `<MapView />` component.
 

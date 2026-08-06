@@ -2,7 +2,6 @@ package com.mapconductor.core.spherical
 
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.normalizeLng
 import com.mapconductor.core.projection.Earth
 import kotlin.math.abs
 import kotlin.math.acos

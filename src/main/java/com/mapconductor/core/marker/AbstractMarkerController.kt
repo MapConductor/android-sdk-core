@@ -23,6 +23,32 @@ abstract class AbstractMarkerController<ActualMarker>(
     var animateStartListener: OnMarkerEventHandler? = null
     var animateEndListener: OnMarkerEventHandler? = null
 
+    /**
+     * ドラッグ中のマーカー id。
+     *
+     * react-sdk が `AbstractMarkerController` に持つ WeakMap のドラッグ状態の移植。
+     * react-sdk は state インスタンスをキーにした WeakMap を使うが、Kotlin/Java には
+     * 「弱参照かつ同一性キー」のマップが標準に無く、`MarkerState` は `equals` /
+     * `hashCode` をフィールド値で上書きしているため `WeakHashMap` だと別インスタンスの
+     * 等価な state と衝突する。そのため id の集合で持つ（ios-sdk の `animatingMarkerIds` と同じ方式）。
+     *
+     * **これは facility であって既定の挙動ではない。**
+     * react-sdk では、ネイティブにドラッグ可能なマーカーを持つプロバイダ（Leaflet の
+     * Draggable、HERE の H.map behavior など）が `update()` を override して
+     * `isDragging` でスキップする。マーカーを動かしているのは SDK 側なので、そこへ
+     * `MarkerState` の位置を再適用すると綱引きになるため。
+     *
+     * 一方 android-sdk のプロバイダは**ドラッグを自前のジェスチャ処理で実装**し、
+     * `state.position` を書き換えて、その変更通知から来る [update] の再描画でマーカーを
+     * 動かしている（`HereMapViewController` が典型）。つまり [update] こそがドラッグの
+     * 駆動経路なので、ここで一律にスキップするとマーカーが指に追従しなくなる。
+     *
+     * そのため既定では [update] をスキップしない。ネイティブドラッグを持つプロバイダが
+     * 必要に応じて [update] を override して [isDragging] で判断すること。
+     */
+    private val draggingMarkerIds: MutableSet<String> =
+        java.util.Collections.synchronizedSet(mutableSetOf<String>())
+
     init {
         renderer.animateStartListener = { state -> dispatchAnimateStart(state) }
         renderer.animateEndListener = { state -> dispatchAnimateEnd(state) }
@@ -33,7 +59,27 @@ abstract class AbstractMarkerController<ActualMarker>(
         clickListener?.invoke(state)
     }
 
+    /**
+     * ドラッグ中フラグを立て下げする。[dispatchDragStart] / [dispatchDragEnd] が自動で呼ぶ。
+     *
+     * フラグを立てるだけで既定の挙動は変わらない（[draggingMarkerIds] の説明を参照）。
+     * 参照するかどうかは各プロバイダの判断。
+     */
+    open fun setDraggingState(
+        state: MarkerState,
+        dragging: Boolean,
+    ) {
+        if (dragging) {
+            draggingMarkerIds.add(state.id)
+        } else {
+            draggingMarkerIds.remove(state.id)
+        }
+    }
+
+    fun isDragging(state: MarkerState): Boolean = draggingMarkerIds.contains(state.id)
+
     fun dispatchDragStart(state: MarkerState) {
+        setDraggingState(state, true)
         state.onDragStart?.invoke(state)
         dragStartListener?.invoke(state)
     }
@@ -44,6 +90,7 @@ abstract class AbstractMarkerController<ActualMarker>(
     }
 
     fun dispatchDragEnd(state: MarkerState) {
+        setDraggingState(state, false)
         state.onDragEnd?.invoke(state)
         dragEndListener?.invoke(state)
     }
@@ -70,6 +117,17 @@ abstract class AbstractMarkerController<ActualMarker>(
 
                 if (previous.contains(state.id)) {
                     val prevEntity = markerManager.getEntity(state.id)!!
+                    previous.remove(state.id)
+
+                    // 描画結果が変わらないマーカーは renderer を往復させない。
+                    // 同じ一覧が再送されただけ（無関係な再コンポーズ等）でも、以前は全件を
+                    // onChange に積んでいたため、数千件のマップで毎回フルの往復が走っていた。
+                    // react-sdk の MarkerIngestionEngine が持つ同名の最適化の移植。
+                    // fingerPrint は animation を含むので、アニメーション要求は素通りしない。
+                    if (prevEntity.fingerPrint == state.fingerPrint()) {
+                        return@forEach
+                    }
+
                     val markerIcon = state.icon?.toBitmapIcon() ?: defaultMarkerIcon
 
                     updated.add(
@@ -84,7 +142,6 @@ abstract class AbstractMarkerController<ActualMarker>(
                             override val prev: MarkerEntityInterface<ActualMarker> = prevEntity
                         },
                     )
-                    previous.remove(state.id)
                 } else {
                     added.add(
                         object : MarkerOverlayRendererInterface.AddParamsInterface {
@@ -233,6 +290,7 @@ abstract class AbstractMarkerController<ActualMarker>(
             val entities: List<MarkerEntityInterface<ActualMarker>> = markerManager.allEntities()
             renderer.onRemove(entities)
             markerManager.clear()
+            draggingMarkerIds.clear()
         }
     }
 
@@ -241,6 +299,7 @@ abstract class AbstractMarkerController<ActualMarker>(
      * IMPORTANT: Call this when switching map providers or disposing the map
      */
     override fun destroy() {
+        draggingMarkerIds.clear()
         markerManager.destroy()
     }
 }

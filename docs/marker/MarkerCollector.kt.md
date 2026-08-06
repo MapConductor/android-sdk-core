@@ -6,7 +6,7 @@
 class MarkerCollector(
     updateDebounce: Duration = Settings.Default.composeEventDebounce,
     scope: CoroutineScope = CoroutineScope(Dispatchers.Main.immediate),
-) : ChildCollector<MarkerState>
+) : OverlayCollectorInterface<MarkerState>
 ```
 
 ### Description
@@ -15,8 +15,8 @@ The `MarkerCollector` is a specialized class responsible for collecting and mana
 `MarkerState` objects. It is designed to be used within a map component to handle the state of
 multiple markers efficiently.
 
-It functions as a `ChildCollector<MarkerState>` by delegating its implementation to
-`ChildCollectorImpl`. This allows it to collect marker states declared as its children and expose
+It functions as a `OverlayCollectorInterface<MarkerState>` by delegating its implementation to
+`OverlayCollector`. This allows it to collect marker states declared as its children and expose
 them as a debounced flow. This is particularly useful for optimizing performance by batching rapid
 updates to marker properties or positions, reducing the number of recompositions or map redraws.
 

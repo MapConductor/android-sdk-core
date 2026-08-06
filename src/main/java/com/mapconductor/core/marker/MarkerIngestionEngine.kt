@@ -2,6 +2,7 @@ package com.mapconductor.core.marker
 
 import android.os.SystemClock
 import android.util.Log
+
 /**
  * Shared ingestion logic for marker controllers.
  *

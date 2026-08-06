@@ -85,6 +85,7 @@ class CircleState(
         center: GeoPointInterface = this.center,
         radiusMeters: Double = this.radiusMeters,
         geodesic: Boolean = this.geodesic,
+        clickable: Boolean = this.clickable,
         strokeColor: Color = this.strokeColor,
         strokeWidth: Dp = this.strokeWidth,
         fillColor: Color = this.fillColor,

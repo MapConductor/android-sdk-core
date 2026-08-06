@@ -10,6 +10,7 @@ interface OverlayControllerInterface<StateType, EntityType> {
     suspend fun update(state: StateType)
 
     suspend fun clear()
+
     fun find(position: GeoPointInterface): EntityType?
 
     /**

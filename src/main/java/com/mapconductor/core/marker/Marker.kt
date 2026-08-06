@@ -78,11 +78,21 @@ class MarkerState(
             currentPosition.value = value
         }
 
+    /**
+     * Copies this state, carrying every property over unless overridden.
+     *
+     * [animation] is copied like everything else. It used to be silently
+     * dropped — the parameter did not exist and the new instance was built
+     * without one — so `marker.copy(position = p)` on a bouncing marker
+     * returned a still one. Nothing about a copy implies "stop animating", and
+     * ios-sdk / react-sdk both carry it over.
+     */
     fun copy(
         id: String? = this.id,
         position: GeoPointInterface = this.position,
         extra: Serializable? = this.extra,
         icon: MarkerIconInterface? = this.icon,
+        animation: MarkerAnimation? = this.getAnimation(),
         zIndex: Int? = this.zIndex,
         clickable: Boolean? = this.clickable,
         draggable: Boolean? = this.draggable,
@@ -98,6 +108,7 @@ class MarkerState(
             position = position,
             extra = extra,
             icon = icon,
+            animation = animation,
             zIndex = zIndex,
             clickable = clickable ?: this.clickable,
             draggable = draggable ?: this.draggable,

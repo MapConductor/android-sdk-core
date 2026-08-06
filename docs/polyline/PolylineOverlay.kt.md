@@ -5,12 +5,12 @@ A `CompositionLocal` that provides access to a collector for polyline states.
 ## Signature
 
 ```kotlin
-val LocalPolylineCollector: ProvidableCompositionLocal<ChildCollector<PolylineState>>
+val LocalPolylineCollector: ProvidableCompositionLocal<OverlayCollectorInterface<PolylineState>>
 ```
 
 ## Description
 
-`LocalPolylineCollector` is a `CompositionLocal` used to provide a `ChildCollector<PolylineState>`
+`LocalPolylineCollector` is a `CompositionLocal` used to provide a `OverlayCollectorInterface<PolylineState>`
 down the Composable tree. Its primary purpose is to allow `Polyline` composables to register their
 state with the parent `<MapView />`.
 

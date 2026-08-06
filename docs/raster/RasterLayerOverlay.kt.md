@@ -12,13 +12,13 @@ with a parent `MapView`.
 ### Signature
 
 ```kotlin
-val LocalRasterLayerCollector: ProvidableCompositionLocal<ChildCollector<RasterLayerState>>
+val LocalRasterLayerCollector: ProvidableCompositionLocal<OverlayCollectorInterface<RasterLayerState>>
 ```
 
 ### Description
 
 `LocalRasterLayerCollector` is a Jetpack Compose `CompositionLocal` that holds an instance of
-`ChildCollector<RasterLayerState>`. Its primary purpose is to allow child `RasterLayer` composables
+`OverlayCollectorInterface<RasterLayerState>`. Its primary purpose is to allow child `RasterLayer` composables
 to pass their state up the composition tree to the `MapView`.
 
 This collector is provided by the `MapView` component. Any attempt to access it from a composable

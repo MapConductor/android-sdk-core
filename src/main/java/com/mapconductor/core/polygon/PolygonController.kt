@@ -2,7 +2,6 @@ package com.mapconductor.core.polygon
 
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
@@ -17,6 +16,7 @@ abstract class PolygonController<ActualPolygon>(
     val semaphore = Semaphore(1)
 
     var clickListener: OnPolygonEventHandler? = null
+
     fun dispatchClick(event: PolygonEvent) {
         // 配送座標の wrap は PolygonEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)

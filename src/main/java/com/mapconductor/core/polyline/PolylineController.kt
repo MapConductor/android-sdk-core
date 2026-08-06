@@ -13,7 +13,8 @@ abstract class PolylineController<ActualPolyline>(
 ) : OverlayControllerInterface<
         PolylineState,
         PolylineEntityInterface<ActualPolyline>,
-    >, OnCameraChangeReceiverInterface {
+    >,
+    OnCameraChangeReceiverInterface {
     override val zIndex: Int = 5
     val semaphore = Semaphore(1)
     private var currentCameraPosition: MapCameraPosition? = null

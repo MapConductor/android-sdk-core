@@ -2,7 +2,6 @@ package com.mapconductor.core.polygon
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.Dp
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.spherical.WGS84Geodesic
@@ -135,7 +134,8 @@ class PolygonRasterTileRenderer(
         }
 
         if (tileRequestCount <= 5) {
-            Log.d(TAG, "  -> rendered tile with fillColor=${Integer.toHexString(fillColor.toArgb())}, pathEmpty=${path.isEmpty}")
+            Log
+                .d(TAG, "  -> rendered tile with fillColor=${Integer.toHexString(fillColor.toArgb())}, pathEmpty=${path.isEmpty}")
         }
 
         return bitmapToPng(bitmap).also { bitmap.recycle() }

@@ -13,7 +13,7 @@ class RasterLayerState(
     opacity: Float = 1.0f,
     visible: Boolean = true,
     zIndex: Int = 0,
-    userAgent: String = "MapConductor/RasterLayerAgent(https://mapconductor.com)",
+    userAgent: String = DEFAULT_USER_AGENT,
     debug: Boolean = false,
     id: String? = null,
     extraHeaders: Map<String, String>? = null,
@@ -96,6 +96,19 @@ class RasterLayerState(
     fun asFlow(): Flow<RasterLayerFingerPrint> =
         snapshotFlow { fingerPrint() }
             .distinctUntilChanged()
+
+    companion object {
+        /**
+         * `userAgent` を明示しなかったときに入る値。
+         *
+         * 定数として公開しているのは、プロバイダ側が「利用者が本当に指定したのか、
+         * 既定のまま来ただけなのか」を判断するため。ヘッダを載せるのに追加のコストが
+         * 要るプロバイダは、既定値のままならそのコストを払わない。
+         * ios-sdk の `RasterLayerState.defaultUserAgent` / react-sdk の
+         * `DEFAULT_RASTER_LAYER_USER_AGENT` と同じ値。
+         */
+        const val DEFAULT_USER_AGENT = "MapConductor/RasterLayerAgent(https://mapconductor.com)"
+    }
 }
 
 data class RasterLayerFingerPrint(

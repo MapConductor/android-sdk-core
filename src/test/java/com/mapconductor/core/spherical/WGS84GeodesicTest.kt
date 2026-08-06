@@ -135,12 +135,13 @@ class WGS84GeodesicTest {
     @Test
     fun computeArea_ellipsoidalCellMatchesReference() {
         // 赤道上の 1°×1° セル。GeographicLib の測地線面積とほぼ一致（約 1.23085e10 m²）
-        val cell = listOf(
-            GeoPoint(0.0, 0.0),
-            GeoPoint(1.0, 0.0),
-            GeoPoint(1.0, 1.0),
-            GeoPoint(0.0, 1.0),
-        )
+        val cell =
+            listOf(
+                GeoPoint(0.0, 0.0),
+                GeoPoint(1.0, 0.0),
+                GeoPoint(1.0, 1.0),
+                GeoPoint(0.0, 1.0),
+            )
         assertEquals(1.230846e10, WGS84Geodesic.computeArea(cell), 1e7)
 
         // 逆回りで符号が反転し、絶対値は computeArea と一致

@@ -17,7 +17,19 @@ interface ComponentState {
     val id: String
 }
 
-interface ChildCollector<T : ComponentState> {
+/**
+ * The read/write contract of an [OverlayCollector], with the fingerprint type
+ * erased.
+ *
+ * Consumers (`CompositionLocal`s, `MarkerCollector`'s delegation, extension
+ * modules such as marker clustering) only ever need `T`, so declaring them
+ * against this interface keeps `FingerPrint` — an implementation detail of the
+ * in-place change diff — out of every signature.
+ *
+ * ios-sdk / react-sdk have no equivalent interface: their `OverlayCollector`
+ * needs no fingerprint type parameter, so the class alone is the API.
+ */
+interface OverlayCollectorInterface<T : ComponentState> {
     val flow: MutableStateFlow<MutableMap<String, T>>
 
     suspend fun add(state: T)
@@ -29,11 +41,28 @@ interface ChildCollector<T : ComponentState> {
     fun replaceAll(states: List<T>)
 }
 
-class ChildCollectorImpl<T : ComponentState, FingerPrint>(
+/**
+ * Per-map, per-overlay-type source of truth for overlay states.
+ *
+ * Same role and name as `ios-sdk-core`'s `OverlayCollector.swift` and
+ * `js-sdk-core`'s `overlay/OverlayCollector.ts`: one collector per overlay type
+ * per map, holding an `id -> state` map that the renderer subscribes to.
+ *
+ * Two independent change channels, and the three platforms agree on the shape
+ * of each:
+ *
+ * - **Membership** (add / remove) is **debounced**: a 5ms quiet window that each
+ *   event extends, with a count valve so a large mount does not wait for the
+ *   burst to end. Delivered through [flow].
+ * - **In-place mutation** of an already-collected state is **sampled**: at most
+ *   one delivery per 5ms window per state, latest value wins. Delivered through
+ *   the update handler, never through [flow].
+ */
+class OverlayCollector<T : ComponentState, FingerPrint>(
     private val fingerPrintOf: (T) -> FingerPrint,
     private val updateDebounce: Duration,
     scope: CoroutineScope = CoroutineScope(Dispatchers.Main.immediate),
-) : ChildCollector<T> {
+) : OverlayCollectorInterface<T> {
     private val scope = scope
     private val addSharedFlow = MutableSharedFlow<T>(1000)
     private val removeSharedFlow = MutableSharedFlow<String>(1000)
@@ -96,6 +125,11 @@ class ChildCollectorImpl<T : ComponentState, FingerPrint>(
      * states, every update-handler registration (e.g. switching map
      * providers) spawned O(n) coroutines, and every snapshot commit anywhere
      * in the app paid an O(n) observer sweep.
+     *
+     * [sample] — not debounce — is deliberate: a drag mutates the same state
+     * every frame, and a debounce would keep extending its window and deliver
+     * nothing until the finger stopped. Sampling emits the latest value once
+     * per window while the change stream is still running.
      *
      * The first emission after a (re)start is recorded as the baseline and
      * not delivered: membership changes (add/remove/replaceAll) reach the
