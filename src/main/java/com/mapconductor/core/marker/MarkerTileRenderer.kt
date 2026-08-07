@@ -259,7 +259,16 @@ class MarkerTileRenderer<ActualMarker>(
             val latPad = span.latitude * padNorm
             val lonPad = span.longitude * padNorm
             val extended = bounds.expandedByDegrees(latPad, lonPad)
-            return markerManager.findMarkersInBounds(extended)
+            // タイルに描くのは「タイル担当」の entity だけ。
+            //
+            // 多くのプロバイダはコントローラの markerManager をそのままこのレンダラへ渡すため、
+            // 絞らないとネイティブマーカーとして描いているもの（draggable / animation 付き、
+            // および [MarkerViewportSwitch] が Native モードで出したもの）まで PNG に焼かれ、
+            // 同じ場所へ二重に出る。回転させるとタイル側だけ傾くので、ゴーストとして見える。
+            //
+            // maptiler / longdo のようにタイル専用の manager を別に持つプロバイダでは
+            // 全 entity が tiling = true なので、この絞り込みは何もしない。
+            return markerManager.findMarkersInBounds(extended).filter { it.tiling }
         }
 
         // First query uses a conservative padding (in dp) so we capture markers slightly outside
