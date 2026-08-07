@@ -1,5 +1,6 @@
 package com.mapconductor.core.marker
 
+import androidx.annotation.RestrictTo
 import com.mapconductor.core.map.MapCameraPosition
 import com.mapconductor.core.spherical.expandBounds
 import android.os.SystemClock
@@ -18,6 +19,10 @@ import kotlinx.coroutines.yield
 /**
  * 拡張ビューポート内のマーカーが少ないときだけ、タイル担当のマーカーをネイティブマーカーへ
  * 昇格させる切り替え器。閾値は [MarkerViewportPolicy]。
+ *
+ * **開発中の機能で、公開 API ではない。** 有効化の口は [MarkerTilingOptions.viewport] だけで、
+ * そこは読み取り専用の [MarkerViewportPolicy.Disabled] 固定なので、SDK 利用者の設定では
+ * 動かない。プロバイダモジュールから参照するためだけに public になっている。
  *
  * ### 何を触り、何を触らないか
  *
@@ -38,6 +43,7 @@ import kotlinx.coroutines.yield
  * - [retract] は自前の semaphore を取るので、コントローラ側の `withPermit` の**外**で呼ぶこと。
  * - 破棄時に [destroy]。
  */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 class MarkerViewportSwitch<ActualMarker : Any>(
     private val markerManager: MarkerManager<ActualMarker>,
     private val renderer: MarkerOverlayRendererInterface<ActualMarker>,

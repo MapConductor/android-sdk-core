@@ -1,6 +1,10 @@
 package com.mapconductor.core.polygon
 
+import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
+import kotlin.math.abs
+import kotlin.math.hypot
+import kotlin.math.max
 
 /**
  * 外周リング + 複数の穴リングを、穴をブリッジで繋いだ「単一リング」に変換する
@@ -13,10 +17,17 @@ import com.mapconductor.core.features.GeoPointInterface
  * ポリゴンで描くこと。
  *
  * 入力の巻き方向は問わない（内部で外周 CCW / 穴 CW に正規化する）。x=経度, y=緯度で扱う。
+ *
+ * @param separation 橋の「行き」と「帰り」のエッジを横方向にずらす度数。0 だと橋は幅ゼロ
+ *   （座標が完全に一致する往復エッジ）になり、Android の TomTom はそのまま塗れるが、
+ *   iOS の TomTom (Orbis) や HERE のテッセレータは自己接触リングとして塗りを崩す／穴を
+ *   無視する。正の値を渡すと厳密に単純なリングになり、塗り規則によっては穴が抜ける
+ *   （すき間は画面上では不可視）。Android の既定は 0（従来どおりの幅ゼロの橋）。
  */
 fun bridgeHolesIntoSingleRing(
     outer: List<GeoPointInterface>,
     holes: List<List<GeoPointInterface>>,
+    separation: Double = 0.0,
 ): List<GeoPointInterface> {
     if (holes.isEmpty()) return outer
     var outerNode = buildRing(dropClosing(outer), wantClockwise = false) ?: return outer
@@ -32,7 +43,7 @@ fun bridgeHolesIntoSingleRing(
     for (holeLeftmost in queue) {
         val bridge = findHoleBridge(holeLeftmost, outerNode)
         if (bridge != null) {
-            splitPolygon(bridge, holeLeftmost)
+            splitPolygon(bridge, holeLeftmost, separation)
         }
     }
 
@@ -43,6 +54,51 @@ fun bridgeHolesIntoSingleRing(
         p = p.next
     } while (p !== outerNode)
     return result
+}
+
+/**
+ * 経度ラップを考慮したブリッジ。
+ *
+ * 標準の（earcut 同様の）ブリッジは穴の左端から「西向き」に外周を探すため、世界マスク級の
+ * 外周では橋のエッジが経度 180° 超を跨ぐことがある。ネイティブ地図レンダラ（TomTom Orbis /
+ * HERE など）は 180° 超のエッジを「短い方」（対蹠線越え）として描くため、リングが自己交差
+ * して塗りが壊れる。西向きの結果に 180° 超のエッジが含まれる場合は、経度を鏡像反転して
+ * 東向きに橋を張り直し、経度ステップが小さく収まる方を返す。
+ */
+fun bridgeHolesIntoSingleRingWrapAware(
+    outer: List<GeoPointInterface>,
+    holes: List<List<GeoPointInterface>>,
+    separation: Double = 0.0,
+): List<GeoPointInterface> {
+    val west = bridgeHolesIntoSingleRing(outer, holes, separation)
+    val westMax = maxAbsLngStep(west)
+    if (westMax <= 180.0) return west
+
+    val east =
+        bridgeHolesIntoSingleRing(
+            outer.map(::mirrorLng),
+            holes.map { hole -> hole.map(::mirrorLng) },
+            separation,
+        ).map(::mirrorLng)
+    return if (maxAbsLngStep(east) < westMax) east else west
+}
+
+private fun mirrorLng(point: GeoPointInterface): GeoPointInterface =
+    GeoPoint(
+        latitude = point.latitude,
+        longitude = -point.longitude,
+        altitude = point.altitude ?: 0.0,
+    )
+
+private fun maxAbsLngStep(ring: List<GeoPointInterface>): Double {
+    if (ring.size < 2) return 0.0
+    var maxStep = 0.0
+    for (i in ring.indices) {
+        val a = ring[i]
+        val b = ring[(i + 1) % ring.size]
+        maxStep = max(maxStep, abs(b.longitude - a.longitude))
+    }
+    return maxStep
 }
 
 private class Node(
@@ -164,13 +220,35 @@ private fun findHoleBridge(
     return best
 }
 
-/** a と b を橋で接続し、リングを繋ぎ替える（earcut の splitPolygon）。 */
+/**
+ * a と b を橋で接続し、リングを繋ぎ替える（earcut の splitPolygon）。
+ * separation > 0 のときは複製ノード（帰りエッジ側）を橋方向の法線に沿って
+ * 微小オフセットし、往復エッジの座標一致（自己接触）を避ける。
+ */
 private fun splitPolygon(
     a: Node,
     b: Node,
+    separation: Double,
 ): Node {
-    val a2 = Node(a.x, a.y, a.source)
-    val b2 = Node(b.x, b.y, b.source)
+    var a2x = a.x
+    var a2y = a.y
+    var b2x = b.x
+    var b2y = b.y
+    if (separation > 0) {
+        val dx = b.x - a.x
+        val dy = b.y - a.y
+        val len = hypot(dx, dy)
+        if (len > 0) {
+            val nx = -dy / len * separation
+            val ny = dx / len * separation
+            a2x += nx
+            a2y += ny
+            b2x += nx
+            b2y += ny
+        }
+    }
+    val a2 = Node(a2x, a2y, if (separation > 0) GeoPoint(latitude = a2y, longitude = a2x) else a.source)
+    val b2 = Node(b2x, b2y, if (separation > 0) GeoPoint(latitude = b2y, longitude = b2x) else b.source)
     val an = a.next
     val bp = b.prev
 

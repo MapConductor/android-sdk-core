@@ -1,8 +1,14 @@
 package com.mapconductor.core.marker
 
+import androidx.annotation.RestrictTo
+
 /**
  * ビューポート内のマーカーが十分少ないときだけ、マーカータイリングをやめて
  * ネイティブマーカーで描くための閾値。[MarkerViewportSwitch] が使う。
+ *
+ * **開発中の機能で、公開 API ではない。** SDK 利用者が値を差し込む口は無く
+ * （[MarkerTilingOptions.viewport] は読み取り専用の固定値）、プロバイダモジュールから
+ * 参照するためだけに public になっている。
  *
  * マーカータイリング（[MarkerTileRenderer]）は数万件を捌ける代わりに、絵をラスタータイルへ
  * 焼くので (1) 地図を回すとアイコンごと傾く (2) ドラッグやアニメーションのような per-marker の
@@ -23,6 +29,7 @@ package com.mapconductor.core.marker
  * 使う理由なので）。ズーム依存の倍率を入れていると、切り替わった瞬間にアイコンの大きさが
  * 変わって見える。揃えたい場合は、切り替えが起きるズーム帯で callback が 1.0 を返すようにする。
  */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 data class MarkerViewportPolicy(
     /** false ならタイリング済みマーカーをネイティブへ戻さない（従来どおり常にタイル）。 */
     val enabled: Boolean = true,

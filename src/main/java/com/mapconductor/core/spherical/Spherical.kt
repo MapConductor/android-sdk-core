@@ -276,25 +276,8 @@ object Spherical {
         )
     }
 
-    /**
-     * Performs linear interpolation between two GeoPointInterface locations without considering Earth's curvature.
-     * This method treats coordinates as if they were on a flat plane, which may result in
-     * inaccurate results for large distances but is computationally faster.
-     *
-     * For longitude interpolation, this method automatically chooses the shorter path,
-     * which may cross the 180°/-180° meridian line if that results in a shorter distance.
-     *
-     * Use this method only when:
-     * - Working with small distances where Earth's curvature is negligible
-     * - Performance is critical and accuracy can be sacrificed
-     * - Working with projected coordinate systems
-     *
-     * @param from Starting point
-     * @param to Ending point
-     * @param fraction Interpolation fraction (0.0 = from, 1.0 = to)
-     * @return Linearly interpolated GeoPointInterface position
-     */
-    // `linearInterpolate` moved to `Planar.interpolate` (the straight-line model).
+    // `linearInterpolate` moved to `Planar.interpolate` (the straight-line model)。
+    // 説明もそちらの KDoc にある。
 
     /**
      * Clamps latitude to the range [-90, 90].

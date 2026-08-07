@@ -225,8 +225,9 @@ class HexCellRegistry<ActualMarker>(
 
     /**
      * Get all hex cells
+     *
+     * ArrayList(values) avoids the size==1 race in Kotlin's toList() on concurrent maps.
      */
-    // ArrayList(values) avoids the size==1 race in Kotlin's toList() on concurrent maps.
     fun all(): List<HexCell> = ArrayList(allCells.values)
 
     /**

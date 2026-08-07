@@ -11,7 +11,23 @@ import com.mapconductor.core.normalizeLng
  * e.g. `(if (geodesic) WGS84Geodesic else Planar).createInterpolatePoints(...)`.
  */
 object Planar {
-    /** Straight lat/lng interpolation (handles antimeridian crossing). */
+    /**
+     * Straight lat/lng interpolation (handles antimeridian crossing).
+     *
+     * Treats coordinates as if they were on a flat plane, so results get inaccurate over large
+     * distances, but it is computationally cheaper than the earth-model calculators. For longitude
+     * it automatically takes the shorter path, which may cross the 180°/-180° meridian.
+     *
+     * Use this only when:
+     * - Working with small distances where Earth's curvature is negligible
+     * - Performance is critical and accuracy can be sacrificed
+     * - Working with projected coordinate systems
+     *
+     * @param from Starting point
+     * @param to Ending point
+     * @param fraction Interpolation fraction (0.0 = from, 1.0 = to)
+     * @return Linearly interpolated position
+     */
     fun interpolate(
         from: GeoPointInterface,
         to: GeoPointInterface,

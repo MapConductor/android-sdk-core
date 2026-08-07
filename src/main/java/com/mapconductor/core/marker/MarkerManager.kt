@@ -210,7 +210,8 @@ open class MarkerManager<ActualMarker>(
         // let center = ..., let northEast = ...` shape.
         val center = bounds.center
         val northEast = bounds.northEast
-        if (entities.size > minMarkerCount && center != null && northEast != null) { // Only use spatial index for larger datasets
+        // Only use spatial index for larger datasets.
+        if (entities.size > minMarkerCount && center != null && northEast != null) {
             val registry = ensureCellRegistry()
             semaphore.read {
                 val distance = Spherical.computeDistanceBetween(center, northEast)

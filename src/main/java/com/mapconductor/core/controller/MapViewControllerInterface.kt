@@ -74,7 +74,5 @@ interface MapViewControllerInterface {
 
     fun registerOverlayController(controller: OverlayControllerInterface<*, *>)
 
-    fun getControllers(): Map<String, OverlayControllerInterface<*, *>>
-
     fun destroy()
 }
