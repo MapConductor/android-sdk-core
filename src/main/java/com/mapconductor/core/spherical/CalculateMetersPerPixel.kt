@@ -25,14 +25,3 @@ fun calculateMetersPerPixel(
 
     return (metersPerPixelAtZoom * latitudeAdjustment)
 }
-
-fun meterToPixel(
-    meter: Double,
-    latitude: Double,
-    zoom: Double,
-    tileSize: Double = 256.0, // Google Mapsはデフォルト256pxだが、Mapbox v10+はデフォルト512px
-): Double {
-    val earthCircumference = 2 * Math.PI * Earth.RADIUS_METERS
-    val metersPerPixel = cos(Math.toRadians(latitude)) * earthCircumference / (tileSize * 2.0.pow(zoom))
-    return meter / metersPerPixel
-}

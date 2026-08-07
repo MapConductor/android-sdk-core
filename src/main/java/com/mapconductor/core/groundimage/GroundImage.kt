@@ -61,6 +61,26 @@ class GroundImageState(
         return result
     }
 
+    // ios-sdk / react-sdk の GroundImageState.copy() と揃えるための copy。
+    fun copy(
+        bounds: GeoRectBounds = this.bounds,
+        image: Drawable = this.image,
+        opacity: Float = this.opacity,
+        tileSize: Int = this.tileSize,
+        id: String? = this.id,
+        extra: Serializable? = this.extra,
+        onClick: OnGroundImageEventHandler? = this.onClick,
+    ): GroundImageState =
+        GroundImageState(
+            bounds = bounds,
+            image = image,
+            opacity = opacity,
+            tileSize = tileSize,
+            id = id,
+            extra = extra,
+            onClick = onClick,
+        )
+
     override fun equals(other: Any?): Boolean = (other as? GroundImageState)?.hashCode() == this.hashCode()
 
     override fun hashCode(): Int = fingerPrint().hashCode()
@@ -75,9 +95,13 @@ data class GroundImageFingerPrint(
     val extra: Int,
 )
 
-data class GroundImageEvent(
+class GroundImageEvent(
     val state: GroundImageState,
-    val clicked: GeoPoint?,
-)
+    clicked: GeoPoint?,
+) {
+    // 生成時に wrap して [-180,180] / [-90,90] に正規化する（日付変更線対策）。
+    // 正規化をここ（イベント型＝出口）に一元化することで、どの配送経路でも wrap 漏れが起きない。
+    val clicked: GeoPoint? = clicked?.let { GeoPoint.from(it.wrap()) }
+}
 
 typealias OnGroundImageEventHandler = (GroundImageEvent) -> Unit

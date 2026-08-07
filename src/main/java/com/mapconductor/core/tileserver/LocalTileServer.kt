@@ -4,8 +4,13 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import android.util.Log
 
 class LocalTileServer private constructor(
@@ -16,6 +21,19 @@ class LocalTileServer private constructor(
     private val loggedRoutes = ConcurrentHashMap.newKeySet<String>()
     private val running = AtomicBoolean(false)
     private val acceptThread = Thread { acceptLoop() }
+    private val shedConnections = AtomicLong(0)
+
+    // Bounded worker pool: excess connections beyond the queue capacity are
+    // rejected and closed instead of spawning unbounded threads.
+    private val clientExecutor =
+        ThreadPoolExecutor(
+            MAX_WORKER_THREADS,
+            MAX_WORKER_THREADS,
+            WORKER_KEEP_ALIVE_SECONDS,
+            TimeUnit.SECONDS,
+            ArrayBlockingQueue(MAX_QUEUED_CONNECTIONS),
+            { runnable -> Thread(runnable).apply { isDaemon = true } },
+        ).apply { allowCoreThreadTimeOut(true) }
 
     @Volatile
     private var forceNoStoreCache: Boolean = forceNoStoreCache
@@ -58,6 +76,12 @@ class LocalTileServer private constructor(
         cacheKey: String,
     ): String = "$baseUrl/tiles/$routeId/$tileSize/{z}/{x}/{y}.png?v=$cacheKey"
 
+    /**
+     * Whether the server is accepting connections. A stopped server cannot be
+     * restarted (its socket and worker pool are closed) — create a new one.
+     */
+    fun isRunning(): Boolean = running.get()
+
     fun start() {
         if (running.compareAndSet(false, true)) {
             acceptThread.isDaemon = true
@@ -68,6 +92,7 @@ class LocalTileServer private constructor(
     fun stop() {
         if (running.compareAndSet(true, false)) {
             serverSocket.close()
+            clientExecutor.shutdownNow()
         }
     }
 
@@ -82,7 +107,31 @@ class LocalTileServer private constructor(
                     }
                     return
                 }
-            Thread { handleClient(socket) }.apply { isDaemon = true }.start()
+            // Only serve device-internal clients: a remote peer cannot complete
+            // a TCP handshake with a spoofed loopback source address.
+            if (socket.inetAddress?.isLoopbackAddress != true) {
+                Log.w(TAG, "Rejected non-loopback connection from ${socket.inetAddress}")
+                try {
+                    socket.close()
+                } catch (_: Exception) {
+                }
+                continue
+            }
+            try {
+                clientExecutor.execute { handleClient(socket) }
+            } catch (_: RejectedExecutionException) {
+                // Saturated: shed the connection; the map SDK will retry the tile.
+                val shed = shedConnections.incrementAndGet()
+                Log.w(
+                    TAG,
+                    "Shed connection (pool saturated) total=$shed " +
+                        "active=${clientExecutor.activeCount} queued=${clientExecutor.queue.size}",
+                )
+                try {
+                    socket.close()
+                } catch (_: Exception) {
+                }
+            }
         }
     }
 
@@ -103,6 +152,7 @@ class LocalTileServer private constructor(
                     val method = request.method
                     val path = request.path.substringBefore('?').trim('/')
                     val keepAlive = shouldKeepAlive(request)
+                    Log.d("Server", "---->$path")
 
                     if (method != "GET") {
                         writeResponse(
@@ -174,12 +224,17 @@ class LocalTileServer private constructor(
 
     private fun readRequest(reader: BufferedReader): Request? {
         var requestLine: String? = null
-        while (requestLine == null) {
-            val line = reader.readLine() ?: return null
+
+        // prevent too big header
+        var headerLineCnt = 30
+        while (requestLine == null && headerLineCnt > 0) {
+            val line = readLineBounded(reader) ?: return null
             if (line.isNotEmpty()) {
                 requestLine = line
             }
+            headerLineCnt--
         }
+        if (requestLine == null) return null
 
         val parts = requestLine.split(" ")
         val valid = parts.size >= 2
@@ -188,8 +243,10 @@ class LocalTileServer private constructor(
         val httpVersion = parts.getOrNull(2) ?: "HTTP/1.0"
 
         val headers = HashMap<String, String>()
-        while (true) {
-            val line = reader.readLine() ?: break
+        var remainingHeaders = MAX_HEADER_COUNT
+        while (remainingHeaders > 0) {
+            remainingHeaders--
+            val line = readLineBounded(reader) ?: break
             if (line.isEmpty()) {
                 break
             }
@@ -209,6 +266,31 @@ class LocalTileServer private constructor(
                 valid = valid,
             )
         return req
+    }
+
+    /**
+     * Reads one CRLF/LF-terminated line, giving up (null) if it exceeds
+     * [MAX_LINE_LENGTH] — unlike BufferedReader.readLine(), which buffers an
+     * arbitrarily long line in memory.
+     */
+    private fun readLineBounded(reader: BufferedReader): String? {
+        val sb = StringBuilder()
+        while (true) {
+            val ch = reader.read()
+            if (ch == -1) {
+                return if (sb.isEmpty()) null else sb.toString()
+            }
+            when (ch.toChar()) {
+                '\n' -> return sb.toString()
+                '\r' -> {
+                    // Swallow the CR; the LF (if any) terminates on the next read.
+                }
+                else -> {
+                    if (sb.length >= MAX_LINE_LENGTH) return null
+                    sb.append(ch.toChar())
+                }
+            }
+        }
     }
 
     private fun shouldKeepAlive(request: Request): Boolean {
@@ -232,7 +314,10 @@ class LocalTileServer private constructor(
         }
 
         val provider = providers[routeId] ?: return null
-        val bytes = provider.renderTile(TileRequest(x = x, y = y, z = z)) ?: return null
+        val bytes =
+            provider.renderTile(
+                TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
+            ) ?: return null
         val cacheControl =
             if (forceNoStoreCache) {
                 NO_STORE_CACHE_CONTROL
@@ -254,8 +339,15 @@ class LocalTileServer private constructor(
         val yIndex = if (withCacheKey) 6 else 5
         val z = segments.getOrNull(zIndex)?.toIntOrNull() ?: return null
         val x = segments.getOrNull(xIndex)?.toIntOrNull() ?: return null
-        val y = segments.getOrNull(yIndex)?.substringBefore('.')?.toIntOrNull() ?: return null
-        return TileKey(routeId = routeId, tileSize = tileSize, z = z, x = x, y = y)
+        val tileCoordinate = segments.getOrNull(yIndex)?.let(::parseTileCoordinate) ?: return null
+        return TileKey(
+            routeId = routeId,
+            tileSize = tileSize,
+            z = z,
+            x = x,
+            y = tileCoordinate.y,
+            pixelRatio = tileCoordinate.pixelRatio,
+        )
     }
 
     private fun cacheHeaders(cacheControl: String): Map<String, String> =
@@ -280,6 +372,9 @@ class LocalTileServer private constructor(
             headers.append("Content-Type: ").append(contentType).append("\r\n")
             headers.append("Content-Length: ").append(body.size).append("\r\n")
             headers.append("Connection: ").append(if (keepAlive) "keep-alive" else "close").append("\r\n")
+            // WebView ベースの地図 SDK（Longdo / MapTiler 等）は MapLibre GL JS の fetch でタイルを取得する。
+            // ローカルサーバは https のページから見て別オリジンのため、CORS を許可しないと取得がブロックされる。
+            headers.append("Access-Control-Allow-Origin: *\r\n")
             for ((key, value) in extraHeaders) {
                 headers
                     .append(key)
@@ -317,20 +412,54 @@ class LocalTileServer private constructor(
         val z: Int,
         val x: Int,
         val y: Int,
+        val pixelRatio: Int,
     )
 
     companion object {
         private const val TAG = "LocalTileServer"
-        private const val MAX_KEEP_ALIVE_REQUESTS = 100
+        private const val MAX_KEEP_ALIVE_REQUESTS = 200
+        private const val MAX_HEADER_COUNT = 64
+        private const val MAX_LINE_LENGTH = 8192
+
+        // Tile rendering is CPU-bound (canvas + PNG encode), so more workers than
+        // cores adds contention, not throughput. The deep queue absorbs request
+        // bursts (e.g. ArcGIS fetching several LODs during a zoom animation)
+        // without shedding connections.
+        private const val MAX_WORKER_THREADS = 8
+        private const val MAX_QUEUED_CONNECTIONS = 256
+        private const val WORKER_KEEP_ALIVE_SECONDS = 60L
         private const val LONG_CACHE_CONTROL = "public, max-age=31536000, immutable"
         private const val NO_STORE_CACHE_CONTROL = "no-store, no-cache, must-revalidate, max-age=0"
         private const val SLOW_RESPONSE_WARN_MS = 250L
+        private const val HTTP_PORT = 0
+        private const val HTTP_SERVER_BACKLOG = 100
 
         fun startServer(forceNoStoreCache: Boolean = false): LocalTileServer {
-            val socket = ServerSocket(0)
+            // Bind to the wildcard address (dual-stack) so clients can reach the
+            // server via either 127.0.0.1 or ::1 — binding to a single loopback
+            // address breaks HTTP stacks that resolve localhost to the other IP
+            // family (e.g. Mapbox). Device-internal access is enforced in
+            // acceptLoop by rejecting non-loopback source addresses.
+            val socket = ServerSocket(HTTP_PORT, HTTP_SERVER_BACKLOG)
             val server = LocalTileServer(socket, forceNoStoreCache = forceNoStoreCache)
             server.start()
             return server
         }
     }
 }
+
+internal data class TileCoordinate(
+    val y: Int,
+    val pixelRatio: Int,
+)
+
+internal fun parseTileCoordinate(fileName: String): TileCoordinate? {
+    val match = TILE_FILE_NAME_PATTERN.matchEntire(fileName) ?: return null
+    val y = match.groupValues[1].toIntOrNull() ?: return null
+    val pixelRatio = match.groupValues[2].toIntOrNull() ?: 1
+    if (pixelRatio !in 1..MAX_TILE_PIXEL_RATIO) return null
+    return TileCoordinate(y = y, pixelRatio = pixelRatio)
+}
+
+private val TILE_FILE_NAME_PATTERN = Regex("""^(\d+)(?:@(\d+)x)?\.png$""")
+private const val MAX_TILE_PIXEL_RATIO = 3

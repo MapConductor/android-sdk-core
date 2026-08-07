@@ -17,7 +17,6 @@ fun <
     viewProvider: () -> ActualMapView,
     scope: SpecificScope,
     registry: MapOverlayRegistry,
-    serviceRegistry: MapServiceRegistry = EmptyMapServiceRegistry,
     sdkInitialize: suspend () -> Boolean = { true },
     holderProvider: suspend (mapView: ActualMapView) -> SpecificHolder,
     controllerProvider: suspend (holder: SpecificHolder) -> SpecificController,
@@ -70,10 +69,6 @@ to the child `content` composables.
     - Type: `MapOverlayRegistry`
     - Description: The registry that contains the rendering logic for different types of map
       overlays. It maps overlay state to the corresponding controller actions.
-- `serviceRegistry`
-    - Type: `MapServiceRegistry`
-    - Description: A registry for providing optional map-related services. Defaults to an empty
-      registry if not provided.
 - `sdkInitialize`
     - Type: `suspend () -> Boolean`
     - Description: An asynchronous lambda that performs one-time initialization for the map SDK

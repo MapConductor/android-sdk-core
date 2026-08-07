@@ -6,6 +6,7 @@ interface MarkerEntityInterface<ActualMarker> {
     val fingerPrint: MarkerFingerPrint
     var visible: Boolean
     var isRendered: Boolean
+    var tiling: Boolean
 }
 
 class MarkerEntity<ActualMarker>(
@@ -13,6 +14,7 @@ class MarkerEntity<ActualMarker>(
     override val state: MarkerState,
     override var visible: Boolean = true,
     override var isRendered: Boolean = false,
+    override var tiling: Boolean = false,
 ) : MarkerEntityInterface<ActualMarker> {
     override val fingerPrint: MarkerFingerPrint = state.fingerPrint()
 }

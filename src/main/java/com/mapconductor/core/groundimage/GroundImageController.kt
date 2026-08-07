@@ -2,23 +2,23 @@ package com.mapconductor.core.groundimage
 
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
 abstract class GroundImageController<ActualGroundImage>(
     val groundImageManager: GroundImageManagerInterface<ActualGroundImage>,
     open val renderer: GroundImageOverlayRendererInterface<ActualGroundImage>,
-    override var clickListener: OnGroundImageEventHandler? = null,
 ) : OverlayControllerInterface<
         GroundImageState,
         GroundImageEntityInterface<ActualGroundImage>,
-        GroundImageEvent,
     > {
     override val zIndex: Int = 2
     val semaphore = Semaphore(1)
 
+    var clickListener: OnGroundImageEventHandler? = null
+
     fun dispatchClick(event: GroundImageEvent) {
+        // 配送座標の wrap は GroundImageEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)
         clickListener?.invoke(event)
     }
@@ -34,6 +34,13 @@ abstract class GroundImageController<ActualGroundImage>(
             data.forEach { state ->
                 if (previous.contains(state.id)) {
                     val prevEntity = groundImageManager.getEntity(state.id)!!
+                    if (state.fingerPrint() == prevEntity.fingerPrint) {
+                        // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
+                        groundImageManager
+                            .registerEntity(GroundImageEntity(groundImage = prevEntity.groundImage, state = state))
+                        previous.remove(state.id)
+                        return@forEach
+                    }
                     updated.add(
                         object : GroundImageOverlayRendererInterface.ChangeParamsInterface<ActualGroundImage> {
                             override val current: GroundImageEntityInterface<ActualGroundImage> =
@@ -145,8 +152,6 @@ abstract class GroundImageController<ActualGroundImage>(
     override fun find(position: GeoPointInterface): GroundImageEntityInterface<ActualGroundImage>? =
         groundImageManager
             .find(position)
-
-    override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {}
 
     override fun destroy() {
         // No native resources to clean up

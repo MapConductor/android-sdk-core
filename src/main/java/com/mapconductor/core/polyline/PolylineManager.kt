@@ -4,10 +4,11 @@ import com.mapconductor.core.ResourceProvider
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.map.MapCameraPosition
+import com.mapconductor.core.spherical.Planar
+import com.mapconductor.core.spherical.WGS84Geodesic
 import com.mapconductor.core.spherical.calculateMetersPerPixel
-import com.mapconductor.core.spherical.isPointOnLinearLine
-import com.mapconductor.core.spherical.pointOnGeodesicSegmentOrNull
 import com.mapconductor.settings.Settings
+import java.util.concurrent.ConcurrentHashMap
 import android.util.Log
 
 data class PolylineHitResult<ActualPolyline>(
@@ -41,7 +42,7 @@ interface PolylineManagerInterface<ActualPolyline> {
 
 class PolylineManager<ActualPolyline> : PolylineManagerInterface<ActualPolyline> {
     companion object {
-        private const val DEBUG_FIND = true
+        private const val DEBUG_FIND = false
         private const val TAG = "PolylineManagerInterface"
 
         private fun d(msg: String) {
@@ -49,7 +50,7 @@ class PolylineManager<ActualPolyline> : PolylineManagerInterface<ActualPolyline>
         }
     }
 
-    private val entities = mutableMapOf<String, PolylineEntityInterface<ActualPolyline>>()
+    private val entities = ConcurrentHashMap<String, PolylineEntityInterface<ActualPolyline>>()
 
     override fun registerEntity(entity: PolylineEntityInterface<ActualPolyline>) {
         entities[entity.state.id] = entity
@@ -61,7 +62,8 @@ class PolylineManager<ActualPolyline> : PolylineManagerInterface<ActualPolyline>
 
     override fun hasEntity(id: String): Boolean = entities.containsKey(id)
 
-    override fun allEntities(): List<PolylineEntityInterface<ActualPolyline>> = entities.values.toList()
+    // ArrayList(values) avoids the size==1 race in Kotlin's toList() on concurrent maps.
+    override fun allEntities(): List<PolylineEntityInterface<ActualPolyline>> = ArrayList(entities.values)
 
     override fun clear() {
         entities.clear()
@@ -87,14 +89,14 @@ class PolylineManager<ActualPolyline> : PolylineManagerInterface<ActualPolyline>
                 if (visibleRegion == null || visibleRegion.intersects(box)) {
                     when (entity.state.geodesic) {
                         true ->
-                            pointOnGeodesicSegmentOrNull(
+                            WGS84Geodesic.pointOnLineOrNull(
                                 entity.state.points[i],
                                 entity.state.points[i + 1],
                                 position,
                                 threshold,
                             )
                         false ->
-                            isPointOnLinearLine(
+                            Planar.pointOnLineOrNull(
                                 entity.state.points[i],
                                 entity.state.points[i + 1],
                                 position,

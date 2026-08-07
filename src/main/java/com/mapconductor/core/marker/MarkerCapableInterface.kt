@@ -24,4 +24,11 @@ interface MarkerCapableInterface {
     fun setOnMarkerClickListener(listener: OnMarkerEventHandler?)
 
     fun hasMarker(state: MarkerState): Boolean
+
+    /**
+     * Hands the Compose marker-animation layer to the marker renderer.
+     * Default no-op: SDK modules whose renderer supports the screen-space
+     * animation overlay override this and forward the host to it.
+     */
+    fun setMarkerAnimationOverlayHost(host: MarkerAnimationOverlayHost?) {}
 }

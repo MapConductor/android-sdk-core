@@ -52,17 +52,36 @@ class HexCellRegistry<ActualMarker>(
     fun setPoint(entity: MarkerEntityInterface<ActualMarker>): HexCell =
         lock.write {
             val entityId = entity.state.id
+            val cell = getCell(entity)
+            val cellId = cell.id
+            val previousCellId = allEntries[entityId]
+
+            // [kdTree] が索引しているのは **セル**（[allCells]）であって entity ではない。
+            // なのでセル集合が変わらない更新で dirty を立ててはいけない。立てると次の
+            // 空間検索が全セルから木を作り直す（24,000 件規模で 200ms 超）。
+            //
+            // 位置が変わらない更新は珍しくない — アイコンやフラグの差し替え（
+            // `MarkerManager.updateEntity` は毎回 setPoint を呼ぶ）や、
+            // [com.mapconductor.core.marker.MarkerViewportSwitch] のタイル⇔ネイティブ切り替えが該当する。
+            if (previousCellId == cellId && allCells.containsKey(cellId)) {
+                entryIDsByCell.compute(cellId) { _, existingSet ->
+                    (existingSet ?: mutableSetOf()).apply { add(entityId) }
+                }
+                return cell
+            }
+
+            var cellsChanged = false
 
             // Remove from old cell if exists
-            allEntries[entityId]?.let { oldCellId ->
-                removeFromCell(oldCellId, entityId)
+            previousCellId?.let { oldCellId ->
+                if (removeFromCell(oldCellId, entityId) && !allCells.containsKey(oldCellId)) {
+                    // 空になったセルが消えた＝セル集合が変わった
+                    cellsChanged = true
+                }
             }
 
             // Add to new cell
-            val cell = getCell(entity)
-            val cellId = cell.id
-
-            allCells[cellId] = cell
+            if (allCells.put(cellId, cell) == null) cellsChanged = true
             allEntries[entityId] = cellId
 
             // Add entity to cell's entry list
@@ -70,7 +89,7 @@ class HexCellRegistry<ActualMarker>(
                 (existingSet ?: mutableSetOf()).apply { add(entityId) }
             }
 
-            markDirty()
+            if (cellsChanged) markDirty()
             return cell
         }
 
@@ -91,7 +110,9 @@ class HexCellRegistry<ActualMarker>(
             val removed = removeFromCell(cellId, entityId)
             if (removed) {
                 allEntries.remove(entityId)
-                markDirty()
+                // セルがまだ他の entity を抱えていれば [allCells] は変わらないので、
+                // 木を作り直す必要はない（[setPoint] と同じ理由）。
+                if (!allCells.containsKey(cellId)) markDirty()
             }
 
             return removed
@@ -204,8 +225,10 @@ class HexCellRegistry<ActualMarker>(
 
     /**
      * Get all hex cells
+     *
+     * ArrayList(values) avoids the size==1 race in Kotlin's toList() on concurrent maps.
      */
-    fun all(): List<HexCell> = allCells.values.toList()
+    fun all(): List<HexCell> = ArrayList(allCells.values)
 
     /**
      * Get entity IDs for a specific hex cell

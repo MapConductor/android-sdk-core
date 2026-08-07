@@ -1,5 +1,6 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
@@ -10,12 +11,11 @@ import kotlinx.coroutines.sync.withPermit
 class StrategyMarkerController<ActualMarker>(
     private val strategy: MarkerRenderingStrategyInterface<ActualMarker>,
     private val renderer: MarkerOverlayRendererInterface<ActualMarker>,
-    override var clickListener: OnMarkerEventHandler? = null,
 ) : OverlayControllerInterface<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
-        MarkerState,
-    > {
+    >,
+    OnCameraChangeReceiverInterface {
     val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
     override val zIndex: Int = 10
     private var mapCameraPosition: MapCameraPosition? = null
@@ -28,6 +28,7 @@ class StrategyMarkerController<ActualMarker>(
     var dragEndListener: OnMarkerEventHandler? = null
     var animateStartListener: OnMarkerEventHandler? = null
     var animateEndListener: OnMarkerEventHandler? = null
+    var clickListener: OnMarkerEventHandler? = null
 
     init {
         renderer.animateStartListener = { state -> dispatchAnimateStart(state) }
@@ -96,9 +97,17 @@ class StrategyMarkerController<ActualMarker>(
 
     fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = strategy.markerManager.getEntity(id)
 
-    override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? =
-        strategy.markerManager
-            .findNearest(position)
+    override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
+        val nearest = strategy.markerManager.findNearest(position) ?: return null
+        val touchScreen = renderer.holder.toScreenOffset(position) ?: return null
+        val markerScreen = renderer.holder.toScreenOffset(nearest.state.position) ?: return null
+
+        return if (MarkerHitTest.hitsIcon(touchScreen, markerScreen, nearest.state)) {
+            nearest
+        } else {
+            null
+        }
+    }
 
     override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {
         this.mapCameraPosition = mapCameraPosition

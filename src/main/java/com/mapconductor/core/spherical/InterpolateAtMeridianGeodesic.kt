@@ -25,7 +25,7 @@ fun interpolateAtMeridianGeodesic(
     var iteration = 0
     while (iteration < maxIterations && (high - low) > tolerance) {
         val mid = (low + high) / 2.0
-        val interpolatedPoint = Spherical.sphericalInterpolate(from, to, mid)
+        val interpolatedPoint = Spherical.interpolate(from, to, mid)
         val interpolatedLng = interpolatedPoint.longitude
 
         // Normalize longitude to handle crossing
@@ -64,7 +64,7 @@ fun interpolateAtMeridianGeodesic(
 
     // Final interpolation at the crossing point
     val finalFraction = (low + high) / 2.0
-    val crossingPoint = Spherical.sphericalInterpolate(from, to, finalFraction)
+    val crossingPoint = Spherical.interpolate(from, to, finalFraction)
 
     // Ensure the longitude is exactly at the target meridian
     return GeoPoint(

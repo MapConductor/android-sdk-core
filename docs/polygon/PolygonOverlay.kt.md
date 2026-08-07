@@ -1,12 +1,12 @@
 # `LocalPolygonCollector`
 
-A `CompositionLocal` used to provide a `ChildCollector<PolygonState>` down the Composable tree. This
+A `CompositionLocal` used to provide a `OverlayCollectorInterface<PolygonState>` down the Composable tree. This
 collector is essential for gathering `Polygon` composables declared within a `MapView`.
 
 ## Signature
 
 ```kotlin
-val LocalPolygonCollector: ProvidableCompositionLocal<ChildCollector<PolygonState>>
+val LocalPolygonCollector: ProvidableCompositionLocal<OverlayCollectorInterface<PolygonState>>
 ```
 
 ## Description

@@ -175,7 +175,7 @@ Registers an `OverlayControllerInterface` with the map view controller.
 
 **Signature**
 ```kotlin
-fun registerOverlayController(controller: OverlayControllerInterface<*, *, *>)
+fun registerOverlayController(controller: OverlayControllerInterface<*, *>)
 ```
 
 **Description**
@@ -186,7 +186,7 @@ registered once, even if this method is called multiple times with the same cont
 
 **Parameters**
 - `controller`
-    - Type: `OverlayControllerInterface<*, *, *>`
+    - Type: `OverlayControllerInterface<*, *>`
     - Description: The overlay controller to register.
 
 **Example**

@@ -2,23 +2,23 @@ package com.mapconductor.core.circle
 
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
 abstract class CircleController<ActualCircle>(
     val circleManager: CircleManagerInterface<ActualCircle>,
     open val renderer: CircleOverlayRendererInterface<ActualCircle>,
-    override var clickListener: OnCircleEventHandler? = null,
 ) : OverlayControllerInterface<
         CircleState,
         CircleEntityInterface<ActualCircle>,
-        CircleEvent,
     > {
     override val zIndex: Int = 3
     val semaphore = Semaphore(1)
 
+    var clickListener: OnCircleEventHandler? = null
+
     fun dispatchClick(event: CircleEvent) {
+        // 配送座標の wrap は CircleEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)
         clickListener?.invoke(event)
     }
@@ -34,6 +34,14 @@ abstract class CircleController<ActualCircle>(
             data.forEach { state ->
                 if (previous.contains(state.id)) {
                     val prevEntity = circleManager.getEntity(state.id)!!
+                    if (state.fingerPrint() == prevEntity.fingerPrint) {
+                        // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する
+                        // （react-sdk と同じ。composition ごとに全オーバーレイへ onChange を
+                        //  再実行する無駄・チラつきを避ける）。
+                        circleManager.registerEntity(CircleEntity(state = state, circle = prevEntity.circle))
+                        previous.remove(state.id)
+                        return@forEach
+                    }
                     updated.add(
                         object : CircleOverlayRendererInterface.ChangeParamsInterface<ActualCircle> {
                             override val current: CircleEntityInterface<ActualCircle> =
@@ -132,6 +140,7 @@ abstract class CircleController<ActualCircle>(
                     )
                 circleManager.registerEntity(entity)
             }
+            renderer.onPostProcess()
         }
     }
 
@@ -140,12 +149,11 @@ abstract class CircleController<ActualCircle>(
             val entities: List<CircleEntityInterface<ActualCircle>> = circleManager.allEntities()
             renderer.onRemove(entities)
             circleManager.clear()
+            renderer.onPostProcess()
         }
     }
 
     override fun find(position: GeoPointInterface): CircleEntityInterface<ActualCircle>? = circleManager.find(position)
-
-    override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {}
 
     override fun destroy() {
         // No native resources to clean up for circles

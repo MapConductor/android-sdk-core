@@ -186,7 +186,7 @@ class MarkerTileRenderer<ActualMarker>(
         val tileX = normalizedX.toDouble()
         val tileY = tileYInt.toDouble()
         val zoom = zoomInt.toDouble()
-        val tilePx = scaledTileSize.toDouble().coerceAtLeast(1.0)
+        val tilePx = scaledTileSize.coerceAtLeast(1.0)
         val tilePxInt = tilePx.toInt().coerceAtLeast(1)
 
         // Tile geographic bounds (NW and SE corners).
@@ -222,7 +222,9 @@ class MarkerTileRenderer<ActualMarker>(
                 val callbackScale =
                     (iconScaleCallback?.invoke(entity.state, zoomInt) ?: 1.0)
                         .coerceAtLeast(0.0)
-                val scale = ((stateIcon?.scale?.toDouble() ?: 1.0) * callbackScale * extraIconScale).coerceAtLeast(0.0)
+                // icon.size already includes MarkerIconInterface.scale (baked into the
+                // bitmap by toBitmapIcon), so it must not be applied again here.
+                val scale = (callbackScale * extraIconScale).coerceAtLeast(0.0)
                 val drawW = (icon.size.width.toDouble() * scale).coerceAtLeast(1.0)
                 val drawH = (icon.size.height.toDouble() * scale).coerceAtLeast(1.0)
                 val anchorX = icon.anchor.x.toDouble()
@@ -257,7 +259,16 @@ class MarkerTileRenderer<ActualMarker>(
             val latPad = span.latitude * padNorm
             val lonPad = span.longitude * padNorm
             val extended = bounds.expandedByDegrees(latPad, lonPad)
-            return markerManager.findMarkersInBounds(extended)
+            // タイルに描くのは「タイル担当」の entity だけ。
+            //
+            // 多くのプロバイダはコントローラの markerManager をそのままこのレンダラへ渡すため、
+            // 絞らないとネイティブマーカーとして描いているもの（draggable / animation 付き、
+            // および [MarkerViewportSwitch] が Native モードで出したもの）まで PNG に焼かれ、
+            // 同じ場所へ二重に出る。回転させるとタイル側だけ傾くので、ゴーストとして見える。
+            //
+            // maptiler / longdo のようにタイル専用の manager を別に持つプロバイダでは
+            // 全 entity が tiling = true なので、この絞り込みは何もしない。
+            return markerManager.findMarkersInBounds(extended).filter { it.tiling }
         }
 
         // First query uses a conservative padding (in dp) so we capture markers slightly outside
@@ -367,9 +378,24 @@ class MarkerTileRenderer<ActualMarker>(
         return output
     }
 
+    // renderTile() runs concurrently across LocalTileServer's worker threads. A fresh
+    // ByteArrayOutputStream starts at 32 bytes and doubles its backing array on every
+    // compress() call until it reaches the tile's steady-state size (often hundreds of KB
+    // for dense tiles), so a new instance per call re-triggers that regrowth every time.
+    // Keeping one per thread (reset, not recreated, before each use) lets the backing
+    // array settle at its steady-state size and be reused across tiles.
+    private val tileByteStream =
+        ThreadLocal.withInitial { ByteArrayOutputStream(16 * 1024) }
+
     private fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
-        val outputStream = ByteArrayOutputStream()
+        // ThreadLocal.get() is a Java generic method, so Kotlin sees its return type as
+        // nullable even though withInitial() guarantees a value; !! is safe here.
+        val outputStream = tileByteStream.get()!!
+        outputStream.reset()
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+        // toByteArray() still copies out a right-sized array: callers cache this array or
+        // hand it to a socket write, both of which need a stable array that isn't mutated
+        // by the next renderTile() call on this thread.
         return outputStream.toByteArray()
     }
 
@@ -422,9 +448,9 @@ class MarkerTileRenderer<ActualMarker>(
         //
         // This returns the NW (top-left) corner of the tile.
         // If you need the center, use (x + 0.5, y + 0.5) instead.
-        val n = 2.0.pow(z.toDouble())
-        val lonDeg = (x.toDouble() / n) * 360.0 - 180.0
-        val latRad = atan(sinh(PI * (1.0 - 2.0 * (y.toDouble() / n))))
+        val n = 2.0.pow(z)
+        val lonDeg = (x / n) * 360.0 - 180.0
+        val latRad = atan(sinh(PI * (1.0 - 2.0 * (y / n))))
         val latDeg = latRad * 180.0 / PI
         return GeoPoint.fromLatLong(latitude = latDeg, longitude = lonDeg)
     }

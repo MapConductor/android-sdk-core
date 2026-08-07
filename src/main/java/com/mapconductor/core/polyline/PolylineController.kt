@@ -1,5 +1,6 @@
 package com.mapconductor.core.polyline
 
+import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
@@ -9,17 +10,19 @@ import kotlinx.coroutines.sync.withPermit
 abstract class PolylineController<ActualPolyline>(
     val polylineManager: PolylineManagerInterface<ActualPolyline>,
     open val renderer: PolylineOverlayRendererInterface<ActualPolyline>,
-    override var clickListener: OnPolylineEventHandler? = null,
 ) : OverlayControllerInterface<
         PolylineState,
         PolylineEntityInterface<ActualPolyline>,
-        PolylineEvent,
-    > {
+    >,
+    OnCameraChangeReceiverInterface {
     override val zIndex: Int = 5
     val semaphore = Semaphore(1)
     private var currentCameraPosition: MapCameraPosition? = null
 
+    var clickListener: OnPolylineEventHandler? = null
+
     fun dispatchClick(event: PolylineEvent) {
+        // 配送座標の wrap は PolylineEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)
         clickListener?.invoke(event)
     }
@@ -35,6 +38,12 @@ abstract class PolylineController<ActualPolyline>(
             data.forEach { state ->
                 if (previous.contains(state.id)) {
                     val prevEntity = polylineManager.getEntity(state.id)!!
+                    if (state.fingerPrint() == prevEntity.fingerPrint) {
+                        // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
+                        polylineManager.registerEntity(PolylineEntity(state = state, polyline = prevEntity.polyline))
+                        previous.remove(state.id)
+                        return@forEach
+                    }
                     updated.add(
                         object : PolylineOverlayRendererInterface.ChangeParamsInterface<ActualPolyline> {
                             override val current: PolylineEntityInterface<ActualPolyline> =

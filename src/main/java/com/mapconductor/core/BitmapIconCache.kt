@@ -5,6 +5,11 @@ import com.mapconductor.core.marker.BitmapIcon
 import android.util.LruCache
 
 object BitmapIconCache {
+    // Guards both counts and bitmapCache: entries are read/written from the
+    // tile-server worker threads (MarkerTileRenderer.renderTile) as well as
+    // the main thread.
+    private val lock = Any()
+
     private val counts: HashMap<Int, Int> = HashMap()
 
     private val bitmapCache: LruCache<Int, BitmapIcon> by lazy {
@@ -17,7 +22,23 @@ object BitmapIconCache {
             override fun sizeOf(
                 key: Int,
                 iconRes: BitmapIcon,
-            ): Int = iconRes.bitmap.byteCount / 1024
+            ): Int = iconRes.bitmap.byteCount
+
+            override fun entryRemoved(
+                evicted: Boolean,
+                key: Int,
+                oldValue: BitmapIcon,
+                newValue: BitmapIcon?,
+            ) {
+                // Keep the refcount map in sync with size-based evictions;
+                // otherwise put() would skip re-inserting the bitmap forever
+                // (refCount > 0) while get() keeps returning null.
+                if (evicted) {
+                    synchronized(lock) {
+                        counts.remove(key)
+                    }
+                }
+            }
         }
     }
 
@@ -25,38 +46,48 @@ object BitmapIconCache {
         id: Int,
         bitmapIcon: BitmapIcon,
     ) {
-        val refCount = counts.getOrDefault(id, 0)
-        counts.put(id, refCount + 1)
-        if (refCount == 0) {
-            bitmapCache.put(id, bitmapIcon)
+        synchronized(lock) {
+            val refCount = counts.getOrDefault(id, 0)
+            counts.put(id, refCount + 1)
+            if (refCount == 0) {
+                bitmapCache.put(id, bitmapIcon)
+            }
         }
     }
 
     fun refCountUp(id: Int) {
-        if (!counts.contains(id)) return
-        val refCount = counts.getOrDefault(id, 0)
-        counts.put(id, refCount + 1)
+        synchronized(lock) {
+            if (!counts.contains(id)) return
+            val refCount = counts.getOrDefault(id, 0)
+            counts.put(id, refCount + 1)
+        }
     }
 
     fun get(id: Int): BitmapIcon? {
-        if (!counts.contains(id)) return null
-        return bitmapCache.get(id)
+        synchronized(lock) {
+            if (!counts.contains(id)) return null
+            return bitmapCache.get(id)
+        }
     }
 
     fun refCountDown(id: Int) {
-        if (!counts.contains(id)) return
-        val refCount = counts.getOrDefault(id, 1) - 1
-        if (refCount == 0) {
-            counts.remove(id)
-            bitmapCache.remove(id)
-            return
+        synchronized(lock) {
+            if (!counts.contains(id)) return
+            val refCount = counts.getOrDefault(id, 1) - 1
+            if (refCount == 0) {
+                counts.remove(id)
+                bitmapCache.remove(id)
+                return
+            }
+            counts.put(id, refCount)
         }
-        counts.put(id, refCount)
     }
 
     @Keep
     fun clear() {
-        counts.clear()
-        bitmapCache.evictAll()
+        synchronized(lock) {
+            counts.clear()
+            bitmapCache.evictAll()
+        }
     }
 }

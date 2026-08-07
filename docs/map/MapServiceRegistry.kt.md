@@ -166,22 +166,21 @@ class GreeterServiceImpl : GreeterService {
     override fun greet(name: String) = "Hello, $name!"
 }
 
-// 2. Create a root Composable that provides the service registry
+// 2. Register the service on the map state
+//    The registry is owned by `MapViewState.serviceRegistry` (same as the iOS and React SDKs),
+//    and `MapViewBase` provides it to the composition through `LocalMapServiceRegistry`.
+//    Register before the map content is composed, and take it back when the view goes away.
 @Composable
-fun AppRoot() {
-    // Create and remember a mutable registry instance
-    val serviceRegistry = remember {
-        MutableMapServiceRegistry().apply {
-            // Register the service implementation
-            put(GreeterServiceKey, GreeterServiceImpl())
-        }
+fun AppRoot(state: MapViewStateInterface<*>) {
+    remember(state) {
+        state.serviceRegistry.put(GreeterServiceKey, GreeterServiceImpl())
+    }
+    DisposableEffect(state) {
+        // `remove()` rather than `clear()`, so other capabilities on the same map survive.
+        onDispose { state.serviceRegistry.remove(GreeterServiceKey) }
     }
 
-    // Provide the registry to the composition tree
-    CompositionLocalProvider(LocalMapServiceRegistry provides serviceRegistry) {
-        // Your app's content, e.g., a map screen
-        MapScreen()
-    }
+    MapScreen()
 }
 
 // 3. Access the service in a descendant Composable

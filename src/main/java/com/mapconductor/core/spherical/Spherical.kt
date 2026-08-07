@@ -2,7 +2,6 @@ package com.mapconductor.core.spherical
 
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.normalizeLng
 import com.mapconductor.core.projection.Earth
 import kotlin.math.abs
 import kotlin.math.acos
@@ -206,7 +205,7 @@ object Spherical {
      * @param fraction Interpolation fraction (0.0 = from, 1.0 = to)
      * @return Interpolated GeoPointInterface position
      */
-    fun sphericalInterpolate(
+    fun interpolate(
         from: GeoPointInterface,
         to: GeoPointInterface,
         fraction: Double,
@@ -277,66 +276,8 @@ object Spherical {
         )
     }
 
-    /**
-     * Performs linear interpolation between two GeoPointInterface locations without considering Earth's curvature.
-     * This method treats coordinates as if they were on a flat plane, which may result in
-     * inaccurate results for large distances but is computationally faster.
-     *
-     * For longitude interpolation, this method automatically chooses the shorter path,
-     * which may cross the 180°/-180° meridian line if that results in a shorter distance.
-     *
-     * Use this method only when:
-     * - Working with small distances where Earth's curvature is negligible
-     * - Performance is critical and accuracy can be sacrificed
-     * - Working with projected coordinate systems
-     *
-     * @param from Starting point
-     * @param to Ending point
-     * @param fraction Interpolation fraction (0.0 = from, 1.0 = to)
-     * @return Linearly interpolated GeoPointInterface position
-     */
-    fun linearInterpolate(
-        from: GeoPointInterface,
-        to: GeoPointInterface,
-        fraction: Double,
-    ): GeoPoint {
-        val interpolatedAltitude =
-            when {
-                from.altitude != null && to.altitude != null ->
-                    from.altitude!! + fraction * (to.altitude!! - from.altitude!!)
-                from.altitude != null -> from.altitude
-                to.altitude != null -> to.altitude
-                else -> 0.0
-            }
-
-        // Latitude interpolation is straightforward
-        val interpolatedLatitude = from.latitude + fraction * (to.latitude - from.latitude)
-
-        // Longitude interpolation: choose the shorter path
-        val fromLng = from.longitude
-        val toLng = to.longitude
-
-        // Calculate both possible longitude differences
-        val directDiff = toLng - fromLng
-        val crossMeridianDiff =
-            when {
-                directDiff > 180 -> directDiff - 360 // Cross westward
-                directDiff < -180 -> directDiff + 360 // Cross eastward
-                else -> directDiff // Direct path is shorter
-            }
-
-        // Use the shorter difference for interpolation
-        val interpolatedLongitude = fromLng + fraction * crossMeridianDiff
-
-        // Normalize longitude to [-180, 180] range
-        val normalizedLongitude = com.mapconductor.core.normalizeLng(interpolatedLongitude)
-
-        return GeoPoint(
-            latitude = interpolatedLatitude,
-            longitude = normalizedLongitude,
-            altitude = interpolatedAltitude!!,
-        )
-    }
+    // `linearInterpolate` moved to `Planar.interpolate` (the straight-line model)。
+    // 説明もそちらの KDoc にある。
 
     /**
      * Clamps latitude to the range [-90, 90].

@@ -21,9 +21,17 @@ object TileServerRegistry {
         synchronized(lock) {
             this.forceNoStoreCache = forceNoStoreCache
             val existing = server
-            if (existing != null) {
+            // Self-heal: never hand out a stopped server (it refuses all
+            // connections and cannot be restarted). Note the replacement
+            // listens on a NEW port, so URL templates created from the old
+            // instance are permanently dead — avoid stopping the server while
+            // any map may still be alive.
+            if (existing != null && existing.isRunning()) {
                 existing.setForceNoStoreCache(forceNoStoreCache)
                 return existing
+            }
+            if (existing != null) {
+                Log.w(TAG, "Cached tile server was stopped; starting a new one")
             }
             val newServer = LocalTileServer.startServer(forceNoStoreCache = forceNoStoreCache)
             server = newServer

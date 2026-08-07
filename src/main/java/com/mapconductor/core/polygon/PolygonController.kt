@@ -2,23 +2,23 @@ package com.mapconductor.core.polygon
 
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
 abstract class PolygonController<ActualPolygon>(
     val polygonManager: PolygonManagerInterface<ActualPolygon>,
     open val renderer: PolygonOverlayRendererInterface<ActualPolygon>,
-    override var clickListener: OnPolygonEventHandler? = null,
 ) : OverlayControllerInterface<
         PolygonState,
         PolygonEntityInterface<ActualPolygon>,
-        PolygonEvent,
     > {
     override val zIndex: Int = 3
     val semaphore = Semaphore(1)
 
+    var clickListener: OnPolygonEventHandler? = null
+
     fun dispatchClick(event: PolygonEvent) {
+        // 配送座標の wrap は PolygonEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)
         clickListener?.invoke(event)
     }
@@ -34,6 +34,12 @@ abstract class PolygonController<ActualPolygon>(
             data.forEach { state ->
                 if (previous.contains(state.id)) {
                     val prevEntity = polygonManager.getEntity(state.id)!!
+                    if (state.fingerPrint() == prevEntity.fingerPrint) {
+                        // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
+                        polygonManager.registerEntity(PolygonEntity(state = state, polygon = prevEntity.polygon))
+                        previous.remove(state.id)
+                        return@forEach
+                    }
                     updated.add(
                         object : PolygonOverlayRendererInterface.ChangeParamsInterface<ActualPolygon> {
                             override val current: PolygonEntityInterface<ActualPolygon> =
@@ -56,14 +62,18 @@ abstract class PolygonController<ActualPolygon>(
             }
 
             previous.forEach { remainId ->
-                polygonManager.removeEntity(remainId)?.let { removedEntity ->
+                polygonManager.getEntity(remainId)?.let { removedEntity ->
                     removed.add(removedEntity)
                 }
             }
 
-            // Remove polygon
+            // Remove from the map first, then forget the entities. If this sync is
+            // cancelled mid-removal (e.g. the collector flow emits again), the manager
+            // still tracks the leftovers so the next sync retries the removal instead
+            // of orphaning graphics on the map.
             if (removed.isNotEmpty()) {
                 renderer.onRemove(removed)
+                removed.forEach { polygonManager.removeEntity(it.state.id) }
             }
 
             // Add new polygons
@@ -132,6 +142,8 @@ abstract class PolygonController<ActualPolygon>(
                     )
                 polygonManager.registerEntity(entity)
             }
+            // ios-sdk / react-sdk と同じく update() でも onPostProcess を呼んで単一更新をコミットする。
+            renderer.onPostProcess()
         }
     }
 
@@ -146,8 +158,6 @@ abstract class PolygonController<ActualPolygon>(
     override fun find(position: GeoPointInterface): PolygonEntityInterface<ActualPolygon>? =
         polygonManager
             .find(position)
-
-    override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {}
 
     override fun destroy() {
         // No native resources to clean up for polygons

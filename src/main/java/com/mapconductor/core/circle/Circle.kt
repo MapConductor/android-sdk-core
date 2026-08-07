@@ -9,7 +9,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mapconductor.core.ComponentState
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.marker.MarkerState
 import java.io.Serializable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -86,15 +85,10 @@ class CircleState(
         center: GeoPointInterface = this.center,
         radiusMeters: Double = this.radiusMeters,
         geodesic: Boolean = this.geodesic,
+        clickable: Boolean = this.clickable,
         strokeColor: Color = this.strokeColor,
         strokeWidth: Dp = this.strokeWidth,
-        fillColor: Color =
-            Color(
-                red = 255,
-                green = 255,
-                blue = 255,
-                alpha = 127,
-            ),
+        fillColor: Color = this.fillColor,
         id: String? = this.id,
         zIndex: Int? = this.zIndex,
         extra: Serializable? = this.extra,
@@ -115,7 +109,7 @@ class CircleState(
         )
 
     override fun equals(other: Any?): Boolean {
-        val otherState = (other as? MarkerState) ?: return false
+        val otherState = (other as? CircleState) ?: return false
         return hashCode() == otherState.hashCode()
     }
 
@@ -146,9 +140,13 @@ data class CircleFingerPrint(
     val extra: Int,
 )
 
-data class CircleEvent(
+class CircleEvent(
     val state: CircleState,
-    val clicked: GeoPointInterface,
-)
+    clicked: GeoPointInterface,
+) {
+    // 生成時に wrap して [-180,180] / [-90,90] に正規化する（日付変更線対策）。
+    // 正規化をここ（イベント型＝出口）に一元化することで、どの配送経路でも wrap 漏れが起きない。
+    val clicked: GeoPointInterface = clicked.wrap()
+}
 
 typealias OnCircleEventHandler = (CircleEvent) -> Unit

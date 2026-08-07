@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mapconductor.core.ComponentState
-import com.mapconductor.core.StateFlowDelegate
 import com.mapconductor.core.features.GeoPointInterface
 import java.io.Serializable
 import kotlinx.coroutines.flow.Flow
@@ -45,8 +44,8 @@ class PolygonState(
     var fillColor by mutableStateOf(fillColor)
     var geodesic by mutableStateOf(geodesic)
     var zIndex by mutableStateOf(zIndex)
-    var points by StateFlowDelegate<List<GeoPointInterface>>(points)
-    var holes by StateFlowDelegate<List<List<GeoPointInterface>>>(holes)
+    var points by mutableStateOf<List<GeoPointInterface>>(points)
+    var holes by mutableStateOf<List<List<GeoPointInterface>>>(holes)
     var extra by mutableStateOf(extra)
     var onClick by mutableStateOf(onClick)
 
@@ -94,7 +93,7 @@ class PolygonState(
             strokeColor = this@PolygonState.strokeColor.hashCode(),
             strokeWidth = this@PolygonState.strokeWidth.hashCode(),
             fillColor = this@PolygonState.fillColor.hashCode(),
-            geodesic = geodesic.toString().hashCode(),
+            geodesic = geodesic.hashCode(),
             zIndex = zIndex,
             points = listHashCode(points),
             holes = nestedListHashCode(holes),
@@ -141,9 +140,13 @@ data class PolygonFingerPrint(
     val extra: Int,
 )
 
-data class PolygonEvent(
+class PolygonEvent(
     val state: PolygonState,
-    val clicked: GeoPointInterface,
-)
+    clicked: GeoPointInterface,
+) {
+    // 生成時に wrap して [-180,180] / [-90,90] に正規化する（日付変更線対策）。
+    // 正規化をここ（イベント型＝出口）に一元化することで、どの配送経路でも wrap 漏れが起きない。
+    val clicked: GeoPointInterface = clicked.wrap()
+}
 
 typealias OnPolygonEventHandler = (PolygonEvent) -> Unit

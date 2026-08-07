@@ -2,7 +2,8 @@ package com.mapconductor.core.polygon
 
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.normalizeLng
-import com.mapconductor.core.spherical.createInterpolatePoints
+import com.mapconductor.core.spherical.WGS84Geodesic
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -25,7 +26,7 @@ interface PolygonManagerInterface<ActualPolygon> {
 }
 
 class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
-    private val entities = mutableMapOf<String, PolygonEntityInterface<ActualPolygon>>()
+    private val entities = ConcurrentHashMap<String, PolygonEntityInterface<ActualPolygon>>()
 
     override fun registerEntity(entity: PolygonEntityInterface<ActualPolygon>) {
         entities[entity.state.id] = entity
@@ -37,7 +38,8 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
 
     override fun hasEntity(id: String): Boolean = entities.containsKey(id)
 
-    override fun allEntities(): List<PolygonEntityInterface<ActualPolygon>> = entities.values.toList()
+    // ArrayList(values) avoids the size==1 race in Kotlin's toList() on concurrent maps.
+    override fun allEntities(): List<PolygonEntityInterface<ActualPolygon>> = ArrayList(entities.values)
 
     override fun clear() {
         entities.clear()
@@ -56,7 +58,7 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
             // Densify edges to better approximate geodesic/linear edges
             val ring =
                 try {
-                    if (state.geodesic) createInterpolatePoints(basePoints) else basePoints
+                    if (state.geodesic) WGS84Geodesic.createInterpolatePoints(basePoints) else basePoints
                 } catch (_: Exception) {
                     basePoints
                 }
@@ -73,7 +75,7 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
                     if (hole.size < 3) continue
                     val holeRing =
                         try {
-                            if (state.geodesic) createInterpolatePoints(hole) else hole
+                            if (state.geodesic) WGS84Geodesic.createInterpolatePoints(hole) else hole
                         } catch (_: Exception) {
                             hole
                         }

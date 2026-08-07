@@ -1,5 +1,6 @@
 package com.mapconductor.core.raster
 
+import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
@@ -10,17 +11,24 @@ import kotlinx.coroutines.withContext
 abstract class RasterLayerController<ActualLayer : Any>(
     val rasterLayerManager: RasterLayerManagerInterface<ActualLayer>,
     open val renderer: RasterLayerOverlayRendererInterface<ActualLayer>,
-    override var clickListener: OnRasterLayerEventHandler? = null,
 ) : OverlayControllerInterface<
         RasterLayerState,
         RasterLayerEntityInterface<ActualLayer>,
-        RasterLayerEvent,
-    > {
+    >,
+    OnCameraChangeReceiverInterface {
     override val zIndex: Int = 0
     val semaphore = Semaphore(1)
+    var clickListener: OnRasterLayerEventHandler? = null
 
     // IDs managed via upsert/removeById — excluded from add()'s removal sweep
     private val upsertedIds = mutableSetOf<String>()
+
+    /**
+     * RasterLayerState is mutable so Compose callers can update a layer in
+     * place. The manager must retain a snapshot; otherwise a source update
+     * also changes the previous state and renderers cannot replace a source.
+     */
+    private fun stateSnapshot(state: RasterLayerState): RasterLayerState = state.copy()
 
     override suspend fun add(data: List<RasterLayerState>) {
         withContext(renderer.coroutine.coroutineContext) {
@@ -39,6 +47,14 @@ abstract class RasterLayerController<ActualLayer : Any>(
                 data.forEach { state ->
                     if (previous.contains(state.id)) {
                         val prevEntity = rasterLayerManager.getEntity(state.id) ?: return@forEach
+                        if (state.fingerPrint() == prevEntity.fingerPrint) {
+                            // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
+                            rasterLayerManager.registerEntity(
+                                RasterLayerEntity(layer = prevEntity.layer, state = stateSnapshot(state)),
+                            )
+                            previous.remove(state.id)
+                            return@forEach
+                        }
                         updated.add(
                             object : RasterLayerOverlayRendererInterface.ChangeParamsInterface<ActualLayer> {
                                 override val current: RasterLayerEntityInterface<ActualLayer> =
@@ -77,7 +93,7 @@ abstract class RasterLayerController<ActualLayer : Any>(
                             val entity =
                                 RasterLayerEntity(
                                     layer = it,
-                                    state = added[index].state,
+                                    state = stateSnapshot(added[index].state),
                                 )
                             rasterLayerManager.registerEntity(entity)
                         }
@@ -92,7 +108,7 @@ abstract class RasterLayerController<ActualLayer : Any>(
                             val entity =
                                 RasterLayerEntity(
                                     layer = it,
-                                    state = state,
+                                    state = stateSnapshot(state),
                                 )
                             rasterLayerManager.registerEntity(entity)
                         }
@@ -129,7 +145,7 @@ abstract class RasterLayerController<ActualLayer : Any>(
                     val updatedEntity =
                         RasterLayerEntity(
                             layer = it,
-                            state = state,
+                            state = stateSnapshot(state),
                         )
                     rasterLayerManager.registerEntity(updatedEntity)
                 }
@@ -160,7 +176,7 @@ abstract class RasterLayerController<ActualLayer : Any>(
                         val entity =
                             RasterLayerEntity(
                                 layer = l,
-                                state = state,
+                                state = stateSnapshot(state),
                             )
                         rasterLayerManager.registerEntity(entity)
                     }
@@ -189,7 +205,7 @@ abstract class RasterLayerController<ActualLayer : Any>(
                     val entity =
                         RasterLayerEntity(
                             layer = layer,
-                            state = state,
+                            state = stateSnapshot(state),
                         )
                     rasterLayerManager.registerEntity(entity)
                 }

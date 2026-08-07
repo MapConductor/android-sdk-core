@@ -8,12 +8,12 @@ components, which are essential for managing and rendering markers on the map.
 ### Signature
 
 ```kotlin
-val LocalMarkerCollector: ProvidableCompositionLocal<ChildCollector<MarkerState>>
+val LocalMarkerCollector: ProvidableCompositionLocal<OverlayCollectorInterface<MarkerState>>
 ```
 
 ### Description
 
-A `CompositionLocal` used to provide a `ChildCollector<MarkerState>` instance down the Composable
+A `CompositionLocal` used to provide a `OverlayCollectorInterface<MarkerState>` instance down the Composable
 tree. This mechanism allows individual `Marker` composables to register their state with a parent
 `MapView` component.
 

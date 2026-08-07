@@ -59,12 +59,18 @@ abstract class AbstractViewportStrategy<ActualMarker>(
                             },
                         )
                     } else {
-                        // Register entity without rendering for markers outside viewport
+                        // ビューポートから出たものは、出ていたなら取り下げる。
+                        // 取り下げずに entity だけ差し替えると、描画済みマーカーが画面外に
+                        // 残り続け、描画数が単調増加する（ビューポート最適化にならない）。
+                        prevEntity.marker?.let { removed.add(prevEntity) }
+                        // isRendered は実態に合わせる。marker が無いのに true を立てると、
+                        // 「描画済みか」で出し入れを決めるサブクラス（旧 DefaultMarkerStrategy 等）が
+                        // 未描画のものを消そうとし、画面に入っても出てこなくなる。
                         val entity =
-                            MarkerEntity(
+                            MarkerEntity<ActualMarker>(
                                 state = state,
-                                marker = prevEntity.marker,
-                                isRendered = true,
+                                marker = null,
+                                isRendered = false,
                             )
                         markerManager.registerEntity(entity)
                     }
@@ -81,11 +87,12 @@ abstract class AbstractViewportStrategy<ActualMarker>(
                         )
                     } else {
                         // Register entity without rendering for new markers outside viewport
+                        // （未描画なので isRendered は false。上の既存分と同じ理由。）
                         val entity =
                             MarkerEntity<ActualMarker>(
                                 marker = null,
                                 state = state,
-                                isRendered = true,
+                                isRendered = false,
                             )
                         markerManager.registerEntity(entity)
                     }

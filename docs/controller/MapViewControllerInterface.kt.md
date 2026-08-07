@@ -252,12 +252,12 @@ allowing for modular management of map elements. The default implementation is a
 
 **Signature**
 ```kotlin
-fun registerOverlayController(controller: OverlayControllerInterface<*, *, *>)
+fun registerOverlayController(controller: OverlayControllerInterface<*, *>)
 ```
 
 **Parameters**
 - `controller`
-    - Type: `OverlayControllerInterface<*, *, *>`
+    - Type: `OverlayControllerInterface<*, *>`
     - Description: The overlay controller instance to register.
 
 **Example**
