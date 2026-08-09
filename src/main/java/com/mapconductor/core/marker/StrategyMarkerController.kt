@@ -35,7 +35,17 @@ class StrategyMarkerController<ActualMarker>(
         renderer.animateEndListener = { state -> dispatchAnimateEnd(state) }
     }
 
+    /**
+     * クリックを配送する。
+     *
+     * `clickable=false` のマーカーには配送しない。マーカーのヒットテスト
+     * （[find]）はドラッグの開始判定にも使われるため、そちらでは `clickable` を
+     * 見られない（`clickable=false` かつ `draggable=true` のマーカーがドラッグ
+     * 不能になってしまう）。判定をここに置くことで、ドラッグを保ったまま
+     * どのプロバイダでも同じ挙動になる。
+     */
     fun dispatchClick(state: MarkerState) {
+        if (!state.clickable) return
         state.onClick?.invoke(state)
         clickListener?.invoke(state)
     }

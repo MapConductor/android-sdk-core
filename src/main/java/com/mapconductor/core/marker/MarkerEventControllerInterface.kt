@@ -1,5 +1,7 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.InternalMapConductorApi
+
 interface MarkerEventControllerInterface<ActualMarker>
 
 /**
@@ -12,6 +14,7 @@ interface MarkerEventControllerInterface<ActualMarker>
  * polygon / polyline / circle には clickable があるので、そちらは地図クリックへ
  * 寄せてある）。この 2 プロバイダだけが実装する。
  */
+@InternalMapConductorApi
 interface NativeMarkerClickTargetInterface<ActualMarker> {
     /** state の id からエンティティを引く。未知の id なら null。 */
     fun getEntity(id: String): MarkerEntityInterface<ActualMarker>?
@@ -45,6 +48,7 @@ interface NativeMarkerClickTargetInterface<ActualMarker> {
  * @param tag ネイティブのマーカーに設定された tag。
  * @return ネイティブへ返す「イベントを消費したか」。
  */
+@InternalMapConductorApi
 fun <ActualMarker> List<NativeMarkerClickTargetInterface<ActualMarker>>.dispatchNativeMarkerClick(tag: Any?): Boolean {
     // MapConductor 管理外のマーカー（アプリが直接 map へ追加したもの）は素通しする。
     val stateId = tag as? String ?: return false

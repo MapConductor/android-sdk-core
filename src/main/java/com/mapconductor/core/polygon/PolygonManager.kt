@@ -52,6 +52,8 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
         // Iterate from top-most to bottom-most by zIndex
         for (entity in entities.values.sortedByDescending { it.state.zIndex }) {
             val state = entity.state
+            // clickable=false のポリゴンはタップに対して透過する（CircleManager と同じ方針）。
+            if (!state.clickable) continue
             val basePoints = state.points
             if (basePoints.size < 3) continue
 

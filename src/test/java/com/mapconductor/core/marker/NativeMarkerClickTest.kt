@@ -1,5 +1,6 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.features.GeoPoint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -15,6 +16,7 @@ import org.junit.Test
  * いるため、他ライブラリが追加したマーカーが混ざりうる。それらは false を返して
  * ネイティブの既定動作へ委ねなければならない。
  */
+@OptIn(InternalMapConductorApi::class)
 class NativeMarkerClickTest {
     private class FakeController : NativeMarkerClickTargetInterface<Any> {
         val entities = mutableMapOf<String, MarkerEntityInterface<Any>>()

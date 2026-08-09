@@ -27,6 +27,29 @@ enum class MapCapability(
     /** 穴付きポリゴンを描けるか。何個描けるかは別途 [MapServiceKey] で値を登録する。 */
     PolygonHoles("polygonHoles"),
 
+    /**
+     * オーバーレイをタップに対して透過させられるか。
+     *
+     * MapConductor は原則としてクリックを地図クリックで受け、コアがヒットテストして
+     * 配送する。そのためにはネイティブのオーバーレイがタップを消費しないよう
+     * 「透過」に設定できる必要がある。できない SDK ではネイティブのクリック
+     * リスナーを使わざるを得ない。
+     *
+     * 実測（2026-08-09）:
+     *  - Google Maps (play-services-maps 20.0.0): `Polygon` / `Polyline` / `Circle` /
+     *    `GroundOverlay` は `clickable(false)` で透過し、`OnMapClickListener` が発火する。
+     *    **`Marker` には `clickable` 自体が無く**、タップは常に消費される。
+     *  - TomTom (SDK 2.4.1): `PolygonOptions` / `PolylineOptions` に `isClickable` は
+     *    あるが、`false` にすると **透過ではなく握り潰し**になり、`MapClickListener`
+     *    にも届かない（実機 Lenovo TB520FU で確認）。`MarkerOptions` には
+     *    `isClickable` が無い。
+     *
+     * この capability が [MapCapabilityStatus.Unsupported] のプロバイダは、
+     * ネイティブのクリックリスナー経由でイベントを受ける。判定自体はコアが行うので、
+     * アプリから見た挙動は揃う。
+     */
+    ClickPassthrough("clickPassthrough"),
+
     // 操作
     MarkerDrag("markerDrag"),
 

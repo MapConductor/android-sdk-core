@@ -41,6 +41,7 @@ class GroundImageManager<ActualGroundImage> : GroundImageManagerInterface<Actual
 
     override fun find(position: GeoPointInterface): GroundImageEntityInterface<ActualGroundImage>? =
         entities.values.firstOrNull { entity ->
-            entity.state.bounds.contains(position)
+            // clickable=false のグラウンドイメージはタップに対して透過する（CircleManager と同じ方針）。
+            entity.state.clickable && entity.state.bounds.contains(position)
         }
 }

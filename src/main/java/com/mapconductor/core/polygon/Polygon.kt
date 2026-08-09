@@ -21,6 +21,7 @@ class PolygonState(
     strokeWidth: Dp = 2.dp,
     fillColor: Color = Color.Transparent,
     geodesic: Boolean = false,
+    clickable: Boolean = true,
     zIndex: Int = 0,
     extra: Serializable? = null,
     onClick: OnPolygonEventHandler? = null,
@@ -35,6 +36,7 @@ class PolygonState(
                     strokeWidth.hashCode(),
                     fillColor.hashCode(),
                     geodesic.hashCode(),
+                    clickable.hashCode(),
                     extra?.hashCode() ?: 0,
                 ),
             )
@@ -43,6 +45,16 @@ class PolygonState(
     var strokeWidth by mutableStateOf(strokeWidth)
     var fillColor by mutableStateOf(fillColor)
     var geodesic by mutableStateOf(geodesic)
+
+    /**
+     * タップを受け取るか。`false` ならこのポリゴンはタップに対して透過し、
+     * 下のオーバーレイ（無ければ地図クリック）へイベントが流れる。
+     *
+     * 判定はコアの [com.mapconductor.core.polygon.PolygonManager.find] が行うため、
+     * どのプロバイダでも同じ挙動になる。描画には影響しないので [fingerPrint] には
+     * 含めない（含めると値を変えるたびにオーバーレイが作り直される）。
+     */
+    var clickable by mutableStateOf(clickable)
     var zIndex by mutableStateOf(zIndex)
     var points by mutableStateOf<List<GeoPointInterface>>(points)
     var holes by mutableStateOf<List<List<GeoPointInterface>>>(holes)
@@ -65,6 +77,7 @@ class PolygonState(
         result = 31 * result + this@PolygonState.strokeWidth.hashCode()
         result = 31 * result + this@PolygonState.fillColor.hashCode()
         result = 31 * result + geodesic.hashCode()
+        result = 31 * result + clickable.hashCode()
         result = 31 * result + zIndex.hashCode()
         result = 31 * result + points.hashCode()
         result = 31 * result + holes.hashCode()
@@ -108,6 +121,7 @@ class PolygonState(
         strokeWidth: Dp = this.strokeWidth,
         fillColor: Color = this.fillColor,
         geodesic: Boolean = this.geodesic,
+        clickable: Boolean = this.clickable,
         zIndex: Int = this.zIndex,
         extra: Serializable? = this.extra,
         onClick: OnPolygonEventHandler? = this.onClick,
@@ -120,6 +134,7 @@ class PolygonState(
             strokeWidth = strokeWidth,
             fillColor = fillColor,
             geodesic = geodesic,
+            clickable = clickable,
             zIndex = zIndex,
             extra = extra,
             onClick = onClick,
