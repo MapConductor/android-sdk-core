@@ -1,7 +1,7 @@
 package com.mapconductor.core.polygon
 
-import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -9,7 +9,7 @@ import kotlinx.coroutines.sync.withPermit
 abstract class PolygonController<ActualPolygon>(
     val polygonManager: PolygonManagerInterface<ActualPolygon>,
     open val renderer: PolygonOverlayRendererInterface<ActualPolygon>,
-) : OverlayControllerInterface<
+) : SlottedOverlayController<
         PolygonState,
         PolygonEntityInterface<ActualPolygon>,
     > {

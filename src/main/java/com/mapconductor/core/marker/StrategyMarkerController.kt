@@ -1,7 +1,8 @@
 package com.mapconductor.core.marker
 
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
-import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.map.MapCameraPosition
@@ -11,7 +12,7 @@ import kotlinx.coroutines.sync.withPermit
 class StrategyMarkerController<ActualMarker>(
     private val strategy: MarkerRenderingStrategyInterface<ActualMarker>,
     private val renderer: MarkerOverlayRendererInterface<ActualMarker>,
-) : OverlayControllerInterface<
+) : SlottedOverlayController<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
     >,
@@ -133,4 +134,8 @@ class StrategyMarkerController<ActualMarker>(
     override fun destroy() {
         strategy.clear()
     }
+
+    override val kind: OverlayKind = OverlayKind.Marker
+
+    override fun has(id: String): Boolean = markerManager.hasEntity(id)
 }

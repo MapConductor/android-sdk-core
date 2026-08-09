@@ -1,7 +1,7 @@
 package com.mapconductor.core.circle
 
-import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -9,7 +9,7 @@ import kotlinx.coroutines.sync.withPermit
 abstract class CircleController<ActualCircle>(
     val circleManager: CircleManagerInterface<ActualCircle>,
     open val renderer: CircleOverlayRendererInterface<ActualCircle>,
-) : OverlayControllerInterface<
+) : SlottedOverlayController<
         CircleState,
         CircleEntityInterface<ActualCircle>,
     > {

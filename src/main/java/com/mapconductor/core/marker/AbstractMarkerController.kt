@@ -1,6 +1,7 @@
 package com.mapconductor.core.marker
 
-import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.yield
@@ -9,7 +10,7 @@ abstract class AbstractMarkerController<ActualMarker>(
     val markerManager: MarkerManager<ActualMarker>,
     val renderer: MarkerOverlayRendererInterface<ActualMarker>,
     var clickListener: OnMarkerEventHandler? = null,
-) : OverlayControllerInterface<
+) : SlottedOverlayController<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
     > {
@@ -312,6 +313,10 @@ abstract class AbstractMarkerController<ActualMarker>(
         draggingMarkerIds.clear()
         markerManager.destroy()
     }
+
+    override val kind: OverlayKind = OverlayKind.Marker
+
+    override fun has(id: String): Boolean = markerManager.hasEntity(id)
 }
 
 private const val MARKER_RENDER_BATCH_SIZE = 500

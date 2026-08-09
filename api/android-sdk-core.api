@@ -103,7 +103,7 @@ public interface com.mapconductor.core.circle.CircleCapableInterface {
   public abstract void setOnCircleClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.circle.CircleEvent, kotlin.Unit>);
   public abstract boolean hasCircle(com.mapconductor.core.circle.CircleState);
 }
-public abstract class com.mapconductor.core.circle.CircleController<ActualCircle> implements com.mapconductor.core.controller.OverlayControllerInterface<com.mapconductor.core.circle.CircleState, com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>> {
+public abstract class com.mapconductor.core.circle.CircleController<ActualCircle> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.circle.CircleState, com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>> {
   public com.mapconductor.core.circle.CircleController(com.mapconductor.core.circle.CircleManagerInterface<ActualCircle>, com.mapconductor.core.circle.CircleOverlayRendererInterface<ActualCircle>);
   public final com.mapconductor.core.circle.CircleManagerInterface<ActualCircle> getCircleManager();
   public com.mapconductor.core.circle.CircleOverlayRendererInterface<ActualCircle> getRenderer();
@@ -326,7 +326,6 @@ public interface com.mapconductor.core.controller.OnCameraChangeReceiverInterfac
 }
 public interface com.mapconductor.core.controller.OverlayControllerInterface<StateType, EntityType> {
   public abstract int getZIndex();
-  public default com.mapconductor.core.controller.OverlayKind getKind();
   public abstract java.lang.Object add(java.util.List<? extends StateType>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public abstract java.lang.Object update(StateType, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public abstract java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -336,7 +335,6 @@ public interface com.mapconductor.core.controller.OverlayControllerInterface<Sta
   public abstract void destroy();
 }
 public final class com.mapconductor.core.controller.OverlayControllerInterface$DefaultImpls {
-  public static <StateType, EntityType> com.mapconductor.core.controller.OverlayKind getKind(com.mapconductor.core.controller.OverlayControllerInterface<StateType, EntityType>);
   public static <StateType, EntityType> boolean has(com.mapconductor.core.controller.OverlayControllerInterface<StateType, EntityType>, java.lang.String);
   public static <StateType, EntityType> void setClickListenerAny(com.mapconductor.core.controller.OverlayControllerInterface<StateType, EntityType>, java.lang.Object);
 }
@@ -360,6 +358,13 @@ public interface com.mapconductor.core.controller.OverlayRendererInterface<Actua
 public interface com.mapconductor.core.controller.OverlayRendererInterface$ChangeParamsInterface<EntityType> {
   public abstract EntityType getCurrent();
   public abstract EntityType getPrev();
+}
+public interface com.mapconductor.core.controller.SlottedOverlayController<StateType, EntityType> extends com.mapconductor.core.controller.OverlayControllerInterface<StateType, EntityType> {
+  public abstract com.mapconductor.core.controller.OverlayKind getKind();
+}
+public final class com.mapconductor.core.controller.SlottedOverlayController$DefaultImpls {
+  public static <StateType, EntityType> boolean has(com.mapconductor.core.controller.SlottedOverlayController<StateType, EntityType>, java.lang.String);
+  public static <StateType, EntityType> void setClickListenerAny(com.mapconductor.core.controller.SlottedOverlayController<StateType, EntityType>, java.lang.Object);
 }
 public final class com.mapconductor.core.features.GeoPoint implements com.mapconductor.core.features.GeoPointInterface,java.io.Serializable {
   public static final com.mapconductor.core.features.GeoPoint$Companion Companion;
@@ -614,7 +619,7 @@ public interface com.mapconductor.core.groundimage.GroundImageCapableInterface {
   public abstract void setOnGroundImageClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit>);
   public abstract boolean hasGroundImage(com.mapconductor.core.groundimage.GroundImageState);
 }
-public abstract class com.mapconductor.core.groundimage.GroundImageController<ActualGroundImage> implements com.mapconductor.core.controller.OverlayControllerInterface<com.mapconductor.core.groundimage.GroundImageState, com.mapconductor.core.groundimage.GroundImageEntityInterface<ActualGroundImage>> {
+public abstract class com.mapconductor.core.groundimage.GroundImageController<ActualGroundImage> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.groundimage.GroundImageState, com.mapconductor.core.groundimage.GroundImageEntityInterface<ActualGroundImage>> {
   public com.mapconductor.core.groundimage.GroundImageController(com.mapconductor.core.groundimage.GroundImageManagerInterface<ActualGroundImage>, com.mapconductor.core.groundimage.GroundImageOverlayRendererInterface<ActualGroundImage>);
   public final com.mapconductor.core.groundimage.GroundImageManagerInterface<ActualGroundImage> getGroundImageManager();
   public com.mapconductor.core.groundimage.GroundImageOverlayRendererInterface<ActualGroundImage> getRenderer();
@@ -1233,7 +1238,7 @@ public final class com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProp
   public int hashCode();
   public boolean equals(java.lang.Object);
 }
-public abstract class com.mapconductor.core.marker.AbstractMarkerController<ActualMarker> implements com.mapconductor.core.controller.OverlayControllerInterface<com.mapconductor.core.marker.MarkerState, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>> {
+public abstract class com.mapconductor.core.marker.AbstractMarkerController<ActualMarker> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.marker.MarkerState, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>> {
   public com.mapconductor.core.marker.AbstractMarkerController(com.mapconductor.core.marker.MarkerManager<ActualMarker>, com.mapconductor.core.marker.MarkerOverlayRendererInterface<ActualMarker>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
   public com.mapconductor.core.marker.AbstractMarkerController(com.mapconductor.core.marker.MarkerManager, com.mapconductor.core.marker.MarkerOverlayRendererInterface, kotlin.jvm.functions.Function1, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final com.mapconductor.core.marker.MarkerManager<ActualMarker> getMarkerManager();
@@ -1757,7 +1762,7 @@ public final class com.mapconductor.core.marker.PointD {
   public int hashCode();
   public boolean equals(java.lang.Object);
 }
-public final class com.mapconductor.core.marker.StrategyMarkerController<ActualMarker> implements com.mapconductor.core.controller.OverlayControllerInterface<com.mapconductor.core.marker.MarkerState, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, com.mapconductor.core.controller.OnCameraChangeReceiverInterface {
+public final class com.mapconductor.core.marker.StrategyMarkerController<ActualMarker> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.marker.MarkerState, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, com.mapconductor.core.controller.OnCameraChangeReceiverInterface {
   public com.mapconductor.core.marker.StrategyMarkerController(com.mapconductor.core.marker.MarkerRenderingStrategyInterface<ActualMarker>, com.mapconductor.core.marker.MarkerOverlayRendererInterface<ActualMarker>);
   public final com.mapconductor.core.marker.MarkerManager<ActualMarker> getMarkerManager();
   public int getZIndex();
@@ -1861,7 +1866,7 @@ public interface com.mapconductor.core.polygon.PolygonCapableInterface {
   public abstract void setOnPolygonClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.polygon.PolygonEvent, kotlin.Unit>);
   public abstract boolean hasPolygon(com.mapconductor.core.polygon.PolygonState);
 }
-public abstract class com.mapconductor.core.polygon.PolygonController<ActualPolygon> implements com.mapconductor.core.controller.OverlayControllerInterface<com.mapconductor.core.polygon.PolygonState, com.mapconductor.core.polygon.PolygonEntityInterface<ActualPolygon>> {
+public abstract class com.mapconductor.core.polygon.PolygonController<ActualPolygon> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.polygon.PolygonState, com.mapconductor.core.polygon.PolygonEntityInterface<ActualPolygon>> {
   public com.mapconductor.core.polygon.PolygonController(com.mapconductor.core.polygon.PolygonManagerInterface<ActualPolygon>, com.mapconductor.core.polygon.PolygonOverlayRendererInterface<ActualPolygon>);
   public final com.mapconductor.core.polygon.PolygonManagerInterface<ActualPolygon> getPolygonManager();
   public com.mapconductor.core.polygon.PolygonOverlayRendererInterface<ActualPolygon> getRenderer();
@@ -2080,7 +2085,7 @@ public interface com.mapconductor.core.polyline.PolylineCapableInterface {
   public abstract void setOnPolylineClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.polyline.PolylineEvent, kotlin.Unit>);
   public abstract boolean hasPolyline(com.mapconductor.core.polyline.PolylineState);
 }
-public abstract class com.mapconductor.core.polyline.PolylineController<ActualPolyline> implements com.mapconductor.core.controller.OverlayControllerInterface<com.mapconductor.core.polyline.PolylineState, com.mapconductor.core.polyline.PolylineEntityInterface<ActualPolyline>>, com.mapconductor.core.controller.OnCameraChangeReceiverInterface {
+public abstract class com.mapconductor.core.polyline.PolylineController<ActualPolyline> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.polyline.PolylineState, com.mapconductor.core.polyline.PolylineEntityInterface<ActualPolyline>>, com.mapconductor.core.controller.OnCameraChangeReceiverInterface {
   public com.mapconductor.core.polyline.PolylineController(com.mapconductor.core.polyline.PolylineManagerInterface<ActualPolyline>, com.mapconductor.core.polyline.PolylineOverlayRendererInterface<ActualPolyline>);
   public final com.mapconductor.core.polyline.PolylineManagerInterface<ActualPolyline> getPolylineManager();
   public com.mapconductor.core.polyline.PolylineOverlayRendererInterface<ActualPolyline> getRenderer();
@@ -2286,7 +2291,7 @@ public interface com.mapconductor.core.raster.RasterLayerCapableInterface {
   public abstract java.lang.Object updateRasterLayer(com.mapconductor.core.raster.RasterLayerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public abstract boolean hasRasterLayer(com.mapconductor.core.raster.RasterLayerState);
 }
-public abstract class com.mapconductor.core.raster.RasterLayerController<ActualLayer> implements com.mapconductor.core.controller.OverlayControllerInterface<com.mapconductor.core.raster.RasterLayerState, com.mapconductor.core.raster.RasterLayerEntityInterface<ActualLayer>>, com.mapconductor.core.controller.OnCameraChangeReceiverInterface {
+public abstract class com.mapconductor.core.raster.RasterLayerController<ActualLayer> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.raster.RasterLayerState, com.mapconductor.core.raster.RasterLayerEntityInterface<ActualLayer>>, com.mapconductor.core.controller.OnCameraChangeReceiverInterface {
   public com.mapconductor.core.raster.RasterLayerController(com.mapconductor.core.raster.RasterLayerManagerInterface<ActualLayer>, com.mapconductor.core.raster.RasterLayerOverlayRendererInterface<ActualLayer>);
   public final com.mapconductor.core.raster.RasterLayerManagerInterface<ActualLayer> getRasterLayerManager();
   public com.mapconductor.core.raster.RasterLayerOverlayRendererInterface<ActualLayer> getRenderer();

@@ -10,6 +10,9 @@ import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.groundimage.GroundImageCapableInterface
 import com.mapconductor.core.groundimage.GroundImageState
 import com.mapconductor.core.groundimage.OnGroundImageEventHandler
+import com.mapconductor.core.map.CameraRestriction
+import com.mapconductor.core.map.MapCameraPosition
+import com.mapconductor.core.map.MapViewHolderInterface
 import com.mapconductor.core.marker.MarkerAnimationOverlayHost
 import com.mapconductor.core.marker.MarkerCapableInterface
 import com.mapconductor.core.marker.MarkerState
@@ -22,9 +25,6 @@ import com.mapconductor.core.polyline.PolylineCapableInterface
 import com.mapconductor.core.polyline.PolylineState
 import com.mapconductor.core.raster.RasterLayerCapableInterface
 import com.mapconductor.core.raster.RasterLayerState
-import com.mapconductor.core.map.CameraRestriction
-import com.mapconductor.core.map.MapCameraPosition
-import com.mapconductor.core.map.MapViewHolderInterface
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
@@ -163,11 +163,15 @@ abstract class BaseMapViewController :
     protected fun <StateType : Any> primaryOverlayController(
         kind: OverlayKind,
     ): OverlayControllerInterface<StateType, *>? =
-        overlayControllers.firstOrNull { it.kind == kind } as? OverlayControllerInterface<StateType, *>
+        overlayControllers
+            .filterIsInstance<SlottedOverlayController<*, *>>()
+            .firstOrNull { it.kind == kind } as? OverlayControllerInterface<StateType, *>
 
     /** この種別に登録されたすべてのコントローラ。`hasXxx` は「どれかが持っていれば true」。 */
     protected fun overlayControllersOf(kind: OverlayKind): List<OverlayControllerInterface<*, *>> =
-        overlayControllers.filter { it.kind == kind }
+        overlayControllers
+            .filterIsInstance<SlottedOverlayController<*, *>>()
+            .filter { it.kind == kind }
 
     /** [kind] のいずれかのコントローラがこの id を持っているか。`hasXxx` の既定実装。 */
     protected fun hasOverlay(

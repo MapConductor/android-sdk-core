@@ -5,14 +5,6 @@ import com.mapconductor.core.features.GeoPointInterface
 interface OverlayControllerInterface<StateType, EntityType> {
     val zIndex: Int
 
-    /**
-     * 種別。[BaseMapViewController] の Capable 既定実装が振り分けに使う。
-     *
-     * 既定は `null`＝どのスロットにも入らない。拡張モジュールが独自に登録する
-     * コントローラ（android-heatmap のカメラ購読用など）を巻き込まないため。
-     */
-    val kind: OverlayKind? get() = null
-
     suspend fun add(data: List<StateType>)
 
     suspend fun update(state: StateType)
@@ -42,4 +34,27 @@ interface OverlayControllerInterface<StateType, EntityType> {
      * IMPORTANT: Call this when switching map providers or disposing the map.
      */
     fun destroy()
+}
+
+/**
+ * Capable ファサードのスロットに参加するオーバーレイコントローラ。
+ *
+ * [BaseMapViewController] の `compositionXxx` / `updateXxx` / `hasXxx` の既定実装は、
+ * 登録済みコントローラのうちこれを実装しているものだけを [kind] で振り分ける。
+ *
+ * ## なぜ [OverlayControllerInterface] に既定つきで置かないか
+ *
+ * 既定値（`null`）を持たせると**宣言を忘れてもコンパイルが通り**、
+ * `primaryOverlayController(kind)` が null を返して追加が黙って捨てられる。
+ * 実際に AbstractMarkerController への宣言を忘れ、全プロバイダでマーカーが
+ * 一切表示されない状態を作り込んだ。ビルドも apiCheck もユニットテストも緑のまま
+ * すり抜けた（`null?.add(...)` は型として正しく、Kotlin の interface 既定プロパティは
+ * 実装クラスにも getter を生成するのでリフレクションでも区別できない）。
+ *
+ * [kind] を抽象にして、宣言忘れをコンパイルエラーにする。
+ * カメラ購読のためだけに登録する拡張モジュール（android-heatmap）は
+ * これを実装しないので、スロットに巻き込まれない。
+ */
+interface SlottedOverlayController<StateType, EntityType> : OverlayControllerInterface<StateType, EntityType> {
+    val kind: OverlayKind
 }

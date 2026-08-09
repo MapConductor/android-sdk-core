@@ -1,8 +1,8 @@
 package com.mapconductor.core.polyline
 
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
-import com.mapconductor.core.controller.OverlayControllerInterface
 import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
@@ -11,7 +11,7 @@ import kotlinx.coroutines.sync.withPermit
 abstract class PolylineController<ActualPolyline>(
     val polylineManager: PolylineManagerInterface<ActualPolyline>,
     open val renderer: PolylineOverlayRendererInterface<ActualPolyline>,
-) : OverlayControllerInterface<
+) : SlottedOverlayController<
         PolylineState,
         PolylineEntityInterface<ActualPolyline>,
     >,
