@@ -1105,6 +1105,11 @@ public final class com.mapconductor.core.map.VisibleRegion {
   public int hashCode();
   public boolean equals(java.lang.Object);
 }
+public final class com.mapconductor.core.map.VisibleRegionBuilderKt {
+  public static final com.mapconductor.core.map.VisibleRegion buildVisibleRegion(com.mapconductor.core.map.MapViewHolderInterface<?, ?>, float, boolean);
+  public static final com.mapconductor.core.map.VisibleRegion buildVisibleRegion-x_KDEd0(com.mapconductor.core.map.MapViewHolderInterface<?, ?>, long, float, boolean);
+  public static final androidx.compose.ui.geometry.Size viewportSizePx(com.mapconductor.core.map.MapViewHolderInterface<?, ?>);
+}
 public abstract class com.mapconductor.core.marker.AbstractDefaultIcon extends com.mapconductor.core.marker.AbstractMarkerIcon {
   public com.mapconductor.core.marker.AbstractDefaultIcon(com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProperties);
   protected final com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProperties getBaseProperties();
@@ -1259,6 +1264,9 @@ public final class com.mapconductor.core.marker.BitmapIcon {
   public int hashCode();
   public boolean equals(java.lang.Object);
   public com.mapconductor.core.marker.BitmapIcon(android.graphics.Bitmap, long, long, kotlin.jvm.internal.DefaultConstructorMarker);
+}
+public final class com.mapconductor.core.marker.ClickableMarkerKt {
+  public static final <ActualMarker> com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> clickableOnly(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
 }
 public final class com.mapconductor.core.marker.ColorDefaultIcon extends com.mapconductor.core.marker.AbstractDefaultIcon {
   public com.mapconductor.core.marker.ColorDefaultIcon(long, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, long, float, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);

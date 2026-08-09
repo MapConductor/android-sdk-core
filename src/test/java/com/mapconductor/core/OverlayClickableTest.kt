@@ -3,11 +3,16 @@ package com.mapconductor.core
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.groundimage.GroundImageState
+import com.mapconductor.core.marker.MarkerEntity
+import com.mapconductor.core.marker.MarkerEntityInterface
 import com.mapconductor.core.marker.MarkerState
+import com.mapconductor.core.marker.clickableOnly
 import com.mapconductor.core.polygon.PolygonState
 import com.mapconductor.core.polyline.PolylineState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -160,4 +165,39 @@ class OverlayClickableTest {
         @Deprecated("Deprecated in Java")
         override fun getOpacity(): Int = android.graphics.PixelFormat.OPAQUE
     }
+
+    // ── clickableOnly（クリック経路の透過） ──────────────────────────────
+
+    @Test
+    fun `clickableOnly は clickable=false を落とす`() {
+        val clickable = entityOf(clickable = true)
+        val notClickable = entityOf(clickable = false)
+
+        assertSame(clickable, clickable.clickableOnly())
+        assertNull(notClickable.clickableOnly())
+        assertNull(null.clickableOnly<Any>())
+    }
+
+    @Test
+    fun `clickableOnly を通せばカスケードは次の層へ進める`() {
+        // find() が返したエンティティで打ち切ると、配送されないのにカスケードが
+        // 止まり、地図クリックも飛ばない（＝握り潰し）。clickableOnly を通すことで
+        // 「当たらなかった」ことになり、次の層へ進める。
+        var reachedNextLayer = false
+        val hit: MarkerEntityInterface<Any>? = entityOf(clickable = false)
+
+        hit.clickableOnly()?.let { return@let } ?: run { reachedNextLayer = true }
+
+        assertTrue("clickable=false は透過して次の層へ進むべき", reachedNextLayer)
+    }
+
+    private fun entityOf(clickable: Boolean): MarkerEntityInterface<Any> =
+        MarkerEntity(
+            marker = null,
+            state =
+                MarkerState(
+                    position = p1,
+                    clickable = clickable,
+                ),
+        )
 }
