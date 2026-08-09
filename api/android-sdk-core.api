@@ -1098,10 +1098,11 @@ public interface com.mapconductor.core.map.MapViewHolderInterface<ActualMapView,
   public abstract ActualMapView getMapView();
   public abstract ActualMap getMap();
   public abstract androidx.compose.ui.geometry.Offset toScreenOffset-x-9fifI(com.mapconductor.core.features.GeoPointInterface);
-  public abstract java.lang.Object fromScreenOffset-3MmeM6k(long, kotlin.coroutines.Continuation<? super com.mapconductor.core.features.GeoPoint>);
+  public default java.lang.Object fromScreenOffset-3MmeM6k(long, kotlin.coroutines.Continuation<? super com.mapconductor.core.features.GeoPoint>);
   public default com.mapconductor.core.features.GeoPoint fromScreenOffsetSync-k-4lQ0M(long);
 }
 public final class com.mapconductor.core.map.MapViewHolderInterface$DefaultImpls {
+  public static <ActualMapView, ActualMap> java.lang.Object fromScreenOffset-3MmeM6k(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, long, kotlin.coroutines.Continuation<? super com.mapconductor.core.features.GeoPoint>);
   public static <ActualMapView, ActualMap> com.mapconductor.core.features.GeoPoint fromScreenOffsetSync-k-4lQ0M(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, long);
 }
 public abstract class com.mapconductor.core.map.MapViewHolderStoreBaseAsync<TMapView, TMap, TOptions> extends com.mapconductor.core.map.StaticHolder<com.mapconductor.core.map.MapViewHolderInterface<TMapView, TMap>> {
