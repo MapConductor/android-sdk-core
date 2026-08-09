@@ -69,7 +69,8 @@ class MapViewStateBaseTest {
     /** 基底の protected な口をテストから叩くための最小のサブクラス。 */
     private class TestState(
         initial: MapCameraPosition = MapCameraPosition.Default,
-    ) : MapViewState<String>(initial) {
+        optimistic: Boolean = false,
+    ) : MapViewState<String>(initial, optimistic) {
         override val id: String = "test"
         override var mapDesignType: String = "design"
 
@@ -205,6 +206,44 @@ class MapViewStateBaseTest {
 
         assertEquals(10.0, state.cameraPosition.position.latitude, 1e-9)
         assertTrue("地図を動かしてはいけない", controller.moved.isEmpty())
+    }
+
+    // ── 楽観更新（MapTiler / Longdo） ────────────────────────────────────
+
+    @Test
+    fun `既定では moveCameraTo 直後に cameraPosition は変わらない`() {
+        // ネイティブ SDK はカメライベントを確実に返すので、実際に適用された値だけを
+        // state に入れる。要求値で先走らない。
+        val state = TestState().apply { attach(FakeController()) }
+        state.pushCamera(cameraAt(0.0, 0.0))
+
+        state.moveCameraTo(cameraAt(35.0, 139.0), durationMillis = 0)
+
+        assertEquals(0.0, state.cameraPosition.position.latitude, 1e-9)
+    }
+
+    @Test
+    fun `optimistic なら moveCameraTo 直後に cameraPosition が更新される`() {
+        // WebView ブリッジ越し（MapTiler / Longdo）はイベントの往復が遅く、
+        // 要求直後に読むと古い値が返ってしまう。
+        val state = TestState(optimistic = true).apply { attach(FakeController()) }
+        state.pushCamera(cameraAt(0.0, 0.0))
+
+        state.moveCameraTo(cameraAt(35.0, 139.0), durationMillis = 0)
+
+        assertEquals(35.0, state.cameraPosition.position.latitude, 1e-9)
+    }
+
+    @Test
+    fun `optimistic でもコントローラへの委譲は変わらない`() {
+        val controller = FakeController()
+        val state = TestState(optimistic = true).apply { attach(controller) }
+        controller.moved.clear()
+
+        state.moveCameraTo(cameraAt(1.0, 2.0), durationMillis = 300)
+
+        assertTrue(controller.moved.isEmpty())
+        assertEquals(300L, controller.animated.single().second)
     }
 
     @Test

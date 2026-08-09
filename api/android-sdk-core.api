@@ -1047,8 +1047,8 @@ public abstract class com.mapconductor.core.map.MapViewHolderStoreBaseAsync<TMap
   public abstract java.lang.Object getOrCreate(android.content.Context, java.lang.String, TOptions, kotlin.coroutines.Continuation<? super com.mapconductor.core.map.MapViewHolderInterface<TMapView, TMap>>);
 }
 public abstract class com.mapconductor.core.map.MapViewState<ActualMapDesignType> implements com.mapconductor.core.map.MapViewStateInterface<ActualMapDesignType> {
-  public com.mapconductor.core.map.MapViewState(com.mapconductor.core.map.MapCameraPosition);
-  public com.mapconductor.core.map.MapViewState(com.mapconductor.core.map.MapCameraPosition, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.map.MapViewState(com.mapconductor.core.map.MapCameraPosition, boolean);
+  public com.mapconductor.core.map.MapViewState(com.mapconductor.core.map.MapCameraPosition, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public com.mapconductor.core.map.MutableMapServiceRegistry getServiceRegistry();
   public com.mapconductor.core.map.MapUISettings getUiSettings();
   public void setUiSettings(com.mapconductor.core.map.MapUISettings);

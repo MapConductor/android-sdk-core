@@ -85,10 +85,20 @@ interface MapViewStateInterface<ActualMapDesignType> {
  * `mapDesignType` の型と、`getMapViewHolder` の戻り型を絞る共変オーバーライドだけ。
  *
  * @param initialCameraPosition コントローラが繋がるまでの間、保持しておくカメラ。
- *   [attachController] の時点でこの位置へ移動する。
+ *   [attachController] の時点でこの位置へ移動する（[attachController] の第2引数で抑止可）。
+ * @param optimisticCameraUpdate [moveCameraTo] で、コントローラへ委譲する**前に**
+ *   要求されたカメラを [cameraPosition] へ反映するか。
+ *
+ *   既定は `false`。地図のカメライベントが返ってきてから
+ *   [setCameraPositionInternal] で反映する（ネイティブ SDK は確実にイベントを返すので、
+ *   実際に適用された値だけが state に入る）。
+ *
+ *   `true` にするのは WebView ブリッジ越しのプロバイダ（MapTiler / Longdo）。
+ *   イベントの往復が遅く、要求直後に [cameraPosition] を読むと古い値が返ってしまうため。
  */
 abstract class MapViewState<ActualMapDesignType>(
     initialCameraPosition: MapCameraPosition = MapCameraPosition.Default,
+    private val optimisticCameraUpdate: Boolean = false,
 ) : MapViewStateInterface<ActualMapDesignType> {
     /** @see MapViewStateInterface.serviceRegistry */
     override val serviceRegistry: MutableMapServiceRegistry = MutableMapServiceRegistry()
@@ -106,7 +116,9 @@ abstract class MapViewState<ActualMapDesignType>(
     protected var attachedMapController: MapViewControllerInterface? = null
         private set
 
-    private var _cameraPosition: MapCameraPosition = initialCameraPosition
+    // Compose state で持つ。composable が state.cameraPosition を読んでいる場合、
+    // カメラが動いたら再コンポーズされる必要がある。
+    private var _cameraPosition: MapCameraPosition by mutableStateOf(initialCameraPosition)
 
     override val cameraPosition: MapCameraPosition
         get() = _cameraPosition
@@ -161,6 +173,9 @@ abstract class MapViewState<ActualMapDesignType>(
             // まだ地図が無い。接続時に attachController がこの位置へ移動する。
             _cameraPosition = cameraPosition
             return
+        }
+        if (optimisticCameraUpdate) {
+            _cameraPosition = cameraPosition
         }
         // 引数は既に MapCameraPosition なので、プロバイダごとの
         // `MapCameraPosition.Companion.from` は恒等変換になる（どの実装も
