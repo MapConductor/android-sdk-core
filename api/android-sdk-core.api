@@ -1154,6 +1154,10 @@ public final class com.mapconductor.core.map.MutableMapServiceRegistry implement
   public <T> T get(com.mapconductor.core.map.MapServiceKey<T>);
   public <T> boolean has(com.mapconductor.core.map.MapServiceKey<T>);
 }
+public final class com.mapconductor.core.map.ScreenProjectionRequirement {
+  public static final com.mapconductor.core.map.ScreenProjectionRequirement INSTANCE;
+  public final boolean check(com.mapconductor.core.map.MapServiceRegistry, java.lang.String, java.lang.String);
+}
 public abstract class com.mapconductor.core.map.StaticHolder<ValueType> {
   public com.mapconductor.core.map.StaticHolder();
   public final boolean has(java.lang.String);
