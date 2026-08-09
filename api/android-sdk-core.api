@@ -117,6 +117,9 @@ public abstract class com.mapconductor.core.circle.CircleController<ActualCircle
   public java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> find(com.mapconductor.core.features.GeoPointInterface);
   public void destroy();
+  public boolean has(java.lang.String);
+  public com.mapconductor.core.controller.OverlayKind getKind();
+  public void setClickListenerAny(java.lang.Object);
   public java.lang.Object update(java.lang.Object, kotlin.coroutines.Continuation);
   public java.lang.Object find(com.mapconductor.core.features.GeoPointInterface);
 }
@@ -235,7 +238,7 @@ public final class com.mapconductor.core.circle.CircleState implements com.mapco
   public int hashCode();
   public com.mapconductor.core.circle.CircleState(com.mapconductor.core.features.GeoPointInterface, double, boolean, boolean, long, float, long, java.lang.String, java.lang.Integer, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
 }
-public abstract class com.mapconductor.core.controller.BaseMapViewController implements com.mapconductor.core.controller.MapViewControllerInterface {
+public abstract class com.mapconductor.core.controller.BaseMapViewController implements com.mapconductor.core.controller.MapViewControllerInterface,com.mapconductor.core.marker.MarkerCapableInterface,com.mapconductor.core.polyline.PolylineCapableInterface,com.mapconductor.core.polygon.PolygonCapableInterface,com.mapconductor.core.circle.CircleCapableInterface,com.mapconductor.core.groundimage.GroundImageCapableInterface,com.mapconductor.core.raster.RasterLayerCapableInterface {
   public static final double ZOOM_EPS;
   public static final double COORD_EPS;
   public com.mapconductor.core.controller.BaseMapViewController();
@@ -263,6 +266,38 @@ public abstract class com.mapconductor.core.controller.BaseMapViewController imp
   public final void setMapClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.features.GeoPoint, kotlin.Unit>);
   public final void setMapLongClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.features.GeoPoint, kotlin.Unit>);
   public void registerOverlayController(com.mapconductor.core.controller.OverlayControllerInterface<?, ?>);
+  protected final <StateType> com.mapconductor.core.controller.OverlayControllerInterface<StateType, ?> primaryOverlayController(com.mapconductor.core.controller.OverlayKind);
+  protected final java.util.List<com.mapconductor.core.controller.OverlayControllerInterface<?, ?>> overlayControllersOf(com.mapconductor.core.controller.OverlayKind);
+  protected final boolean hasOverlay(com.mapconductor.core.controller.OverlayKind, java.lang.String);
+  public java.lang.Object compositionMarkers(java.util.List<com.mapconductor.core.marker.MarkerState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public java.lang.Object updateMarker(com.mapconductor.core.marker.MarkerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public boolean hasMarker(com.mapconductor.core.marker.MarkerState);
+  public void setOnMarkerDragStart(kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
+  public void setOnMarkerDrag(kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
+  public void setOnMarkerDragEnd(kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
+  public void setOnMarkerAnimateStart(kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
+  public void setOnMarkerAnimateEnd(kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
+  public void setOnMarkerClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
+  public void setMarkerAnimationOverlayHost(com.mapconductor.core.marker.MarkerAnimationOverlayHost);
+  public java.lang.Object compositionPolylines(java.util.List<com.mapconductor.core.polyline.PolylineState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public java.lang.Object updatePolyline(com.mapconductor.core.polyline.PolylineState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public boolean hasPolyline(com.mapconductor.core.polyline.PolylineState);
+  public void setOnPolylineClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.polyline.PolylineEvent, kotlin.Unit>);
+  public java.lang.Object compositionPolygons(java.util.List<com.mapconductor.core.polygon.PolygonState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public java.lang.Object updatePolygon(com.mapconductor.core.polygon.PolygonState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public boolean hasPolygon(com.mapconductor.core.polygon.PolygonState);
+  public void setOnPolygonClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.polygon.PolygonEvent, kotlin.Unit>);
+  public java.lang.Object compositionCircles(java.util.List<com.mapconductor.core.circle.CircleState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public java.lang.Object updateCircle(com.mapconductor.core.circle.CircleState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public boolean hasCircle(com.mapconductor.core.circle.CircleState);
+  public void setOnCircleClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.circle.CircleEvent, kotlin.Unit>);
+  public java.lang.Object compositionGroundImages(java.util.List<com.mapconductor.core.groundimage.GroundImageState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public java.lang.Object updateGroundImage(com.mapconductor.core.groundimage.GroundImageState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public boolean hasGroundImage(com.mapconductor.core.groundimage.GroundImageState);
+  public void setOnGroundImageClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit>);
+  public java.lang.Object compositionRasterLayers(java.util.List<com.mapconductor.core.raster.RasterLayerState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public java.lang.Object updateRasterLayer(com.mapconductor.core.raster.RasterLayerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public boolean hasRasterLayer(com.mapconductor.core.raster.RasterLayerState);
   public final void setMapInitializedListener(kotlin.jvm.functions.Function0<kotlin.Unit>);
   protected final void notifyMapInitialized();
   protected final java.lang.Object notifyMapCameraPosition(com.mapconductor.core.map.MapCameraPosition, kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -291,11 +326,30 @@ public interface com.mapconductor.core.controller.OnCameraChangeReceiverInterfac
 }
 public interface com.mapconductor.core.controller.OverlayControllerInterface<StateType, EntityType> {
   public abstract int getZIndex();
+  public default com.mapconductor.core.controller.OverlayKind getKind();
   public abstract java.lang.Object add(java.util.List<? extends StateType>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public abstract java.lang.Object update(StateType, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public abstract java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public abstract EntityType find(com.mapconductor.core.features.GeoPointInterface);
+  public default boolean has(java.lang.String);
+  public default void setClickListenerAny(java.lang.Object);
   public abstract void destroy();
+}
+public final class com.mapconductor.core.controller.OverlayControllerInterface$DefaultImpls {
+  public static <StateType, EntityType> com.mapconductor.core.controller.OverlayKind getKind(com.mapconductor.core.controller.OverlayControllerInterface<StateType, EntityType>);
+  public static <StateType, EntityType> boolean has(com.mapconductor.core.controller.OverlayControllerInterface<StateType, EntityType>, java.lang.String);
+  public static <StateType, EntityType> void setClickListenerAny(com.mapconductor.core.controller.OverlayControllerInterface<StateType, EntityType>, java.lang.Object);
+}
+public final class com.mapconductor.core.controller.OverlayKind extends java.lang.Enum<com.mapconductor.core.controller.OverlayKind> {
+  public static final com.mapconductor.core.controller.OverlayKind Marker;
+  public static final com.mapconductor.core.controller.OverlayKind Circle;
+  public static final com.mapconductor.core.controller.OverlayKind GroundImage;
+  public static final com.mapconductor.core.controller.OverlayKind Polyline;
+  public static final com.mapconductor.core.controller.OverlayKind Polygon;
+  public static final com.mapconductor.core.controller.OverlayKind RasterLayer;
+  public static com.mapconductor.core.controller.OverlayKind[] values();
+  public static com.mapconductor.core.controller.OverlayKind valueOf(java.lang.String);
+  public static kotlin.enums.EnumEntries<com.mapconductor.core.controller.OverlayKind> getEntries();
 }
 public interface com.mapconductor.core.controller.OverlayRendererInterface<ActualType, StateType, EntityType> {
   public abstract java.lang.Object onAdd(java.util.List<? extends StateType>, kotlin.coroutines.Continuation<? super java.util.List<? extends ActualType>>);
@@ -574,6 +628,9 @@ public abstract class com.mapconductor.core.groundimage.GroundImageController<Ac
   public java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public com.mapconductor.core.groundimage.GroundImageEntityInterface<ActualGroundImage> find(com.mapconductor.core.features.GeoPointInterface);
   public void destroy();
+  public boolean has(java.lang.String);
+  public com.mapconductor.core.controller.OverlayKind getKind();
+  public void setClickListenerAny(java.lang.Object);
   public java.lang.Object update(java.lang.Object, kotlin.coroutines.Continuation);
   public java.lang.Object find(com.mapconductor.core.features.GeoPointInterface);
 }
@@ -1207,6 +1264,9 @@ public abstract class com.mapconductor.core.marker.AbstractMarkerController<Actu
   public java.lang.Object update(com.mapconductor.core.marker.MarkerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void destroy();
+  public com.mapconductor.core.controller.OverlayKind getKind();
+  public boolean has(java.lang.String);
+  public void setClickListenerAny(java.lang.Object);
   public java.lang.Object update(java.lang.Object, kotlin.coroutines.Continuation);
 }
 public final class com.mapconductor.core.marker.AbstractMarkerControllerKt {
@@ -1726,6 +1786,9 @@ public final class com.mapconductor.core.marker.StrategyMarkerController<ActualM
   public com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> find(com.mapconductor.core.features.GeoPointInterface);
   public java.lang.Object onCameraChanged(com.mapconductor.core.map.MapCameraPosition, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void destroy();
+  public com.mapconductor.core.controller.OverlayKind getKind();
+  public boolean has(java.lang.String);
+  public void setClickListenerAny(java.lang.Object);
   public java.lang.Object update(java.lang.Object, kotlin.coroutines.Continuation);
   public java.lang.Object find(com.mapconductor.core.features.GeoPointInterface);
 }
@@ -1812,6 +1875,9 @@ public abstract class com.mapconductor.core.polygon.PolygonController<ActualPoly
   public java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public com.mapconductor.core.polygon.PolygonEntityInterface<ActualPolygon> find(com.mapconductor.core.features.GeoPointInterface);
   public void destroy();
+  public boolean has(java.lang.String);
+  public com.mapconductor.core.controller.OverlayKind getKind();
+  public void setClickListenerAny(java.lang.Object);
   public java.lang.Object update(java.lang.Object, kotlin.coroutines.Continuation);
   public java.lang.Object find(com.mapconductor.core.features.GeoPointInterface);
 }
@@ -2030,6 +2096,9 @@ public abstract class com.mapconductor.core.polyline.PolylineController<ActualPo
   public final com.mapconductor.core.polyline.PolylineHitResult<ActualPolyline> findWithClosestPoint(com.mapconductor.core.features.GeoPointInterface);
   public java.lang.Object onCameraChanged(com.mapconductor.core.map.MapCameraPosition, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void destroy();
+  public boolean has(java.lang.String);
+  public com.mapconductor.core.controller.OverlayKind getKind();
+  public void setClickListenerAny(java.lang.Object);
   public java.lang.Object update(java.lang.Object, kotlin.coroutines.Continuation);
   public java.lang.Object find(com.mapconductor.core.features.GeoPointInterface);
 }
@@ -2233,6 +2302,9 @@ public abstract class com.mapconductor.core.raster.RasterLayerController<ActualL
   public com.mapconductor.core.raster.RasterLayerEntityInterface<ActualLayer> find(com.mapconductor.core.features.GeoPointInterface);
   public java.lang.Object onCameraChanged(com.mapconductor.core.map.MapCameraPosition, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void destroy();
+  public boolean has(java.lang.String);
+  public com.mapconductor.core.controller.OverlayKind getKind();
+  public void setClickListenerAny(java.lang.Object);
   public java.lang.Object update(java.lang.Object, kotlin.coroutines.Continuation);
   public java.lang.Object find(com.mapconductor.core.features.GeoPointInterface);
 }

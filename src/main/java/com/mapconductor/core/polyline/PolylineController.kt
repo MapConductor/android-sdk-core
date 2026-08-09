@@ -2,6 +2,7 @@ package com.mapconductor.core.polyline
 
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
@@ -168,5 +169,14 @@ abstract class PolylineController<ActualPolyline>(
 
     override fun destroy() {
         // No native resources to clean up for polylines
+    }
+
+    override fun has(id: String): Boolean = polylineManager.hasEntity(id)
+
+    override val kind: OverlayKind = OverlayKind.Polyline
+
+    @Suppress("UNCHECKED_CAST")
+    override fun setClickListenerAny(listener: Any?) {
+        clickListener = listener as? com.mapconductor.core.polyline.OnPolylineEventHandler
     }
 }

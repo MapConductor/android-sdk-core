@@ -1,6 +1,7 @@
 package com.mapconductor.core.polygon
 
 import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.features.GeoPointInterface
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -161,5 +162,14 @@ abstract class PolygonController<ActualPolygon>(
 
     override fun destroy() {
         // No native resources to clean up for polygons
+    }
+
+    override fun has(id: String): Boolean = polygonManager.hasEntity(id)
+
+    override val kind: OverlayKind = OverlayKind.Polygon
+
+    @Suppress("UNCHECKED_CAST")
+    override fun setClickListenerAny(listener: Any?) {
+        clickListener = listener as? com.mapconductor.core.polygon.OnPolygonEventHandler
     }
 }

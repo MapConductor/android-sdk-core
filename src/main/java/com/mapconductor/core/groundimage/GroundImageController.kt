@@ -1,6 +1,7 @@
 package com.mapconductor.core.groundimage
 
 import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.features.GeoPointInterface
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -155,5 +156,14 @@ abstract class GroundImageController<ActualGroundImage>(
 
     override fun destroy() {
         // No native resources to clean up
+    }
+
+    override fun has(id: String): Boolean = groundImageManager.hasEntity(id)
+
+    override val kind: OverlayKind = OverlayKind.GroundImage
+
+    @Suppress("UNCHECKED_CAST")
+    override fun setClickListenerAny(listener: Any?) {
+        clickListener = listener as? com.mapconductor.core.groundimage.OnGroundImageEventHandler
     }
 }

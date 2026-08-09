@@ -1,6 +1,7 @@
 package com.mapconductor.core.circle
 
 import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.features.GeoPointInterface
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -157,5 +158,14 @@ abstract class CircleController<ActualCircle>(
 
     override fun destroy() {
         // No native resources to clean up for circles
+    }
+
+    override fun has(id: String): Boolean = circleManager.hasEntity(id)
+
+    override val kind: OverlayKind = OverlayKind.Circle
+
+    @Suppress("UNCHECKED_CAST")
+    override fun setClickListenerAny(listener: Any?) {
+        clickListener = listener as? com.mapconductor.core.circle.OnCircleEventHandler
     }
 }
