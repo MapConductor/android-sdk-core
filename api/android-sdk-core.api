@@ -2587,6 +2587,23 @@ public abstract class com.mapconductor.core.zoom.AbstractZoomAltitudeConverter {
 }
 public final class com.mapconductor.core.zoom.AbstractZoomAltitudeConverter$Companion {
 }
+public class com.mapconductor.core.zoom.GroundScaleZoomAltitudeConverter extends com.mapconductor.core.zoom.WebMercatorZoomAltitudeConverter {
+  public com.mapconductor.core.zoom.GroundScaleZoomAltitudeConverter(double, double);
+  public com.mapconductor.core.zoom.GroundScaleZoomAltitudeConverter(double, double, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  protected double zoomOffsetAt(double);
+}
+public class com.mapconductor.core.zoom.WebMercatorZoomAltitudeConverter extends com.mapconductor.core.zoom.AbstractZoomAltitudeConverter {
+  public com.mapconductor.core.zoom.WebMercatorZoomAltitudeConverter(double, double);
+  public com.mapconductor.core.zoom.WebMercatorZoomAltitudeConverter(double, double, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  protected double zoomOffsetAt(double);
+  public final double toUnifiedZoom(double, double);
+  public final double toNativeZoom(double, double);
+  protected final double cosLatitudeFactor(double);
+  protected final double cosTiltFactor(double);
+  public double zoomLevelToAltitude(double, double, double);
+  public double altitudeToZoomLevel(double, double, double);
+  public com.mapconductor.core.zoom.WebMercatorZoomAltitudeConverter();
+}
 public final class com.mapconductor.error.UnimplementedInitStateException extends java.lang.Exception {
   public com.mapconductor.error.UnimplementedInitStateException();
 }
