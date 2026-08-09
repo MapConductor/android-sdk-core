@@ -1,9 +1,9 @@
 package com.mapconductor.core.map
 
-import android.view.View
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.mapconductor.core.features.GeoRectBounds
+import android.view.View
 
 /**
  * ビューポートの 4 隅を逆投影して [VisibleRegion] を組み立てる。
