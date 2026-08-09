@@ -1,5 +1,6 @@
 package com.mapconductor.core.circle
 
+import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
@@ -163,6 +164,13 @@ abstract class CircleController<ActualCircle>(
     override fun has(id: String): Boolean = circleManager.hasEntity(id)
 
     override val kind: OverlayKind = OverlayKind.Circle
+
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? =
+        find(position)?.let { entity ->
+            OverlayHit(OverlayKind.Circle, position) {
+                dispatchClick(CircleEvent(entity.state, position))
+            }
+        }
 
     @Suppress("UNCHECKED_CAST")
     override fun setClickListenerAny(listener: Any?) {

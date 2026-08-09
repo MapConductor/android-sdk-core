@@ -1,6 +1,7 @@
 package com.mapconductor.core.raster
 
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
+import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
@@ -256,4 +257,7 @@ abstract class RasterLayerController<ActualLayer : Any>(
     override fun has(id: String): Boolean = rasterLayerManager.hasEntity(id)
 
     override val kind: OverlayKind = OverlayKind.RasterLayer
+
+    /** ラスターレイヤはクリックを持たない。タップは次の層へ素通しする。 */
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? = null
 }

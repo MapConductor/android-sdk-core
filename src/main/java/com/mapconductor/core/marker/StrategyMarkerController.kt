@@ -1,6 +1,7 @@
 package com.mapconductor.core.marker
 
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
+import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
@@ -136,6 +137,9 @@ class StrategyMarkerController<ActualMarker>(
     }
 
     override val kind: OverlayKind = OverlayKind.Marker
+
+    /** マーカーは別経路（[com.mapconductor.core.controller.BaseMapViewController.dispatchMarkerTap]）。 */
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? = null
 
     override fun has(id: String): Boolean = markerManager.hasEntity(id)
 }

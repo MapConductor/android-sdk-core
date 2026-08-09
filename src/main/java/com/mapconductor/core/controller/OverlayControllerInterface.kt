@@ -1,5 +1,6 @@
 package com.mapconductor.core.controller
 
+import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.features.GeoPointInterface
 
 interface OverlayControllerInterface<StateType, EntityType> {
@@ -55,6 +56,26 @@ interface OverlayControllerInterface<StateType, EntityType> {
  * カメラ購読のためだけに登録する拡張モジュール（android-heatmap）は
  * これを実装しないので、スロットに巻き込まれない。
  */
+@InternalMapConductorApi
 interface SlottedOverlayController<StateType, EntityType> : OverlayControllerInterface<StateType, EntityType> {
     val kind: OverlayKind
+
+    /**
+     * タップの当たり判定と、当たったときの配送手段。当たらなければ null。
+     *
+     * クリックカスケード（[OverlayHitResolver]）の 1 段。解決するだけで配送はしない
+     * （呼び出し側が [OverlayHit.dispatch] を呼ぶまで副作用は起きない）。
+     *
+     * ## これも [kind] と同じく**抽象**にしてある
+     *
+     * 既定で `null` を返せるようにすると、実装を忘れたコントローラが
+     * 「タップに反応しないが、ビルドもテストも通る」状態になる。実際
+     * android-for-maplibre / mapbox のポリゴンは [SlottedOverlayController] を
+     * 実装し忘れていて、カスケードからも `hasPolygon` からも黙って漏れていた。
+     *
+     * クリックを持たない種別は明示的に `null` を返すこと（[com.mapconductor.core.raster.RasterLayerController]）。
+     * マーカーは判定に画面投影が要るため別経路
+     * （[BaseMapViewController.dispatchMarkerTap]）で、ここでは `null` を返す。
+     */
+    fun resolveTap(position: GeoPointInterface): OverlayHit?
 }

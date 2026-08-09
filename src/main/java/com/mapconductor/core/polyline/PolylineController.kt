@@ -1,6 +1,7 @@
 package com.mapconductor.core.polyline
 
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
+import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
@@ -174,6 +175,14 @@ abstract class PolylineController<ActualPolyline>(
     override fun has(id: String): Boolean = polylineManager.hasEntity(id)
 
     override val kind: OverlayKind = OverlayKind.Polyline
+
+    /** 配送座標はタップ点ではなく**線上の最近傍点**（3 プラットフォーム共通の契約）。 */
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? =
+        findWithClosestPoint(position)?.let { hit ->
+            OverlayHit(OverlayKind.Polyline, hit.closestPoint) {
+                dispatchClick(PolylineEvent(hit.entity.state, hit.closestPoint))
+            }
+        }
 
     @Suppress("UNCHECKED_CAST")
     override fun setClickListenerAny(listener: Any?) {

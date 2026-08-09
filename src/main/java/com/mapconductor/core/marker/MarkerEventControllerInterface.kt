@@ -1,8 +1,59 @@
 package com.mapconductor.core.marker
 
 import com.mapconductor.core.InternalMapConductorApi
+import com.mapconductor.core.features.GeoPointInterface
 
 interface MarkerEventControllerInterface<ActualMarker>
+
+/**
+ * 地図クリックの座標からマーカーを引き当てて配送するための契約。
+ *
+ * こちらが**原則の経路**。地図クリックを受けてコアがヒットテストするので、
+ * ネイティブのマーカークリックリスナーを使わずに済む。
+ * [NativeMarkerClickTargetInterface] はこれが成立しない 2 プロバイダ
+ * （Google Maps / TomTom のネイティブマーカー）のための例外。
+ *
+ * 実装は各プロバイダの `*MarkerEventControllerInterface`。ヒットテスト自体は
+ * コアの [MarkerHitTest]（アイコン矩形 + tapTolerance）が担う。
+ */
+@InternalMapConductorApi
+interface GeoMarkerClickTargetInterface<ActualMarker> {
+    /** タップ座標に当たるマーカー。無ければ null。 */
+    fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>?
+
+    /** クリックを配送する（`state.onClick` とコントローラのリスナーの両方へ）。 */
+    fun dispatchClick(state: MarkerState)
+}
+
+/**
+ * 地図クリックの座標でマーカーのカスケードを 1 段回す。
+ *
+ * android-for-maplibre / mapbox / here / arcgis / arcgis2d が同じ 6 行を各自
+ * 持っていたものの集約。
+ *
+ * ## `clickable = false` は「透過」であって「握り潰し」ではない
+ *
+ * 判定は [clickableOnly] に一本化してある。`find` の結果を直接使ってはいけない。
+ * `find` は**ドラッグの開始判定にも使われる**ので、`find` 側で clickable を見ると
+ * `clickable = false` かつ `draggable = true` のマーカーがドラッグできなくなる。
+ * 逆にここで `find` の結果をそのまま消費すると、`clickable = false` のマーカーが
+ * タップを飲み込んで下のオーバーレイにも地図クリックにも流れなくなる（実際に
+ * 一度作り込んだ）。
+ *
+ * @return マーカーがタップを消費したら true。false なら呼び出し側は次の層へ進む。
+ */
+@InternalMapConductorApi
+fun <ActualMarker> List<GeoMarkerClickTargetInterface<ActualMarker>>.dispatchGeoMarkerClick(
+    position: GeoPointInterface,
+): Boolean {
+    forEach { controller ->
+        controller.find(position).clickableOnly()?.let { entity ->
+            controller.dispatchClick(entity.state)
+            return true
+        }
+    }
+    return false
+}
 
 /**
  * ネイティブのマーカークリックを id からエンティティへ引き当てるための契約。

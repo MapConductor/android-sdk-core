@@ -1,7 +1,9 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.controller.SlottedOverlayController
+import com.mapconductor.core.features.GeoPointInterface
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.yield
@@ -315,6 +317,14 @@ abstract class AbstractMarkerController<ActualMarker>(
     }
 
     override val kind: OverlayKind = OverlayKind.Marker
+
+    /**
+     * マーカーはこのカスケードでは解決しない。
+     *
+     * 判定にアイコン矩形（＝画面投影）が要り、プロバイダごとにスレッドの制約が違うので
+     * [com.mapconductor.core.controller.BaseMapViewController.dispatchMarkerTap] を通る。
+     */
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? = null
 
     override fun has(id: String): Boolean = markerManager.hasEntity(id)
 }

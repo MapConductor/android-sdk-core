@@ -7,6 +7,7 @@ import com.mapconductor.core.circle.CircleCapableInterface
 import com.mapconductor.core.circle.CircleState
 import com.mapconductor.core.circle.OnCircleEventHandler
 import com.mapconductor.core.features.GeoPoint
+import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.groundimage.GroundImageCapableInterface
 import com.mapconductor.core.groundimage.GroundImageState
 import com.mapconductor.core.groundimage.OnGroundImageEventHandler
@@ -141,6 +142,82 @@ abstract class BaseMapViewController :
     override fun registerOverlayController(controller: OverlayControllerInterface<*, *>) {
         if (overlayControllers.contains(controller)) return
         overlayControllers.add(controller)
+    }
+
+    // ── タップのカスケード ──────────────────────────────────────────────
+    //
+    // marker → circle → groundImage → polyline → polygon → map の一本道。
+    // 8 プロバイダが同じ 40〜50 行を各自持っていたものの集約。順序と先勝ちの
+    // 規則は [OverlayHitResolver] にある。
+
+    /**
+     * オーバーレイの探索順。既定は [OverlayHitResolver.CANONICAL_ORDER]。
+     *
+     * 種別を持たないプロバイダ（TomTom の円とグラウンドイメージはネイティブでは
+     * どちらも Polygon）でも順序は同じでよい。判定はコアの Manager が行うので、
+     * ネイティブの実装がどうであれ結果は他プロバイダと揃う。
+     */
+    protected open val overlayCascadeOrder: List<OverlayKind>
+        get() = OverlayHitResolver.CANONICAL_ORDER
+
+    /**
+     * マーカーのヒットテストと配送。既定は「当たらない」。
+     *
+     * マーカーだけコアが既定を持たないのは、判定に画面投影が要り、プロバイダごとに
+     * スレッドの制約（Google Maps / TomTom の `Projection` はメインスレッド専用）と
+     * マーカーの実装方式（ネイティブマーカー / シンボルレイヤ / タイル）が違うため。
+     *
+     * 地理座標で引ける普通のプロバイダは
+     * `markerEventControllers.dispatchGeoMarkerClick(position)` の 1 行で済む。
+     * ネイティブのマーカークリックリスナーを使わざるを得ないプロバイダ
+     * （Google Maps / TomTom）は既定のままにして、そちらで
+     * `dispatchNativeMarkerClick` を使う。
+     *
+     * @return マーカーがタップを消費したら true。
+     */
+    protected open fun dispatchMarkerTap(position: GeoPointInterface): Boolean = false
+
+    /**
+     * オーバーレイ（マーカー以外）のタップを、正準順に 1 つだけ配送する。
+     *
+     * マーカーを含まないので、ネイティブのオーバーレイクリックリスナーから
+     * 呼ぶこともできる（TomTom はネイティブのリスナーを**発火のきっかけ**としてのみ
+     * 使い、どのエンティティかの判定はここへ委ねている）。
+     *
+     * @return 何かに当たって配送したら true。
+     */
+    fun dispatchOverlayTap(position: GeoPointInterface): Boolean {
+        val hit = OverlayHitResolver.resolve(overlayControllers, position, overlayCascadeOrder) ?: return false
+        hit.dispatch()
+        return true
+    }
+
+    /**
+     * タップの入口。marker → オーバーレイ → 地図クリックの順に 1 つだけ配送する。
+     *
+     * プロバイダは SDK のタップを地理座標に直してこれを呼ぶだけでよい。
+     *
+     * **必ずどれか 1 つだけ**が配送される。オーバーレイに当たったのに地図クリックも
+     * 飛ぶ、という二重配送を防ぐのがこの関数の役目。
+     *
+     * @return 常に true（タップは必ずどこかで処理される）。SDK のリスナーが
+     *   「消費したか」を要求する場合にそのまま返せる形にしてある。
+     */
+    fun dispatchTap(position: GeoPointInterface): Boolean {
+        if (dispatchMarkerTap(position)) return true
+        if (dispatchOverlayTap(position)) return true
+        emitMapClick(GeoPoint.from(position))
+        return true
+    }
+
+    /** 地図クリックをアプリへ通知する。 */
+    fun emitMapClick(point: GeoPoint) {
+        mapClickCallback?.invoke(point)
+    }
+
+    /** 地図の長押しをアプリへ通知する。 */
+    fun emitMapLongClick(point: GeoPoint) {
+        mapLongClickCallback?.invoke(point)
     }
 
     // ── Capable ファサードの既定実装 ────────────────────────────────────

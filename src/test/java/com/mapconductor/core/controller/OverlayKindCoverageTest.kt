@@ -56,6 +56,8 @@ class OverlayKindCoverageTest {
 
         override fun has(id: String): Boolean = id in ids
 
+        override fun resolveTap(position: GeoPointInterface): OverlayHit? = null
+
         override fun destroy() = Unit
     }
 

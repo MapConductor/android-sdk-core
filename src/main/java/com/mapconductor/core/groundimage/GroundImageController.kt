@@ -1,7 +1,9 @@
 package com.mapconductor.core.groundimage
 
+import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.controller.SlottedOverlayController
+import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -161,6 +163,13 @@ abstract class GroundImageController<ActualGroundImage>(
     override fun has(id: String): Boolean = groundImageManager.hasEntity(id)
 
     override val kind: OverlayKind = OverlayKind.GroundImage
+
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? =
+        find(position)?.let { entity ->
+            OverlayHit(OverlayKind.GroundImage, position) {
+                dispatchClick(GroundImageEvent(entity.state, GeoPoint.from(position)))
+            }
+        }
 
     @Suppress("UNCHECKED_CAST")
     override fun setClickListenerAny(listener: Any?) {
