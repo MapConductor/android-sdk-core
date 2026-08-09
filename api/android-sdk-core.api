@@ -759,6 +759,8 @@ public final class com.mapconductor.core.map.CameraRestriction$Companion {
 public final class com.mapconductor.core.map.EmptyMapServiceRegistry implements com.mapconductor.core.map.MapServiceRegistry {
   public static final com.mapconductor.core.map.EmptyMapServiceRegistry INSTANCE;
   public <T> T get(com.mapconductor.core.map.MapServiceKey<T>);
+  public <T> boolean has(com.mapconductor.core.map.MapServiceKey<T>);
+  public com.mapconductor.core.map.MapCapabilityStatus capabilityStatus(com.mapconductor.core.map.MapCapability);
 }
 public final class com.mapconductor.core.map.InitState extends java.lang.Enum<com.mapconductor.core.map.InitState> {
   public static final com.mapconductor.core.map.InitState NotStarted;
@@ -803,6 +805,99 @@ public interface com.mapconductor.core.map.MapCameraPositionInterface {
   public abstract com.mapconductor.core.map.MapPaddingsInterface getPaddings();
   public abstract com.mapconductor.core.map.VisibleRegion getVisibleRegion();
 }
+public final class com.mapconductor.core.map.MapCapability extends java.lang.Enum<com.mapconductor.core.map.MapCapability> {
+  public static final com.mapconductor.core.map.MapCapability$Companion Companion;
+  public static final com.mapconductor.core.map.MapCapability Marker;
+  public static final com.mapconductor.core.map.MapCapability Polyline;
+  public static final com.mapconductor.core.map.MapCapability Polygon;
+  public static final com.mapconductor.core.map.MapCapability Circle;
+  public static final com.mapconductor.core.map.MapCapability GroundImage;
+  public static final com.mapconductor.core.map.MapCapability RasterLayer;
+  public static final com.mapconductor.core.map.MapCapability PolygonHoles;
+  public static final com.mapconductor.core.map.MapCapability MarkerDrag;
+  public static final com.mapconductor.core.map.MapCapability CameraTilt;
+  public static final com.mapconductor.core.map.MapCapability CameraRotate;
+  public static final com.mapconductor.core.map.MapCapability CameraRestriction;
+  public static final com.mapconductor.core.map.MapCapability ScreenProjectionSync;
+  public static final com.mapconductor.core.map.MapCapability GestureScroll;
+  public static final com.mapconductor.core.map.MapCapability GestureZoom;
+  public static final com.mapconductor.core.map.MapCapability GestureRotate;
+  public static final com.mapconductor.core.map.MapCapability GestureTilt;
+  public final java.lang.String getId();
+  public static com.mapconductor.core.map.MapCapability[] values();
+  public static com.mapconductor.core.map.MapCapability valueOf(java.lang.String);
+  public static kotlin.enums.EnumEntries<com.mapconductor.core.map.MapCapability> getEntries();
+}
+public final class com.mapconductor.core.map.MapCapability$Companion {
+  public final com.mapconductor.core.map.MapCapability fromId(java.lang.String);
+}
+public final class com.mapconductor.core.map.MapCapabilityKt {
+  public static final com.mapconductor.core.map.MapCapability getCapability(com.mapconductor.core.map.MapGesture);
+}
+public interface com.mapconductor.core.map.MapCapabilityStatus {
+  public abstract java.lang.String getReason();
+  public default boolean isFullySupported();
+  public default boolean isUsable();
+  public default boolean isKnownUnsupported();
+}
+public final class com.mapconductor.core.map.MapCapabilityStatus$Approximated implements com.mapconductor.core.map.MapCapabilityStatus {
+  public java.lang.String getReason();
+  public final java.lang.String component1();
+  public final com.mapconductor.core.map.MapCapabilityStatus$Approximated copy(java.lang.String);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public boolean isFullySupported();
+  public boolean isUsable();
+  public boolean isKnownUnsupported();
+}
+public final class com.mapconductor.core.map.MapCapabilityStatus$DefaultImpls {
+  public static boolean isFullySupported(com.mapconductor.core.map.MapCapabilityStatus);
+  public static boolean isUsable(com.mapconductor.core.map.MapCapabilityStatus);
+  public static boolean isKnownUnsupported(com.mapconductor.core.map.MapCapabilityStatus);
+}
+public final class com.mapconductor.core.map.MapCapabilityStatus$Degraded implements com.mapconductor.core.map.MapCapabilityStatus {
+  public java.lang.String getReason();
+  public final java.lang.String component1();
+  public final com.mapconductor.core.map.MapCapabilityStatus$Degraded copy(java.lang.String);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public boolean isFullySupported();
+  public boolean isUsable();
+  public boolean isKnownUnsupported();
+}
+public final class com.mapconductor.core.map.MapCapabilityStatus$Supported implements com.mapconductor.core.map.MapCapabilityStatus {
+  public static final com.mapconductor.core.map.MapCapabilityStatus$Supported INSTANCE;
+  public java.lang.String getReason();
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public boolean isFullySupported();
+  public boolean isUsable();
+  public boolean isKnownUnsupported();
+}
+public final class com.mapconductor.core.map.MapCapabilityStatus$Unknown implements com.mapconductor.core.map.MapCapabilityStatus {
+  public static final com.mapconductor.core.map.MapCapabilityStatus$Unknown INSTANCE;
+  public java.lang.String getReason();
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public boolean isFullySupported();
+  public boolean isUsable();
+  public boolean isKnownUnsupported();
+}
+public final class com.mapconductor.core.map.MapCapabilityStatus$Unsupported implements com.mapconductor.core.map.MapCapabilityStatus {
+  public java.lang.String getReason();
+  public final java.lang.String component1();
+  public final com.mapconductor.core.map.MapCapabilityStatus$Unsupported copy(java.lang.String);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public boolean isFullySupported();
+  public boolean isUsable();
+  public boolean isKnownUnsupported();
+}
 public interface com.mapconductor.core.map.MapDesignTypeInterface<T> {
   public abstract T getId();
   public default java.util.List<com.mapconductor.core.map.AttributionRule> getAttributionRules();
@@ -810,6 +905,26 @@ public interface com.mapconductor.core.map.MapDesignTypeInterface<T> {
 }
 public final class com.mapconductor.core.map.MapDesignTypeInterface$DefaultImpls {
   public static <T> java.util.List<com.mapconductor.core.map.AttributionRule> getAttributionRules(com.mapconductor.core.map.MapDesignTypeInterface<T>);
+}
+public final class com.mapconductor.core.map.MapDiagnosticLevel extends java.lang.Enum<com.mapconductor.core.map.MapDiagnosticLevel> {
+  public static final com.mapconductor.core.map.MapDiagnosticLevel Unsupported;
+  public static final com.mapconductor.core.map.MapDiagnosticLevel Degraded;
+  public static final com.mapconductor.core.map.MapDiagnosticLevel Approximated;
+  public static final com.mapconductor.core.map.MapDiagnosticLevel Ignored;
+  public static com.mapconductor.core.map.MapDiagnosticLevel[] values();
+  public static com.mapconductor.core.map.MapDiagnosticLevel valueOf(java.lang.String);
+  public static kotlin.enums.EnumEntries<com.mapconductor.core.map.MapDiagnosticLevel> getEntries();
+}
+public final class com.mapconductor.core.map.MapDiagnostics {
+  public static final com.mapconductor.core.map.MapDiagnostics INSTANCE;
+  public final com.mapconductor.core.map.MapDiagnostics$Sink getSink();
+  public final void setSink(com.mapconductor.core.map.MapDiagnostics$Sink);
+  public final boolean report(com.mapconductor.core.map.MapCapability, com.mapconductor.core.map.MapDiagnosticLevel, java.lang.String, java.lang.String, java.lang.String);
+  public final boolean reportIfRequested(boolean, com.mapconductor.core.map.MapCapability, com.mapconductor.core.map.MapDiagnosticLevel, java.lang.String, java.lang.String, java.lang.String);
+  public final void resetWarnings();
+}
+public interface com.mapconductor.core.map.MapDiagnostics$Sink {
+  public abstract void log(java.lang.String);
 }
 public final class com.mapconductor.core.map.MapGesture extends java.lang.Enum<com.mapconductor.core.map.MapGesture> {
   public static final com.mapconductor.core.map.MapGesture Scroll;
@@ -861,9 +976,28 @@ public final class com.mapconductor.core.map.MapProjection extends java.lang.Enu
   public static kotlin.enums.EnumEntries<com.mapconductor.core.map.MapProjection> getEntries();
 }
 public interface com.mapconductor.core.map.MapServiceKey<T> {
+  public default com.mapconductor.core.map.MapCapability getCapability();
+}
+public final class com.mapconductor.core.map.MapServiceKey$DefaultImpls {
+  public static <T> com.mapconductor.core.map.MapCapability getCapability(com.mapconductor.core.map.MapServiceKey<T>);
+}
+public interface com.mapconductor.core.map.MapServiceRegistration {
+  public abstract void dispose();
+}
+public final class com.mapconductor.core.map.MapServiceRegistrations {
+  public com.mapconductor.core.map.MapServiceRegistrations();
+  public final com.mapconductor.core.map.MapServiceRegistration add(com.mapconductor.core.map.MapServiceRegistration);
+  public final void plusAssign(com.mapconductor.core.map.MapServiceRegistration);
+  public final void disposeAll();
 }
 public interface com.mapconductor.core.map.MapServiceRegistry {
   public abstract <T> T get(com.mapconductor.core.map.MapServiceKey<T>);
+  public default <T> boolean has(com.mapconductor.core.map.MapServiceKey<T>);
+  public default com.mapconductor.core.map.MapCapabilityStatus capabilityStatus(com.mapconductor.core.map.MapCapability);
+}
+public final class com.mapconductor.core.map.MapServiceRegistry$DefaultImpls {
+  public static <T> boolean has(com.mapconductor.core.map.MapServiceRegistry, com.mapconductor.core.map.MapServiceKey<T>);
+  public static com.mapconductor.core.map.MapCapabilityStatus capabilityStatus(com.mapconductor.core.map.MapServiceRegistry, com.mapconductor.core.map.MapCapability);
 }
 public final class com.mapconductor.core.map.MapServiceRegistryKt {
   public static final androidx.compose.runtime.ProvidableCompositionLocal<com.mapconductor.core.map.MapServiceRegistry> getLocalMapServiceRegistry();
@@ -934,8 +1068,14 @@ public final class com.mapconductor.core.map.MutableMapServiceRegistry implement
   public com.mapconductor.core.map.MutableMapServiceRegistry();
   public final void clear();
   public final <T> void put(com.mapconductor.core.map.MapServiceKey<T>, T);
+  public final <T> com.mapconductor.core.map.MapServiceRegistration register(com.mapconductor.core.map.MapServiceKey<T>, T);
   public final <T> void remove(com.mapconductor.core.map.MapServiceKey<T>);
+  public final com.mapconductor.core.map.MapServiceRegistration declare(com.mapconductor.core.map.MapCapability, com.mapconductor.core.map.MapCapabilityStatus);
+  public final com.mapconductor.core.map.MapServiceRegistration declareUnsupported(com.mapconductor.core.map.MapCapability, java.lang.String);
+  public final java.util.Map<com.mapconductor.core.map.MapCapability, com.mapconductor.core.map.MapCapabilityStatus> declaredCapabilities();
+  public com.mapconductor.core.map.MapCapabilityStatus capabilityStatus(com.mapconductor.core.map.MapCapability);
   public <T> T get(com.mapconductor.core.map.MapServiceKey<T>);
+  public <T> boolean has(com.mapconductor.core.map.MapServiceKey<T>);
 }
 public abstract class com.mapconductor.core.map.StaticHolder<ValueType> {
   public com.mapconductor.core.map.StaticHolder();
@@ -1377,6 +1517,7 @@ public final class com.mapconductor.core.marker.MarkerRenderingSupport$DefaultIm
 }
 public final class com.mapconductor.core.marker.MarkerRenderingSupportKey implements com.mapconductor.core.map.MapServiceKey<com.mapconductor.core.marker.MarkerRenderingSupport<?>> {
   public static final com.mapconductor.core.marker.MarkerRenderingSupportKey INSTANCE;
+  public com.mapconductor.core.map.MapCapability getCapability();
 }
 public final class com.mapconductor.core.marker.MarkerState implements com.mapconductor.core.ComponentState {
   public com.mapconductor.core.marker.MarkerState(com.mapconductor.core.features.GeoPointInterface, java.lang.String, java.io.Serializable, com.mapconductor.core.marker.MarkerIconInterface, com.mapconductor.core.marker.MarkerAnimation, java.lang.Integer, boolean, boolean, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
