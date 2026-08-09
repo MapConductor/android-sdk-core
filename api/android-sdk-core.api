@@ -1380,6 +1380,9 @@ public interface com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker
 }
 public interface com.mapconductor.core.marker.MarkerEventControllerInterface<ActualMarker> {
 }
+public final class com.mapconductor.core.marker.MarkerEventControllerInterfaceKt {
+  public static final <ActualMarker> boolean dispatchNativeMarkerClick(java.util.List<? extends com.mapconductor.core.marker.NativeMarkerClickTargetInterface<ActualMarker>>, java.lang.Object);
+}
 public final class com.mapconductor.core.marker.MarkerFingerPrint {
   public com.mapconductor.core.marker.MarkerFingerPrint(int, java.lang.Integer, int, int, int, int, java.lang.Integer, int);
   public final int getId();
@@ -1663,6 +1666,10 @@ public final class com.mapconductor.core.marker.MarkerViewportSwitch$Mode extend
   public static kotlin.enums.EnumEntries<com.mapconductor.core.marker.MarkerViewportSwitch$Mode> getEntries();
 }
 public final class com.mapconductor.core.marker.MarkerViewportSwitchKt {
+}
+public interface com.mapconductor.core.marker.NativeMarkerClickTargetInterface<ActualMarker> {
+  public abstract com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> getEntity(java.lang.String);
+  public abstract void dispatchClick(com.mapconductor.core.marker.MarkerState);
 }
 public final class com.mapconductor.core.marker.PointD {
   public com.mapconductor.core.marker.PointD(double, double);
