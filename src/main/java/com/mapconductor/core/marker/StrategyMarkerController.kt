@@ -12,25 +12,26 @@ import kotlinx.coroutines.sync.withPermit
 
 class StrategyMarkerController<ActualMarker>(
     private val strategy: MarkerRenderingStrategyInterface<ActualMarker>,
-    private val renderer: MarkerOverlayRendererInterface<ActualMarker>,
+    override val renderer: MarkerOverlayRendererInterface<ActualMarker>,
 ) : SlottedOverlayController<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
     >,
-    OnCameraChangeReceiverInterface {
-    val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
+    OnCameraChangeReceiverInterface,
+    MarkerEventHostInterface<ActualMarker> {
+    override val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
     override val zIndex: Int = 10
     private var mapCameraPosition: MapCameraPosition? = null
     private var lastKnownBounds: GeoRectBounds? = null
     private val semaphore = Semaphore(1)
     private var pendingStates: List<MarkerState>? = null
 
-    var dragStartListener: OnMarkerEventHandler? = null
-    var dragListener: OnMarkerEventHandler? = null
-    var dragEndListener: OnMarkerEventHandler? = null
-    var animateStartListener: OnMarkerEventHandler? = null
-    var animateEndListener: OnMarkerEventHandler? = null
-    var clickListener: OnMarkerEventHandler? = null
+    override var dragStartListener: OnMarkerEventHandler? = null
+    override var dragListener: OnMarkerEventHandler? = null
+    override var dragEndListener: OnMarkerEventHandler? = null
+    override var animateStartListener: OnMarkerEventHandler? = null
+    override var animateEndListener: OnMarkerEventHandler? = null
+    override var clickListener: OnMarkerEventHandler? = null
 
     init {
         renderer.animateStartListener = { state -> dispatchAnimateStart(state) }
@@ -46,23 +47,23 @@ class StrategyMarkerController<ActualMarker>(
      * 不能になってしまう）。判定をここに置くことで、ドラッグを保ったまま
      * どのプロバイダでも同じ挙動になる。
      */
-    fun dispatchClick(state: MarkerState) {
+    override fun dispatchClick(state: MarkerState) {
         if (!state.clickable) return
         state.onClick?.invoke(state)
         clickListener?.invoke(state)
     }
 
-    fun dispatchDragStart(state: MarkerState) {
+    override fun dispatchDragStart(state: MarkerState) {
         state.onDragStart?.invoke(state)
         dragStartListener?.invoke(state)
     }
 
-    fun dispatchDrag(state: MarkerState) {
+    override fun dispatchDrag(state: MarkerState) {
         state.onDrag?.invoke(state)
         dragListener?.invoke(state)
     }
 
-    fun dispatchDragEnd(state: MarkerState) {
+    override fun dispatchDragEnd(state: MarkerState) {
         state.onDragEnd?.invoke(state)
         dragEndListener?.invoke(state)
     }
@@ -107,7 +108,7 @@ class StrategyMarkerController<ActualMarker>(
         strategy.clear()
     }
 
-    fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = strategy.markerManager.getEntity(id)
+    override fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = strategy.markerManager.getEntity(id)
 
     override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
         val nearest = strategy.markerManager.findNearest(position) ?: return null

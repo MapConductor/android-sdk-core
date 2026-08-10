@@ -9,22 +9,23 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.yield
 
 abstract class AbstractMarkerController<ActualMarker>(
-    val markerManager: MarkerManager<ActualMarker>,
-    val renderer: MarkerOverlayRendererInterface<ActualMarker>,
-    var clickListener: OnMarkerEventHandler? = null,
+    override val markerManager: MarkerManager<ActualMarker>,
+    override val renderer: MarkerOverlayRendererInterface<ActualMarker>,
+    override var clickListener: OnMarkerEventHandler? = null,
 ) : SlottedOverlayController<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
-    > {
+    >,
+    MarkerEventHostInterface<ActualMarker> {
     override val zIndex: Int = 10
     val semaphore = Semaphore(1)
     private val defaultMarkerIcon = DefaultMarkerIcon().toBitmapIcon()
 
-    var dragStartListener: OnMarkerEventHandler? = null
-    var dragListener: OnMarkerEventHandler? = null
-    var dragEndListener: OnMarkerEventHandler? = null
-    var animateStartListener: OnMarkerEventHandler? = null
-    var animateEndListener: OnMarkerEventHandler? = null
+    override var dragStartListener: OnMarkerEventHandler? = null
+    override var dragListener: OnMarkerEventHandler? = null
+    override var dragEndListener: OnMarkerEventHandler? = null
+    override var animateStartListener: OnMarkerEventHandler? = null
+    override var animateEndListener: OnMarkerEventHandler? = null
 
     /**
      * ドラッグ中のマーカー id。
@@ -66,7 +67,7 @@ abstract class AbstractMarkerController<ActualMarker>(
      * 不能になってしまう）。判定をここに置くことで、ドラッグを保ったまま
      * どのプロバイダでも同じ挙動になる。
      */
-    fun dispatchClick(state: MarkerState) {
+    override fun dispatchClick(state: MarkerState) {
         if (!state.clickable) return
         state.onClick?.invoke(state)
         clickListener?.invoke(state)
@@ -91,18 +92,18 @@ abstract class AbstractMarkerController<ActualMarker>(
 
     fun isDragging(state: MarkerState): Boolean = draggingMarkerIds.contains(state.id)
 
-    fun dispatchDragStart(state: MarkerState) {
+    override fun dispatchDragStart(state: MarkerState) {
         setDraggingState(state, true)
         state.onDragStart?.invoke(state)
         dragStartListener?.invoke(state)
     }
 
-    fun dispatchDrag(state: MarkerState) {
+    override fun dispatchDrag(state: MarkerState) {
         state.onDrag?.invoke(state)
         dragListener?.invoke(state)
     }
 
-    fun dispatchDragEnd(state: MarkerState) {
+    override fun dispatchDragEnd(state: MarkerState) {
         setDraggingState(state, false)
         state.onDragEnd?.invoke(state)
         dragEndListener?.invoke(state)
@@ -359,6 +360,8 @@ abstract class AbstractMarkerController<ActualMarker>(
      * [com.mapconductor.core.controller.BaseMapViewController.dispatchMarkerTap] を通る。
      */
     override fun resolveTap(position: GeoPointInterface): OverlayHit? = null
+
+    override fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = markerManager.getEntity(id)
 
     override fun has(id: String): Boolean = markerManager.hasEntity(id)
 }
