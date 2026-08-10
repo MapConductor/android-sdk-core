@@ -19,7 +19,17 @@ abstract class AbstractMarkerController<ActualMarker>(
     MarkerEventHostInterface<ActualMarker> {
     override val zIndex: Int = 10
     val semaphore = Semaphore(1)
-    private val defaultMarkerIcon = DefaultMarkerIcon().toBitmapIcon()
+
+    /**
+     * 既定のアイコン。**遅延生成**にしてある。
+     *
+     * `DefaultMarkerIcon` は `Typeface.DEFAULT` など Android の静的フィールドを触るため、
+     * コンストラクタで作ると素の JVM ユニットテストでコントローラを組み立てただけで
+     * NPE になる。実際に使うのは [add] のときだけなので、そこまで遅らせれば
+     * ドライバーの適合テスト（[com.mapconductor.core.conformance.MapDriverConformance]）を
+     * CI のユニットテストで回せる。
+     */
+    private val defaultMarkerIcon by lazy { DefaultMarkerIcon().toBitmapIcon() }
 
     override var dragStartListener: OnMarkerEventHandler? = null
     override var dragListener: OnMarkerEventHandler? = null

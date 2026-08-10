@@ -21,6 +21,12 @@ import com.mapconductor.core.polygon.PolygonEntityInterface
 import com.mapconductor.core.polygon.PolygonManager
 import com.mapconductor.core.polygon.PolygonOverlayRendererInterface
 import com.mapconductor.core.polygon.PolygonState
+import com.mapconductor.core.polyline.PolylineController
+import com.mapconductor.core.polyline.PolylineEntity
+import com.mapconductor.core.polyline.PolylineEntityInterface
+import com.mapconductor.core.polyline.PolylineManager
+import com.mapconductor.core.polyline.PolylineOverlayRendererInterface
+import com.mapconductor.core.polyline.PolylineState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -41,12 +47,11 @@ import org.junit.Test
  *    （握り潰すと下のオーバーレイにも地図クリックにも流れない）。
  * 4. **解決時点では副作用が無い**。配送は [OverlayHit.dispatch] を呼ぶまで起きない。
  *
- * ## ポリラインがここに無い理由
+ * ## ポリライン
  *
- * `PolylineManager.find` は `ResourceProvider.dpToPx`（＝ `Resources.getSystem()`）を
- * 通るため素の JVM テストでは動かない。ポリラインの
- * 「配送座標は線上の最近傍点」という規則は実機の `polyline-click` で確認する。
- * 順序の中でポリラインが占める位置は [CANONICAL_ORDER の内容][順序] で押さえてある。
+ * `PolylineManager.find` は `ResourceProvider.dpToPx` を通る。以前は
+ * `Resources.getSystem()` が "not mocked" で落ちるため素の JVM では回せなかったが、
+ * ユニットテスト用のフォールバック（density = 1）を入れたので回せるようになった。
  */
 class OverlayHitResolverTest {
     private val inside = GeoPoint.fromLatLong(0.0, 0.0)
@@ -197,6 +202,31 @@ class OverlayHitResolverTest {
     }
 
     @Test
+    fun `ポリラインの配送座標はタップ点ではなく線上の最近傍点`() {
+        // 3 プラットフォーム共通の契約。線の上をきっかりタップすることはないので、
+        // タップ点をそのまま返すと線から外れた座標がアプリへ渡る。
+        val controller = polylineController()
+
+        // 赤道上の東西線。少し北にずれた点をタップする。
+        val hit = OverlayHitResolver.resolve(listOf(controller), GeoPoint.fromLatLong(0.0001, 0.5))
+
+        assertEquals(OverlayKind.Polyline, hit?.kind)
+        assertEquals("最近傍点は線上（緯度 0）へ落ちる", 0.0, hit?.clicked?.latitude ?: Double.NaN, 1e-6)
+        assertEquals("経度はタップ点のまま", 0.5, hit?.clicked?.longitude ?: Double.NaN, 1e-6)
+    }
+
+    @Test
+    fun `ポリラインは円とグラウンドイメージの次、ポリゴンより先`() {
+        val polyline = polylineController()
+        val polygon = polygonController(clickable = true)
+
+        val hit =
+            OverlayHitResolver.resolve(listOf(polygon, polyline), GeoPoint.fromLatLong(0.0001, 0.5))
+
+        assertEquals(OverlayKind.Polyline, hit?.kind)
+    }
+
+    @Test
     fun `order を差し替えれば探索順を変えられる`() {
         // ネイティブのクリックリスナーを発火のきっかけにしか使わないプロバイダが
         // 順序を絞れるようにしてある（既定から降りられること自体を押さえる）。
@@ -257,6 +287,27 @@ class OverlayHitResolverTest {
                                 GeoPoint.fromLatLong(1.0, -1.0),
                             ),
                         clickable = clickable,
+                        onClick = { onClick() },
+                    ),
+            ),
+        )
+        return controller
+    }
+
+    private fun polylineController(onClick: () -> Unit = {}): PolylineController<Unit> {
+        val manager = PolylineManager<Unit>()
+        val controller = object : PolylineController<Unit>(manager, FakePolylineRenderer()) {}
+        manager.registerEntity(
+            PolylineEntity(
+                polyline = Unit,
+                state =
+                    PolylineState(
+                        points =
+                            listOf(
+                                GeoPoint.fromLatLong(0.0, -1.0),
+                                GeoPoint.fromLatLong(0.0, 1.0),
+                            ),
+                        geodesic = false,
                         onClick = { onClick() },
                     ),
             ),
@@ -338,6 +389,19 @@ class OverlayHitResolverTest {
         ): List<Unit?> = data.map { null }
 
         override suspend fun onRemove(data: List<PolygonEntityInterface<Unit>>) = Unit
+
+        override suspend fun onPostProcess() = Unit
+    }
+
+    private class FakePolylineRenderer : PolylineOverlayRendererInterface<Unit> {
+        override suspend fun onAdd(data: List<PolylineOverlayRendererInterface.AddParamsInterface>): List<Unit?> =
+            data.map { null }
+
+        override suspend fun onChange(
+            data: List<PolylineOverlayRendererInterface.ChangeParamsInterface<Unit>>,
+        ): List<Unit?> = data.map { null }
+
+        override suspend fun onRemove(data: List<PolylineEntityInterface<Unit>>) = Unit
 
         override suspend fun onPostProcess() = Unit
     }
