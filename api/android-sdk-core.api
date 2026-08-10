@@ -1279,11 +1279,13 @@ public abstract class com.mapconductor.core.marker.AbstractMarkerController<Actu
   public java.lang.Object update(com.mapconductor.core.marker.MarkerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void destroy();
+  public com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> find(com.mapconductor.core.features.GeoPointInterface);
   public com.mapconductor.core.controller.OverlayKind getKind();
   public com.mapconductor.core.controller.OverlayHit resolveTap(com.mapconductor.core.features.GeoPointInterface);
   public boolean has(java.lang.String);
   public void setClickListenerAny(java.lang.Object);
   public java.lang.Object update(java.lang.Object, kotlin.coroutines.Continuation);
+  public java.lang.Object find(com.mapconductor.core.features.GeoPointInterface);
 }
 public final class com.mapconductor.core.marker.AbstractMarkerControllerKt {
 }

@@ -316,6 +316,40 @@ abstract class AbstractMarkerController<ActualMarker>(
         markerManager.destroy()
     }
 
+    /**
+     * タップ座標に当たるマーカー。
+     *
+     * 6 プロバイダが同じ 10 行を各自持っていたものの集約
+     * （android-for-maplibre / mapbox / here / googlemaps / tomtom / arcgis）。
+     * [StrategyMarkerController.find] とも同じ。
+     *
+     * ## 判定は画面座標で行う
+     *
+     * 最近傍のマーカーを 1 つだけ取り出し、タップ点とマーカーの**アイコン矩形**を
+     * 画面座標で突き合わせる（[MarkerHitTest]）。地理距離ではなくアイコンの大きさを
+     * 見るので、幅広ラベルやクラスタのように大きいアイコンでも端が反応する。
+     *
+     * 投影できない（[com.mapconductor.core.map.MapViewHolderInterface.toScreenOffset] が
+     * null）ときは「当たらなかった」として null。画面外のマーカーは当たらないのが正しい。
+     *
+     * ## `clickable` はここで見ない
+     *
+     * これはドラッグの開始判定にも使われる。ここで `clickable` を見ると
+     * `clickable = false` かつ `draggable = true` のマーカーがドラッグできなくなる。
+     * クリックの可否は配送側（[dispatchClick] / [clickableOnly]）で判断する。
+     */
+    override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
+        val nearest = markerManager.findNearest(position) ?: return null
+        val touchScreen = renderer.holder.toScreenOffset(position) ?: return null
+        val markerScreen = renderer.holder.toScreenOffset(nearest.state.position) ?: return null
+
+        return if (MarkerHitTest.hitsIcon(touchScreen, markerScreen, nearest.state)) {
+            nearest
+        } else {
+            null
+        }
+    }
+
     override val kind: OverlayKind = OverlayKind.Marker
 
     /**
