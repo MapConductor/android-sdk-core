@@ -30,6 +30,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 abstract class BaseMapViewController :
     MapViewControllerInterface,
@@ -41,6 +42,9 @@ abstract class BaseMapViewController :
     RasterLayerCapableInterface {
     abstract override val holder: MapViewHolderInterface<*, *>
     abstract val defaultCoroutine: CoroutineScope
+
+    /** 直近に notifyMapCameraPosition で配ったカメラ。後から登録されたコントローラへの再送用。 */
+    private var lastNotifiedCameraPosition: MapCameraPosition? = null
     abstract val mainCoroutine: CoroutineScope
     private val overlayControllers = CopyOnWriteArrayList<OverlayControllerInterface<*, *>>()
     protected var cameraMoveStartCallback: OnCameraMoveHandler? = null
@@ -142,6 +146,14 @@ abstract class BaseMapViewController :
     override fun registerOverlayController(controller: OverlayControllerInterface<*, *>) {
         if (overlayControllers.contains(controller)) return
         overlayControllers.add(controller)
+        // 登録が初期カメラ確定より後になることがある（RN の拡張レンダラや遅延マウントの
+        // クラスタリングなど）。ユーザー操作までカメライベントを出さないプロバイダ
+        // （HERE）では次のイベントが永遠に来ず、「登録したのに一度も計算されない」型の
+        // 沈黙になるため、直近に通知したカメラをここで再送する。
+        val camera = lastNotifiedCameraPosition ?: return
+        if (controller is OnCameraChangeReceiverInterface) {
+            defaultCoroutine.launch { controller.onCameraChanged(camera) }
+        }
     }
 
     // ── タップのカスケード ──────────────────────────────────────────────
@@ -389,6 +401,7 @@ abstract class BaseMapViewController :
     }
 
     protected suspend fun notifyMapCameraPosition(mapCameraPosition: MapCameraPosition) {
+        lastNotifiedCameraPosition = mapCameraPosition
         overlayControllers.forEach {
             if (it is OnCameraChangeReceiverInterface) {
                 it.onCameraChanged(mapCameraPosition)
