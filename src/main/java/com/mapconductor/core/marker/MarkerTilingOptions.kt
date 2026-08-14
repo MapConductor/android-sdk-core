@@ -42,6 +42,16 @@ data class MarkerTilingOptions(
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     val viewport: MarkerViewportPolicy get() = MarkerViewportPolicy.Disabled
 
+    /**
+     * タイル方式で描くか。**この判定を各所で書き直さないこと。**
+     *
+     * 以前は [enabled] を見ずに件数だけで判定している箇所があり、[Disabled] を渡した
+     * ページでもタイル扱いになって、マーカー追従が理由も出ずに止まっていた
+     * （React Native のブリッジ層で実際に起きた）。
+     * ios-sdk-core の `MarkerTilingOptions.shouldUseTiles` と同じ規則。
+     */
+    fun shouldUseTiles(markerCount: Int): Boolean = enabled && markerCount >= minMarkerCount
+
     companion object {
         val Disabled: MarkerTilingOptions = MarkerTilingOptions(enabled = false)
         val Default: MarkerTilingOptions = MarkerTilingOptions()
