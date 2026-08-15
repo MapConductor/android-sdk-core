@@ -119,5 +119,8 @@ object WebMercatorScreenProjection {
         return Normalized(x = 0.5 + projected.x / extent, y = 0.5 - projected.y / extent)
     }
 
-    private data class Normalized(val x: Double, val y: Double)
+    private data class Normalized(
+        val x: Double,
+        val y: Double,
+    )
 }
