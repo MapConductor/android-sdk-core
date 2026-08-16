@@ -1,6 +1,8 @@
 package com.mapconductor.core.polygon
 
-import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayHit
+import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -8,7 +10,7 @@ import kotlinx.coroutines.sync.withPermit
 abstract class PolygonController<ActualPolygon>(
     val polygonManager: PolygonManagerInterface<ActualPolygon>,
     open val renderer: PolygonOverlayRendererInterface<ActualPolygon>,
-) : OverlayControllerInterface<
+) : SlottedOverlayController<
         PolygonState,
         PolygonEntityInterface<ActualPolygon>,
     > {
@@ -161,5 +163,21 @@ abstract class PolygonController<ActualPolygon>(
 
     override fun destroy() {
         // No native resources to clean up for polygons
+    }
+
+    override fun has(id: String): Boolean = polygonManager.hasEntity(id)
+
+    override val kind: OverlayKind = OverlayKind.Polygon
+
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? =
+        find(position)?.let { entity ->
+            OverlayHit(OverlayKind.Polygon, position) {
+                dispatchClick(PolygonEvent(entity.state, position))
+            }
+        }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun setClickListenerAny(listener: Any?) {
+        clickListener = listener as? com.mapconductor.core.polygon.OnPolygonEventHandler
     }
 }

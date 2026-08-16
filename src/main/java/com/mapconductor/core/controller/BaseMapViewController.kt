@@ -3,18 +3,48 @@ package com.mapconductor.core.controller
 import com.mapconductor.core.OnCameraMoveHandler
 import com.mapconductor.core.OnMapEventHandler
 import com.mapconductor.core.OnMapInitializedHandler
+import com.mapconductor.core.circle.CircleCapableInterface
+import com.mapconductor.core.circle.CircleState
+import com.mapconductor.core.circle.OnCircleEventHandler
 import com.mapconductor.core.features.GeoPoint
+import com.mapconductor.core.features.GeoPointInterface
+import com.mapconductor.core.groundimage.GroundImageCapableInterface
+import com.mapconductor.core.groundimage.GroundImageState
+import com.mapconductor.core.groundimage.OnGroundImageEventHandler
 import com.mapconductor.core.map.CameraRestriction
 import com.mapconductor.core.map.MapCameraPosition
 import com.mapconductor.core.map.MapViewHolderInterface
+import com.mapconductor.core.marker.MarkerAnimationOverlayHost
+import com.mapconductor.core.marker.MarkerCapableInterface
+import com.mapconductor.core.marker.MarkerState
+import com.mapconductor.core.marker.OnMarkerEventHandler
+import com.mapconductor.core.polygon.OnPolygonEventHandler
+import com.mapconductor.core.polygon.PolygonCapableInterface
+import com.mapconductor.core.polygon.PolygonState
+import com.mapconductor.core.polyline.OnPolylineEventHandler
+import com.mapconductor.core.polyline.PolylineCapableInterface
+import com.mapconductor.core.polyline.PolylineState
+import com.mapconductor.core.raster.RasterLayerCapableInterface
+import com.mapconductor.core.raster.RasterLayerState
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
-abstract class BaseMapViewController : MapViewControllerInterface {
+abstract class BaseMapViewController :
+    MapViewControllerInterface,
+    MarkerCapableInterface,
+    PolylineCapableInterface,
+    PolygonCapableInterface,
+    CircleCapableInterface,
+    GroundImageCapableInterface,
+    RasterLayerCapableInterface {
     abstract override val holder: MapViewHolderInterface<*, *>
     abstract val defaultCoroutine: CoroutineScope
+
+    /** 直近に notifyMapCameraPosition で配ったカメラ。後から登録されたコントローラへの再送用。 */
+    private var lastNotifiedCameraPosition: MapCameraPosition? = null
     abstract val mainCoroutine: CoroutineScope
     private val overlayControllers = CopyOnWriteArrayList<OverlayControllerInterface<*, *>>()
     protected var cameraMoveStartCallback: OnCameraMoveHandler? = null
@@ -116,7 +146,235 @@ abstract class BaseMapViewController : MapViewControllerInterface {
     override fun registerOverlayController(controller: OverlayControllerInterface<*, *>) {
         if (overlayControllers.contains(controller)) return
         overlayControllers.add(controller)
+        // 登録が初期カメラ確定より後になることがある（RN の拡張レンダラや遅延マウントの
+        // クラスタリングなど）。ユーザー操作までカメライベントを出さないプロバイダ
+        // （HERE）では次のイベントが永遠に来ず、「登録したのに一度も計算されない」型の
+        // 沈黙になるため、直近に通知したカメラをここで再送する。
+        val camera = lastNotifiedCameraPosition ?: return
+        if (controller is OnCameraChangeReceiverInterface) {
+            defaultCoroutine.launch { controller.onCameraChanged(camera) }
+        }
     }
+
+    // ── タップのカスケード ──────────────────────────────────────────────
+    //
+    // marker → circle → groundImage → polyline → polygon → map の一本道。
+    // 8 プロバイダが同じ 40〜50 行を各自持っていたものの集約。順序と先勝ちの
+    // 規則は [OverlayHitResolver] にある。
+
+    /**
+     * オーバーレイの探索順。既定は [OverlayHitResolver.CANONICAL_ORDER]。
+     *
+     * 種別を持たないプロバイダ（TomTom の円とグラウンドイメージはネイティブでは
+     * どちらも Polygon）でも順序は同じでよい。判定はコアの Manager が行うので、
+     * ネイティブの実装がどうであれ結果は他プロバイダと揃う。
+     */
+    protected open val overlayCascadeOrder: List<OverlayKind>
+        get() = OverlayHitResolver.CANONICAL_ORDER
+
+    /**
+     * マーカーのヒットテストと配送。既定は「当たらない」。
+     *
+     * マーカーだけコアが既定を持たないのは、判定に画面投影が要り、プロバイダごとに
+     * スレッドの制約（Google Maps / TomTom の `Projection` はメインスレッド専用）と
+     * マーカーの実装方式（ネイティブマーカー / シンボルレイヤ / タイル）が違うため。
+     *
+     * 地理座標で引ける普通のプロバイダは
+     * `markerEventControllers.dispatchGeoMarkerClick(position)` の 1 行で済む。
+     * ネイティブのマーカークリックリスナーを使わざるを得ないプロバイダ
+     * （Google Maps / TomTom）は既定のままにして、そちらで
+     * `dispatchNativeMarkerClick` を使う。
+     *
+     * @return マーカーがタップを消費したら true。
+     */
+    protected open fun dispatchMarkerTap(position: GeoPointInterface): Boolean = false
+
+    /**
+     * オーバーレイ（マーカー以外）のタップを、正準順に 1 つだけ配送する。
+     *
+     * マーカーを含まないので、ネイティブのオーバーレイクリックリスナーから
+     * 呼ぶこともできる（TomTom はネイティブのリスナーを**発火のきっかけ**としてのみ
+     * 使い、どのエンティティかの判定はここへ委ねている）。
+     *
+     * @return 何かに当たって配送したら true。
+     */
+    fun dispatchOverlayTap(position: GeoPointInterface): Boolean {
+        val hit = OverlayHitResolver.resolve(overlayControllers, position, overlayCascadeOrder) ?: return false
+        hit.dispatch()
+        return true
+    }
+
+    /**
+     * タップの入口。marker → オーバーレイ → 地図クリックの順に 1 つだけ配送する。
+     *
+     * プロバイダは SDK のタップを地理座標に直してこれを呼ぶだけでよい。
+     *
+     * **必ずどれか 1 つだけ**が配送される。オーバーレイに当たったのに地図クリックも
+     * 飛ぶ、という二重配送を防ぐのがこの関数の役目。
+     *
+     * @return 常に true（タップは必ずどこかで処理される）。SDK のリスナーが
+     *   「消費したか」を要求する場合にそのまま返せる形にしてある。
+     */
+    fun dispatchTap(position: GeoPointInterface): Boolean {
+        if (dispatchMarkerTap(position)) return true
+        if (dispatchOverlayTap(position)) return true
+        emitMapClick(GeoPoint.from(position))
+        return true
+    }
+
+    /** 地図クリックをアプリへ通知する。 */
+    fun emitMapClick(point: GeoPoint) {
+        mapClickCallback?.invoke(point)
+    }
+
+    /** 地図の長押しをアプリへ通知する。 */
+    fun emitMapLongClick(point: GeoPoint) {
+        mapLongClickCallback?.invoke(point)
+    }
+
+    // ── Capable ファサードの既定実装 ────────────────────────────────────
+    //
+    // 各プロバイダの *ViewController が `compositionXxx` / `updateXxx` / `hasXxx` を
+    // 「登録済みコントローラへ 1 行転送するだけ」で 8 プロバイダ x 約 100 行あった。
+    // 登録済みの [OverlayControllerInterface] から型で解決して既定実装にする。
+    //
+    // 描画前に追加処理が要るプロバイダ（MapLibre / Mapbox の polygon は
+    // z レイヤの再構築が要る）は override して super を呼ぶ。
+
+    /**
+     * この種別の**主**コントローラ（最初に登録されたもの）。
+     *
+     * `compositionXxx` / `updateXxx` はここへ流す。クラスタリングは同じ Marker 種別で
+     * 追加のコントローラを登録するが、composition の受け口は最初の 1 つでよい
+     * （追加分はクラスタリング側が自分で駆動する）。
+     */
+    @Suppress("UNCHECKED_CAST")
+    protected fun <StateType : Any> primaryOverlayController(
+        kind: OverlayKind,
+    ): OverlayControllerInterface<StateType, *>? =
+        overlayControllers
+            .filterIsInstance<SlottedOverlayController<*, *>>()
+            .firstOrNull { it.kind == kind } as? OverlayControllerInterface<StateType, *>
+
+    /** この種別に登録されたすべてのコントローラ。`hasXxx` は「どれかが持っていれば true」。 */
+    protected fun overlayControllersOf(kind: OverlayKind): List<OverlayControllerInterface<*, *>> =
+        overlayControllers
+            .filterIsInstance<SlottedOverlayController<*, *>>()
+            .filter { it.kind == kind }
+
+    /** [kind] のいずれかのコントローラがこの id を持っているか。`hasXxx` の既定実装。 */
+    protected fun hasOverlay(
+        kind: OverlayKind,
+        id: String,
+    ): Boolean = overlayControllersOf(kind).any { it.has(id) }
+
+    // Marker
+    override suspend fun compositionMarkers(data: List<MarkerState>) {
+        primaryOverlayController<MarkerState>(OverlayKind.Marker)?.add(data)
+    }
+
+    override suspend fun updateMarker(state: MarkerState) {
+        primaryOverlayController<MarkerState>(OverlayKind.Marker)?.update(state)
+    }
+
+    override fun hasMarker(state: MarkerState): Boolean = hasOverlay(OverlayKind.Marker, state.id)
+
+    // マーカーのリスナーとアニメーション層はプロバイダごとに配線先が違う
+    // （markerEventControllers、レンダラのドラッグ層）ので既定は何もしない。
+    @Deprecated("Use MarkerState.onDragStart instead.")
+    override fun setOnMarkerDragStart(listener: OnMarkerEventHandler?) = Unit
+
+    @Deprecated("Use MarkerState.onDrag instead.")
+    override fun setOnMarkerDrag(listener: OnMarkerEventHandler?) = Unit
+
+    @Deprecated("Use MarkerState.onDragEnd instead.")
+    override fun setOnMarkerDragEnd(listener: OnMarkerEventHandler?) = Unit
+
+    @Deprecated("Use MarkerState.onAnimateStart instead.")
+    override fun setOnMarkerAnimateStart(listener: OnMarkerEventHandler?) = Unit
+
+    @Deprecated("Use MarkerState.onAnimateEnd instead.")
+    override fun setOnMarkerAnimateEnd(listener: OnMarkerEventHandler?) = Unit
+
+    @Deprecated("Use MarkerState.onClick instead.")
+    override fun setOnMarkerClickListener(listener: OnMarkerEventHandler?) = Unit
+
+    override fun setMarkerAnimationOverlayHost(host: MarkerAnimationOverlayHost?) = Unit
+
+    // Polyline
+    override suspend fun compositionPolylines(data: List<PolylineState>) {
+        primaryOverlayController<PolylineState>(OverlayKind.Polyline)?.add(data)
+    }
+
+    override suspend fun updatePolyline(state: PolylineState) {
+        primaryOverlayController<PolylineState>(OverlayKind.Polyline)?.update(state)
+    }
+
+    override fun hasPolyline(state: PolylineState): Boolean = hasOverlay(OverlayKind.Polyline, state.id)
+
+    @Deprecated("Use PolylineState.onClick instead.")
+    override fun setOnPolylineClickListener(listener: OnPolylineEventHandler?) {
+        overlayControllersOf(OverlayKind.Polyline).forEach { it.setClickListenerAny(listener) }
+    }
+
+    // Polygon
+    override suspend fun compositionPolygons(data: List<PolygonState>) {
+        primaryOverlayController<PolygonState>(OverlayKind.Polygon)?.add(data)
+    }
+
+    override suspend fun updatePolygon(state: PolygonState) {
+        primaryOverlayController<PolygonState>(OverlayKind.Polygon)?.update(state)
+    }
+
+    override fun hasPolygon(state: PolygonState): Boolean = hasOverlay(OverlayKind.Polygon, state.id)
+
+    @Deprecated("Use PolygonState.onClick instead.")
+    override fun setOnPolygonClickListener(listener: OnPolygonEventHandler?) {
+        overlayControllersOf(OverlayKind.Polygon).forEach { it.setClickListenerAny(listener) }
+    }
+
+    // Circle
+    override suspend fun compositionCircles(data: List<CircleState>) {
+        primaryOverlayController<CircleState>(OverlayKind.Circle)?.add(data)
+    }
+
+    override suspend fun updateCircle(state: CircleState) {
+        primaryOverlayController<CircleState>(OverlayKind.Circle)?.update(state)
+    }
+
+    override fun hasCircle(state: CircleState): Boolean = hasOverlay(OverlayKind.Circle, state.id)
+
+    @Deprecated("Use CircleState.onClick instead.")
+    override fun setOnCircleClickListener(listener: OnCircleEventHandler?) {
+        overlayControllersOf(OverlayKind.Circle).forEach { it.setClickListenerAny(listener) }
+    }
+
+    // GroundImage
+    override suspend fun compositionGroundImages(data: List<GroundImageState>) {
+        primaryOverlayController<GroundImageState>(OverlayKind.GroundImage)?.add(data)
+    }
+
+    override suspend fun updateGroundImage(state: GroundImageState) {
+        primaryOverlayController<GroundImageState>(OverlayKind.GroundImage)?.update(state)
+    }
+
+    override fun hasGroundImage(state: GroundImageState): Boolean = hasOverlay(OverlayKind.GroundImage, state.id)
+
+    @Deprecated("Use GroundImageState.onClick instead.")
+    override fun setOnGroundImageClickListener(listener: OnGroundImageEventHandler?) {
+        overlayControllersOf(OverlayKind.GroundImage).forEach { it.setClickListenerAny(listener) }
+    }
+
+    // RasterLayer
+    override suspend fun compositionRasterLayers(data: List<RasterLayerState>) {
+        primaryOverlayController<RasterLayerState>(OverlayKind.RasterLayer)?.add(data)
+    }
+
+    override suspend fun updateRasterLayer(state: RasterLayerState) {
+        primaryOverlayController<RasterLayerState>(OverlayKind.RasterLayer)?.update(state)
+    }
+
+    override fun hasRasterLayer(state: RasterLayerState): Boolean = hasOverlay(OverlayKind.RasterLayer, state.id)
 
     fun setMapInitializedListener(listener: OnMapInitializedHandler?) {
         this.mapInitializedCallback = listener
@@ -143,6 +401,7 @@ abstract class BaseMapViewController : MapViewControllerInterface {
     }
 
     protected suspend fun notifyMapCameraPosition(mapCameraPosition: MapCameraPosition) {
+        lastNotifiedCameraPosition = mapCameraPosition
         overlayControllers.forEach {
             if (it is OnCameraChangeReceiverInterface) {
                 it.onCameraChanged(mapCameraPosition)

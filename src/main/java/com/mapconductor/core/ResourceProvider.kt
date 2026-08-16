@@ -22,7 +22,35 @@ object ResourceProvider {
     private lateinit var appContext: Context
     private var bitmapDensityOverride: Float? = null
 
-    fun getDisplayMetrics(): DisplayMetrics = Resources.getSystem().displayMetrics
+    /**
+     * 画面のメトリクス。
+     *
+     * ## 素の JVM ユニットテストでは落とさない
+     *
+     * `Resources.getSystem()` は Android フレームワークが無い環境（Gradle の
+     * `testDebugUnitTest`）では "not mocked" の [RuntimeException] を投げる。
+     * これを直に投げると、density を触るだけのコアのロジック
+     * （ポリラインの当たり判定の許容量など）までユニットテストで回せなくなり、
+     * ドライバーの適合テスト（[com.mapconductor.core.conformance.MapDriverConformance]）が
+     * 成り立たない。
+     *
+     * 実機・エミュレータでは必ず本物が返るので、フォールバックが効くのは
+     * ユニットテストのときだけ。density = 1（dp == px）とする。
+     */
+    fun getDisplayMetrics(): DisplayMetrics =
+        runCatching { Resources.getSystem().displayMetrics }
+            .getOrElse { unitTestDisplayMetrics }
+
+    /** [getDisplayMetrics] のフォールバック。density = 1（dp == px）。 */
+    private val unitTestDisplayMetrics: DisplayMetrics by lazy {
+        DisplayMetrics().apply {
+            density = 1f
+            scaledDensity = 1f
+            densityDpi = DisplayMetrics.DENSITY_DEFAULT
+            widthPixels = 1080
+            heightPixels = 1920
+        }
+    }
 
     fun getSystemConfiguration(): Configuration = Resources.getSystem().configuration
 
@@ -54,13 +82,24 @@ object ResourceProvider {
 
     fun dpToPx(dp: Dp): Double = dpToPx(dp.value.toDouble())
 
-    fun dpToPx(dp: Double): Double =
-        TypedValue
-            .applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                dp.toFloat(),
-                getDisplayMetrics(),
-            ).toDouble()
+    /**
+     * dp → px。
+     *
+     * [TypedValue.applyDimension] も素の JVM では "not mocked" を投げるので、
+     * そのときは density を掛けるだけの等価な計算にフォールバックする
+     * （[getDisplayMetrics] と同じ理由。実機では必ず本物が使われる）。
+     */
+    fun dpToPx(dp: Double): Double {
+        val metrics = getDisplayMetrics()
+        return runCatching {
+            TypedValue
+                .applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    dp.toFloat(),
+                    metrics,
+                ).toDouble()
+        }.getOrElse { dp * metrics.density }
+    }
 
     /**
      * Convert dp to px using bitmap density instead of system density.

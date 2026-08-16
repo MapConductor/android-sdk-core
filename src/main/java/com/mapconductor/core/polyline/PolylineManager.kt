@@ -80,6 +80,8 @@ class PolylineManager<ActualPolyline> : PolylineManagerInterface<ActualPolyline>
         val threshold = calculateMetersPerPixel(position.latitude, zoom) * fingerSize
 
         entities.values.forEach { entity ->
+            // clickable=false のポリラインはタップに対して透過する（CircleManager と同じ方針）。
+            if (!entity.state.clickable) return@forEach
             // 補間せず、元の線分を直接使う
             for (i in 0 until entity.state.points.size - 1) {
                 val box = GeoRectBounds()

@@ -19,6 +19,7 @@ class PolylineState(
     strokeColor: Color = Color.Black,
     strokeWidth: Dp = 1.dp,
     geodesic: Boolean = false,
+    clickable: Boolean = true,
     zIndex: Int = 0,
     extra: Serializable? = null,
     onClick: OnPolylineEventHandler? = null,
@@ -31,6 +32,7 @@ class PolylineState(
                     strokeColor.hashCode(),
                     strokeWidth.hashCode(),
                     geodesic.hashCode(),
+                    clickable.hashCode(),
                     extra?.hashCode() ?: 0,
                 ),
             )
@@ -38,6 +40,16 @@ class PolylineState(
     var strokeColor by mutableStateOf(strokeColor)
     var strokeWidth by mutableStateOf(strokeWidth)
     var geodesic by mutableStateOf(geodesic)
+
+    /**
+     * タップを受け取るか。`false` ならこのポリラインはタップに対して透過し、
+     * 下のオーバーレイ（無ければ地図クリック）へイベントが流れる。
+     *
+     * 判定はコアの [com.mapconductor.core.polyline.PolylineManager.find] が行うため、
+     * どのプロバイダでも同じ挙動になる。描画には影響しないので [fingerPrint] には
+     * 含めない（含めると値を変えるたびにオーバーレイが作り直される）。
+     */
+    var clickable by mutableStateOf(clickable)
     var zIndex by mutableStateOf(zIndex)
     var points by mutableStateOf<List<GeoPointInterface>>(points)
     var extra by mutableStateOf(extra)
@@ -58,6 +70,7 @@ class PolylineState(
         result = 31 * result + this@PolylineState.strokeColor.hashCode()
         result = 31 * result + this@PolylineState.strokeWidth.hashCode()
         result = 31 * result + geodesic.hashCode()
+        result = 31 * result + clickable.hashCode()
         result = 31 * result + zIndex.hashCode()
         result = 31 * result + listHashCode(points)
         return result
@@ -69,6 +82,7 @@ class PolylineState(
         strokeColor: Color = this.strokeColor,
         strokeWidth: Dp = this.strokeWidth,
         geodesic: Boolean = this.geodesic,
+        clickable: Boolean = this.clickable,
         zIndex: Int = this.zIndex,
         extra: Serializable? = this.extra,
         onClick: OnPolylineEventHandler? = this.onClick,
@@ -79,6 +93,7 @@ class PolylineState(
             strokeColor = strokeColor,
             strokeWidth = strokeWidth,
             geodesic = geodesic,
+            clickable = clickable,
             zIndex = zIndex,
             extra = extra,
             onClick = onClick,

@@ -1,7 +1,9 @@
 package com.mapconductor.core.polyline
 
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
-import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayHit
+import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
@@ -10,7 +12,7 @@ import kotlinx.coroutines.sync.withPermit
 abstract class PolylineController<ActualPolyline>(
     val polylineManager: PolylineManagerInterface<ActualPolyline>,
     open val renderer: PolylineOverlayRendererInterface<ActualPolyline>,
-) : OverlayControllerInterface<
+) : SlottedOverlayController<
         PolylineState,
         PolylineEntityInterface<ActualPolyline>,
     >,
@@ -168,5 +170,22 @@ abstract class PolylineController<ActualPolyline>(
 
     override fun destroy() {
         // No native resources to clean up for polylines
+    }
+
+    override fun has(id: String): Boolean = polylineManager.hasEntity(id)
+
+    override val kind: OverlayKind = OverlayKind.Polyline
+
+    /** 配送座標はタップ点ではなく**線上の最近傍点**（3 プラットフォーム共通の契約）。 */
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? =
+        findWithClosestPoint(position)?.let { hit ->
+            OverlayHit(OverlayKind.Polyline, hit.closestPoint) {
+                dispatchClick(PolylineEvent(hit.entity.state, hit.closestPoint))
+            }
+        }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun setClickListenerAny(listener: Any?) {
+        clickListener = listener as? com.mapconductor.core.polyline.OnPolylineEventHandler
     }
 }

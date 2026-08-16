@@ -17,17 +17,28 @@ class GroundImageState(
     image: Drawable,
     opacity: Float = 1.0f,
     tileSize: Int = GroundImageTileProvider.DEFAULT_TILE_SIZE,
+    clickable: Boolean = true,
     id: String? = null,
     extra: Serializable? = null,
     onClick: OnGroundImageEventHandler? = null,
 ) : ComponentState {
-    override val id = (id ?: generateId(bounds, image, opacity, tileSize, extra)).toString()
+    override val id = (id ?: generateId(bounds, image, opacity, tileSize, clickable, extra)).toString()
 
 //    var bounds by StateFlowDelegate(bounds)
     var bounds by mutableStateOf(bounds)
     var image by mutableStateOf(image)
     var opacity by mutableStateOf(opacity)
     var tileSize by mutableStateOf(tileSize)
+
+    /**
+     * タップを受け取るか。`false` ならこのグラウンドイメージはタップに対して透過し、
+     * 下のオーバーレイ（無ければ地図クリック）へイベントが流れる。
+     *
+     * 判定はコアの [com.mapconductor.core.groundimage.GroundImageManager.find] が
+     * 行うため、どのプロバイダでも同じ挙動になる。描画には影響しないので
+     * [fingerPrint] には含めない（含めると値を変えるたびにタイルが作り直される）。
+     */
+    var clickable by mutableStateOf(clickable)
     var extra by mutableStateOf(extra)
     var onClick by mutableStateOf(onClick)
 
@@ -51,12 +62,14 @@ class GroundImageState(
         image: Drawable,
         opacity: Float,
         tileSize: Int,
+        clickable: Boolean,
         extra: Serializable?,
     ): Int {
         var result = bounds.hashCode()
         result = 31 * result + image.hashCode()
         result = 31 * result + opacity.hashCode()
         result = 31 * result + tileSize.hashCode()
+        result = 31 * result + clickable.hashCode()
         result = 31 * result + (extra?.hashCode() ?: 0)
         return result
     }
@@ -67,6 +80,7 @@ class GroundImageState(
         image: Drawable = this.image,
         opacity: Float = this.opacity,
         tileSize: Int = this.tileSize,
+        clickable: Boolean = this.clickable,
         id: String? = this.id,
         extra: Serializable? = this.extra,
         onClick: OnGroundImageEventHandler? = this.onClick,
@@ -76,6 +90,7 @@ class GroundImageState(
             image = image,
             opacity = opacity,
             tileSize = tileSize,
+            clickable = clickable,
             id = id,
             extra = extra,
             onClick = onClick,

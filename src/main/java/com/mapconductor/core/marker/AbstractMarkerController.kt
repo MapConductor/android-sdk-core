@@ -1,27 +1,41 @@
 package com.mapconductor.core.marker
 
-import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayHit
+import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
+import com.mapconductor.core.features.GeoPointInterface
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.yield
 
 abstract class AbstractMarkerController<ActualMarker>(
-    val markerManager: MarkerManager<ActualMarker>,
-    val renderer: MarkerOverlayRendererInterface<ActualMarker>,
-    var clickListener: OnMarkerEventHandler? = null,
-) : OverlayControllerInterface<
+    override val markerManager: MarkerManager<ActualMarker>,
+    override val renderer: MarkerOverlayRendererInterface<ActualMarker>,
+    override var clickListener: OnMarkerEventHandler? = null,
+) : SlottedOverlayController<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
-    > {
+    >,
+    MarkerEventHostInterface<ActualMarker> {
     override val zIndex: Int = 10
     val semaphore = Semaphore(1)
-    private val defaultMarkerIcon = DefaultMarkerIcon().toBitmapIcon()
 
-    var dragStartListener: OnMarkerEventHandler? = null
-    var dragListener: OnMarkerEventHandler? = null
-    var dragEndListener: OnMarkerEventHandler? = null
-    var animateStartListener: OnMarkerEventHandler? = null
-    var animateEndListener: OnMarkerEventHandler? = null
+    /**
+     * 既定のアイコン。**遅延生成**にしてある。
+     *
+     * `DefaultMarkerIcon` は `Typeface.DEFAULT` など Android の静的フィールドを触るため、
+     * コンストラクタで作ると素の JVM ユニットテストでコントローラを組み立てただけで
+     * NPE になる。実際に使うのは [add] のときだけなので、そこまで遅らせれば
+     * ドライバーの適合テスト（[com.mapconductor.core.conformance.MapDriverConformance]）を
+     * CI のユニットテストで回せる。
+     */
+    private val defaultMarkerIcon by lazy { DefaultMarkerIcon().toBitmapIcon() }
+
+    override var dragStartListener: OnMarkerEventHandler? = null
+    override var dragListener: OnMarkerEventHandler? = null
+    override var dragEndListener: OnMarkerEventHandler? = null
+    override var animateStartListener: OnMarkerEventHandler? = null
+    override var animateEndListener: OnMarkerEventHandler? = null
 
     /**
      * ドラッグ中のマーカー id。
@@ -54,7 +68,17 @@ abstract class AbstractMarkerController<ActualMarker>(
         renderer.animateEndListener = { state -> dispatchAnimateEnd(state) }
     }
 
-    fun dispatchClick(state: MarkerState) {
+    /**
+     * クリックを配送する。
+     *
+     * `clickable=false` のマーカーには配送しない。マーカーのヒットテスト
+     * （[find]）はドラッグの開始判定にも使われるため、そちらでは `clickable` を
+     * 見られない（`clickable=false` かつ `draggable=true` のマーカーがドラッグ
+     * 不能になってしまう）。判定をここに置くことで、ドラッグを保ったまま
+     * どのプロバイダでも同じ挙動になる。
+     */
+    override fun dispatchClick(state: MarkerState) {
+        if (!state.clickable) return
         state.onClick?.invoke(state)
         clickListener?.invoke(state)
     }
@@ -78,18 +102,18 @@ abstract class AbstractMarkerController<ActualMarker>(
 
     fun isDragging(state: MarkerState): Boolean = draggingMarkerIds.contains(state.id)
 
-    fun dispatchDragStart(state: MarkerState) {
+    override fun dispatchDragStart(state: MarkerState) {
         setDraggingState(state, true)
         state.onDragStart?.invoke(state)
         dragStartListener?.invoke(state)
     }
 
-    fun dispatchDrag(state: MarkerState) {
+    override fun dispatchDrag(state: MarkerState) {
         state.onDrag?.invoke(state)
         dragListener?.invoke(state)
     }
 
-    fun dispatchDragEnd(state: MarkerState) {
+    override fun dispatchDragEnd(state: MarkerState) {
         setDraggingState(state, false)
         state.onDragEnd?.invoke(state)
         dragEndListener?.invoke(state)
@@ -302,6 +326,54 @@ abstract class AbstractMarkerController<ActualMarker>(
         draggingMarkerIds.clear()
         markerManager.destroy()
     }
+
+    /**
+     * タップ座標に当たるマーカー。
+     *
+     * 6 プロバイダが同じ 10 行を各自持っていたものの集約
+     * （android-for-maplibre / mapbox / here / googlemaps / tomtom / arcgis）。
+     * [StrategyMarkerController.find] とも同じ。
+     *
+     * ## 判定は画面座標で行う
+     *
+     * 最近傍のマーカーを 1 つだけ取り出し、タップ点とマーカーの**アイコン矩形**を
+     * 画面座標で突き合わせる（[MarkerHitTest]）。地理距離ではなくアイコンの大きさを
+     * 見るので、幅広ラベルやクラスタのように大きいアイコンでも端が反応する。
+     *
+     * 投影できない（[com.mapconductor.core.map.MapViewHolderInterface.toScreenOffset] が
+     * null）ときは「当たらなかった」として null。画面外のマーカーは当たらないのが正しい。
+     *
+     * ## `clickable` はここで見ない
+     *
+     * これはドラッグの開始判定にも使われる。ここで `clickable` を見ると
+     * `clickable = false` かつ `draggable = true` のマーカーがドラッグできなくなる。
+     * クリックの可否は配送側（[dispatchClick] / [clickableOnly]）で判断する。
+     */
+    override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
+        val nearest = markerManager.findNearest(position) ?: return null
+        val touchScreen = renderer.holder.toScreenOffset(position) ?: return null
+        val markerScreen = renderer.holder.toScreenOffset(nearest.state.position) ?: return null
+
+        return if (MarkerHitTest.hitsIcon(touchScreen, markerScreen, nearest.state)) {
+            nearest
+        } else {
+            null
+        }
+    }
+
+    override val kind: OverlayKind = OverlayKind.Marker
+
+    /**
+     * マーカーはこのカスケードでは解決しない。
+     *
+     * 判定にアイコン矩形（＝画面投影）が要り、プロバイダごとにスレッドの制約が違うので
+     * [com.mapconductor.core.controller.BaseMapViewController.dispatchMarkerTap] を通る。
+     */
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? = null
+
+    override fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = markerManager.getEntity(id)
+
+    override fun has(id: String): Boolean = markerManager.hasEntity(id)
 }
 
 private const val MARKER_RENDER_BATCH_SIZE = 500

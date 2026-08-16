@@ -1,7 +1,9 @@
 package com.mapconductor.core.marker
 
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
-import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayHit
+import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.map.MapCameraPosition
@@ -10,47 +12,58 @@ import kotlinx.coroutines.sync.withPermit
 
 class StrategyMarkerController<ActualMarker>(
     private val strategy: MarkerRenderingStrategyInterface<ActualMarker>,
-    private val renderer: MarkerOverlayRendererInterface<ActualMarker>,
-) : OverlayControllerInterface<
+    override val renderer: MarkerOverlayRendererInterface<ActualMarker>,
+) : SlottedOverlayController<
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
     >,
-    OnCameraChangeReceiverInterface {
-    val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
+    OnCameraChangeReceiverInterface,
+    MarkerEventHostInterface<ActualMarker> {
+    override val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
     override val zIndex: Int = 10
     private var mapCameraPosition: MapCameraPosition? = null
     private var lastKnownBounds: GeoRectBounds? = null
     private val semaphore = Semaphore(1)
     private var pendingStates: List<MarkerState>? = null
 
-    var dragStartListener: OnMarkerEventHandler? = null
-    var dragListener: OnMarkerEventHandler? = null
-    var dragEndListener: OnMarkerEventHandler? = null
-    var animateStartListener: OnMarkerEventHandler? = null
-    var animateEndListener: OnMarkerEventHandler? = null
-    var clickListener: OnMarkerEventHandler? = null
+    override var dragStartListener: OnMarkerEventHandler? = null
+    override var dragListener: OnMarkerEventHandler? = null
+    override var dragEndListener: OnMarkerEventHandler? = null
+    override var animateStartListener: OnMarkerEventHandler? = null
+    override var animateEndListener: OnMarkerEventHandler? = null
+    override var clickListener: OnMarkerEventHandler? = null
 
     init {
         renderer.animateStartListener = { state -> dispatchAnimateStart(state) }
         renderer.animateEndListener = { state -> dispatchAnimateEnd(state) }
     }
 
-    fun dispatchClick(state: MarkerState) {
+    /**
+     * クリックを配送する。
+     *
+     * `clickable=false` のマーカーには配送しない。マーカーのヒットテスト
+     * （[find]）はドラッグの開始判定にも使われるため、そちらでは `clickable` を
+     * 見られない（`clickable=false` かつ `draggable=true` のマーカーがドラッグ
+     * 不能になってしまう）。判定をここに置くことで、ドラッグを保ったまま
+     * どのプロバイダでも同じ挙動になる。
+     */
+    override fun dispatchClick(state: MarkerState) {
+        if (!state.clickable) return
         state.onClick?.invoke(state)
         clickListener?.invoke(state)
     }
 
-    fun dispatchDragStart(state: MarkerState) {
+    override fun dispatchDragStart(state: MarkerState) {
         state.onDragStart?.invoke(state)
         dragStartListener?.invoke(state)
     }
 
-    fun dispatchDrag(state: MarkerState) {
+    override fun dispatchDrag(state: MarkerState) {
         state.onDrag?.invoke(state)
         dragListener?.invoke(state)
     }
 
-    fun dispatchDragEnd(state: MarkerState) {
+    override fun dispatchDragEnd(state: MarkerState) {
         state.onDragEnd?.invoke(state)
         dragEndListener?.invoke(state)
     }
@@ -95,7 +108,7 @@ class StrategyMarkerController<ActualMarker>(
         strategy.clear()
     }
 
-    fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = strategy.markerManager.getEntity(id)
+    override fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = strategy.markerManager.getEntity(id)
 
     override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
         val nearest = strategy.markerManager.findNearest(position) ?: return null
@@ -123,4 +136,11 @@ class StrategyMarkerController<ActualMarker>(
     override fun destroy() {
         strategy.clear()
     }
+
+    override val kind: OverlayKind = OverlayKind.Marker
+
+    /** マーカーは別経路（[com.mapconductor.core.controller.BaseMapViewController.dispatchMarkerTap]）。 */
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? = null
+
+    override fun has(id: String): Boolean = markerManager.hasEntity(id)
 }

@@ -1,7 +1,9 @@
 package com.mapconductor.core.raster
 
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
-import com.mapconductor.core.controller.OverlayControllerInterface
+import com.mapconductor.core.controller.OverlayHit
+import com.mapconductor.core.controller.OverlayKind
+import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
 import kotlinx.coroutines.sync.Semaphore
@@ -11,7 +13,7 @@ import kotlinx.coroutines.withContext
 abstract class RasterLayerController<ActualLayer : Any>(
     val rasterLayerManager: RasterLayerManagerInterface<ActualLayer>,
     open val renderer: RasterLayerOverlayRendererInterface<ActualLayer>,
-) : OverlayControllerInterface<
+) : SlottedOverlayController<
         RasterLayerState,
         RasterLayerEntityInterface<ActualLayer>,
     >,
@@ -251,4 +253,11 @@ abstract class RasterLayerController<ActualLayer : Any>(
     override fun destroy() {
         // No native resources to clean up
     }
+
+    override fun has(id: String): Boolean = rasterLayerManager.hasEntity(id)
+
+    override val kind: OverlayKind = OverlayKind.RasterLayer
+
+    /** ラスターレイヤはクリックを持たない。タップは次の層へ素通しする。 */
+    override fun resolveTap(position: GeoPointInterface): OverlayHit? = null
 }

@@ -1,7 +1,5 @@
 package com.mapconductor.core.map
 
-import android.util.Log
-
 /**
  * Which map gestures the user is allowed to perform.
  *
@@ -55,13 +53,13 @@ enum class MapGesture(
  * a composable that recomposes on every camera move does not flood logcat.
  */
 object MapUISettingsDiagnostics {
-    private const val TAG = "MapConductor"
-    private val warned = mutableSetOf<String>()
-
     /**
      * Logs once if [requested] is `false` — i.e. the app asked to disable a
      * gesture this provider cannot disable. A `true` value needs no warning,
      * because leaving a gesture enabled is always achievable.
+     *
+     * 実体は [MapDiagnostics] に一般化済み。ジェスチャは「無効化を要求されたのに
+     * できない」という向きなので、`requested = !requested` として渡している。
      */
     fun warnIfRequested(
         requested: Boolean,
@@ -69,16 +67,18 @@ object MapUISettingsDiagnostics {
         provider: String,
         reason: String,
     ) {
-        if (requested) return
-        val key = "$provider.${gesture.name}"
-        synchronized(warned) {
-            if (!warned.add(key)) return
-        }
-        Log.w(TAG, "${gesture.settingName} is not supported by $provider ($reason); the setting is ignored.")
+        MapDiagnostics.reportIfRequested(
+            requested = !requested,
+            capability = gesture.capability,
+            level = MapDiagnosticLevel.Ignored,
+            provider = provider,
+            reason = reason,
+            subject = gesture.settingName,
+        )
     }
 
     /** Test hook — forget which warnings have already been logged. */
     fun resetWarnings() {
-        synchronized(warned) { warned.clear() }
+        MapDiagnostics.resetWarnings()
     }
 }
