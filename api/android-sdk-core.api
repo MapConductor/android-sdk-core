@@ -1705,6 +1705,7 @@ public final class com.mapconductor.core.marker.MarkerTilingOptions {
   public final int getCacheSize();
   public final kotlin.jvm.functions.Function2<com.mapconductor.core.marker.MarkerState, java.lang.Integer, java.lang.Double> getIconScaleCallback();
   public final com.mapconductor.core.marker.MarkerViewportPolicy getViewport();
+  public final boolean shouldUseTiles(int);
   public final boolean component1();
   public final boolean component2();
   public final int component3();
@@ -2279,6 +2280,21 @@ public final class com.mapconductor.core.projection.WebMercator implements com.m
 }
 public final class com.mapconductor.core.projection.WebMercatorKt {
   public static final double WEB_MERCATOR_MAX_EXTENT_METERS;
+}
+public final class com.mapconductor.core.projection.WebMercatorScreenProjection {
+  public static final com.mapconductor.core.projection.WebMercatorScreenProjection INSTANCE;
+  public final androidx.compose.ui.geometry.Offset toScreenOffset-broig7I(com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.map.MapCameraPosition, float, float);
+  public final com.mapconductor.core.features.GeoPoint fromScreenOffset-M_7yMNQ(long, com.mapconductor.core.map.MapCameraPosition, float, float);
+}
+final class com.mapconductor.core.projection.WebMercatorScreenProjection$Normalized {
+  public final double getX();
+  public final double getY();
+  public final double component1();
+  public final double component2();
+  public final com.mapconductor.core.projection.WebMercatorScreenProjection$Normalized copy(double, double);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
 }
 public final class com.mapconductor.core.raster.RasterHeaderRule {
   public com.mapconductor.core.raster.RasterHeaderRule(java.lang.String, java.lang.Integer, java.lang.String, java.util.Map<java.lang.String, java.lang.String>);

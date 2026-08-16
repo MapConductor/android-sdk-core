@@ -10,7 +10,7 @@ The actual map view (`GoogleMapView`, `MapLibreMapView`, etc.) is provided by ea
 
 ## Setup
 
-https://docs-android.mapconductor.com/setup/
+https://mapconductor.com/setup/
 
 ## Data Types
 
