@@ -157,6 +157,17 @@ class MarkerTileRenderer<ActualMarker>(
             isDither = true
         }
 
+    /**
+     * Largest icon half-extent any tile has needed so far, in px.
+     *
+     * Seeds the padding used to widen a tile's marker query. Volatile rather
+     * than synchronised: renderTile runs concurrently, and a torn read costs at
+     * most one extra pass on one tile, which is what the field exists to avoid
+     * in the first place.
+     */
+    @Volatile
+    private var observedHalfExtentPx: Double = ResourceProvider.dpToPxForBitmap(32.0)
+
     private val defaultIcon = DefaultMarkerIcon()
 
     override fun renderTile(request: TileRequest): ByteArray? {
@@ -273,7 +284,12 @@ class MarkerTileRenderer<ActualMarker>(
 
         // First query uses a conservative padding (in dp) so we capture markers slightly outside
         // the tile that can overlap its edges.
-        val assumedHalfExtentPx = ResourceProvider.dpToPxForBitmap(32.0) // assume up to 32dp icons
+        // Start from the largest extent any tile has actually needed rather than
+        // from a fixed 32dp guess. The guess was smaller than the real icons on
+        // every tile measured, so the "conservative first pass" never paid off
+        // and query+prepare simply ran twice for every tile. Widening it as
+        // soon as one tile knows better costs one extra pass in total.
+        val assumedHalfExtentPx = observedHalfExtentPx
 
         var entities = queryByHalfExtentPx(assumedHalfExtentPx)
 
@@ -297,6 +313,7 @@ class MarkerTileRenderer<ActualMarker>(
         var prepared = result0.first
         var maxHalfExtentPx = result0.second
         if (maxHalfExtentPx > assumedHalfExtentPx + 1.0) {
+            observedHalfExtentPx = maxHalfExtentPx
             entities = queryByHalfExtentPx(maxHalfExtentPx)
             val result2 = prepareMarkers(entities)
             prepared = result2.first
@@ -325,6 +342,7 @@ class MarkerTileRenderer<ActualMarker>(
                 .ceil(maxHalfExtentPx + 2.0)
                 .toInt()
                 .coerceAtLeast(2)
+        val dstRect = Rect()
         val offscreenSize = tilePxInt + paddingPx * 2
         val offscreenBitmap = acquireBitmap(offscreenSize)
         offscreenBitmap.eraseColor(Color.TRANSPARENT)
@@ -347,14 +365,20 @@ class MarkerTileRenderer<ActualMarker>(
                 val centerY = (m.centerNorm.y * tilePx) + paddingPx.toDouble()
                 val anchorX = m.anchor.x.toDouble()
                 val anchorY = m.anchor.y.toDouble()
-                val dst =
-                    RectF(
-                        (centerX - m.drawW * anchorX).toFloat(),
-                        (centerY - m.drawH * anchorY).toFloat(),
-                        (centerX + m.drawW * (1.0 - anchorX)).toFloat(),
-                        (centerY + m.drawH * (1.0 - anchorY)).toFloat(),
-                    )
-                canvas.drawBitmap(m.bitmap, null, dst, bmpPaint)
+                // Whole pixels, deliberately. The destination comes out of a
+                // projection, so it lands on a fraction of a pixel almost every
+                // time, and a filtered blit to a non-integer rectangle costs
+                // about twenty times an aligned one: 20k markers measured at
+                // 4270 ms unaligned against 203 ms aligned on a Pixel 5a.
+                // Rounding moves a pin by at most half a pixel, which is not
+                // visible at icon scale, and when the icon is drawn at its
+                // natural size this also turns the blit into a straight copy.
+                val left = Math.round(centerX - m.drawW * anchorX).toInt()
+                val top = Math.round(centerY - m.drawH * anchorY).toInt()
+                val width = Math.round(m.drawW.toDouble()).toInt().coerceAtLeast(1)
+                val height = Math.round(m.drawH.toDouble()).toInt().coerceAtLeast(1)
+                dstRect.set(left, top, left + width, top + height)
+                canvas.drawBitmap(m.bitmap, null, dstRect, bmpPaint)
             }
         }
 
