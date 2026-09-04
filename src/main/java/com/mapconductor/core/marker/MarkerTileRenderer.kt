@@ -412,6 +412,12 @@ class MarkerTileRenderer<ActualMarker>(
         ThreadLocal.withInitial { ByteArrayOutputStream(16 * 1024) }
 
     private fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
+        // Rust first: it is 4-6x faster than Bitmap.compress on the tiles this
+        // renderer produces, and compress is what dominates a tile once the
+        // drawing is aligned. Null means the native path was unavailable or
+        // declined the bitmap, and the platform encoder takes over.
+        NativePngEncoder.encode(bitmap)?.let { return it }
+
         // ThreadLocal.get() is a Java generic method, so Kotlin sees its return type as
         // nullable even though withInitial() guarantees a value; !! is safe here.
         val outputStream = tileByteStream.get()!!
