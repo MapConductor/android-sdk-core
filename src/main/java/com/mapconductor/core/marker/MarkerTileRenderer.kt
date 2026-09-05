@@ -295,7 +295,30 @@ class MarkerTileRenderer<ActualMarker>(
             //
             // maptiler / longdo のようにタイル専用の manager を別に持つプロバイダでは
             // 全 entity が tiling = true なので、この絞り込みは何もしない。
-            return markerManager.findMarkersInBounds(extended).filter { it.tiling }
+            // Decluttering is about to keep one marker per cell of that many
+            // pixels, so markers closer together than a cell are
+            // interchangeable and the index may hand back whichever it likes.
+            // Saying so is what lets it answer from its cells instead of
+            // reading every marker: at zoom 9 that is the 5,000 cells holding
+            // Tokyo's street trees rather than all 141,221 of them, and reading
+            // a position off an entity alone costs 0.72 microseconds. The index
+            // falls back to the full query when its own cells are too coarse to
+            // honour the separation, so the pass below still has to apply the
+            // real rule.
+            val separationDegrees =
+                if (declutterPx > 0) {
+                    val span = extended.toSpan() ?: GeoPoint(0.0, 0.0)
+                    max(span.latitude, span.longitude) * declutterPx / tilePx
+                } else {
+                    0.0
+                }
+            val found =
+                if (separationDegrees > 0.0) {
+                    markerManager.findMarkersInBounds(extended, separationDegrees)
+                } else {
+                    markerManager.findMarkersInBounds(extended)
+                }
+            return found.filter { it.tiling }
         }
 
         // First query uses a conservative padding (in dp) so we capture markers slightly outside
@@ -432,7 +455,7 @@ class MarkerTileRenderer<ActualMarker>(
                 val top = (packed shr 32).toShort().toInt()
                 val cx = kotlin.math.floor(left / cell).toLong()
                 val cy = kotlin.math.floor(top / cell).toLong()
-                return (cx shl 32) xor (cy and 0xFFFFFFFFL)
+                return cellKeyOf(cx, cy)
             }
 
             // Grouped by sorting, not by hashing.
@@ -448,40 +471,40 @@ class MarkerTileRenderer<ActualMarker>(
             var pairs = 0
             for (index in prepared.indices) {
                 if (icons[index] == null) continue
-                // 24 bits of index under 40 of group, so sorting orders by
+                // [INDEX_BITS] of index under the group, so sorting orders by
                 // group first and by index within it.
-                order[pairs++] = (groupKey(placements[index]) shl 24) or index.toLong()
+                order[pairs++] = (groupKey(placements[index]) shl INDEX_BITS) or index.toLong()
             }
             java.util.Arrays.sort(order, 0, pairs)
 
             val draw = BooleanArray(prepared.size)
             var runStart = 0
             while (runStart < pairs) {
-                val group = order[runStart] ushr 24
+                val group = order[runStart] ushr INDEX_BITS
                 var runEnd = runStart + 1
-                while (runEnd < pairs && (order[runEnd] ushr 24) == group) runEnd++
+                while (runEnd < pairs && (order[runEnd] ushr INDEX_BITS) == group) runEnd++
 
                 if (declutter) {
                     // One survivor per cell, whatever it draws.
-                    draw[(order[runEnd - 1] and 0xFFFFFF).toInt()] = true
+                    draw[(order[runEnd - 1] and INDEX_MASK).toInt()] = true
                 } else {
                     // Same rectangle, but a different icon may be transparent
                     // where the one above it is not — so a group holding more
                     // than one icon keeps all of them.
-                    val first = icons[(order[runStart] and 0xFFFFFF).toInt()]
+                    val first = icons[(order[runStart] and INDEX_MASK).toInt()]
                     var mixed = false
                     for (at in runStart + 1 until runEnd) {
-                        if (icons[(order[at] and 0xFFFFFF).toInt()] !== first) {
+                        if (icons[(order[at] and INDEX_MASK).toInt()] !== first) {
                             mixed = true
                             break
                         }
                     }
                     if (mixed) {
                         for (at in runStart until runEnd) {
-                            draw[(order[at] and 0xFFFFFF).toInt()] = true
+                            draw[(order[at] and INDEX_MASK).toInt()] = true
                         }
                     } else {
-                        draw[(order[runEnd - 1] and 0xFFFFFF).toInt()] = true
+                        draw[(order[runEnd - 1] and INDEX_MASK).toInt()] = true
                     }
                 }
                 runStart = runEnd
@@ -642,6 +665,28 @@ class MarkerTileRenderer<ActualMarker>(
     }
 
     private companion object {
+        /**
+         * How the declutter pass packs a cell and a marker index into one Long:
+         * [INDEX_BITS] of index under 40 bits of cell key, which is exactly 64.
+         *
+         * The previous key was `(cx shl 32) xor cy`, and shifting that left by
+         * the index width threw away all but the low 8 bits of `cx`. At the
+         * default 14 px cell a tile spans about 100 columns and nothing showed;
+         * at a 1 px cell on a 1344 px tile, columns 0 and 256 shared a key and
+         * markers 256 px apart were decluttered into one another. Twenty bits a
+         * side leaves room for every cell a tile can hold.
+         */
+        private const val INDEX_BITS = 24
+        private const val INDEX_MASK = (1L shl INDEX_BITS) - 1
+        private const val CELL_BITS = 20
+        private const val CELL_ORIGIN = 1L shl (CELL_BITS - 1)
+
+        /** Offset so a marker above or left of the tile still keys positive. */
+        private fun cellKeyOf(
+            cx: Long,
+            cy: Long,
+        ): Long = ((cx + CELL_ORIGIN) shl CELL_BITS) or (cy + CELL_ORIGIN)
+
         private const val MAX_MERCATOR_LAT = 85.05112878
     }
 }

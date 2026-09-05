@@ -173,6 +173,31 @@ open class MarkerManager<ActualMarker>(
     }
 
     /**
+     * Markers in [bounds], where the caller is going to drop anything closer
+     * together than [minSeparationDegrees] regardless.
+     *
+     * The index can then answer from its cells rather than from its markers,
+     * which is the difference between visiting 141,221 street trees and
+     * visiting the 5,000 cells that hold them. It falls back to the full query
+     * whenever it cannot honour the separation, so the caller still has to
+     * apply its own rule to the result — this only promises not to return
+     * markers it was told are interchangeable.
+     */
+    fun findMarkersInBounds(
+        bounds: com.mapconductor.core.features.GeoRectBounds,
+        minSeparationDegrees: Double,
+    ): List<MarkerEntityInterface<ActualMarker>> {
+        if (!usable("findMarkersInBounds")) return emptyList()
+        if (bounds.isEmpty) return emptyList()
+        if (entities.size > minMarkerCount) {
+            semaphore.read {
+                gridIndex.inBoundsThinned(bounds, minSeparationDegrees)?.let { return it }
+            }
+        }
+        return findMarkersInBounds(bounds)
+    }
+
+    /**
      * Get memory usage statistics for debugging and optimization
      */
     fun getMemoryStats(): MarkerManagerStats {

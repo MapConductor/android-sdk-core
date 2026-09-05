@@ -4,6 +4,7 @@ import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -111,6 +112,71 @@ class MarkerGridIndexTest {
         assertTrue("the box should hold the marker just west of 180", expected.contains("0"))
         assertTrue("and the one just east of it", expected.contains("1"))
         assertEquals(expected, ids(index.inBounds(box)))
+    }
+
+    /**
+     * The thinned query may drop markers, but only ones it was told are
+     * interchangeable — and never a whole cell.
+     *
+     * A caller asks for this when it is about to keep one marker per cell of
+     * its own anyway. What it must not get back is a hole: a cell holding
+     * markers inside the bounds that returns nothing, which on a map is a patch
+     * of the city with no trees in it and no error anywhere.
+     */
+    @Test
+    fun thinnedQueryKeepsOneMarkerFromEveryCellItCovers() {
+        val markers = scatter(20000, 35.68, 139.76, 0.4)
+        val index = MarkerGridIndex { markers }
+        val box = bounds(35.60, 139.68, 35.76, 139.84)
+
+        val thinned = index.inBoundsThinned(box, minSeparationDegrees = 0.01)
+        assertNotNull("0.01 degrees is coarser than a cell, so this must be answered", thinned)
+        val kept = thinned!!
+
+        val inside = markers.filter { box.contains(it.state.position) }
+        assertTrue("the box should hold something to compare", inside.size > 1000)
+
+        // Same coupling as the index: a cell is 0.005 degrees a side.
+        fun cellOf(entity: MarkerEntityInterface<Int>): Pair<Long, Long> =
+            Math.floor(entity.state.position.latitude / 0.005).toLong() to
+                Math.floor(entity.state.position.longitude / 0.005).toLong()
+
+        for (entity in kept) {
+            assertTrue("returned a marker outside the box", box.contains(entity.state.position))
+        }
+        assertEquals(
+            "one marker per populated cell, no more and no fewer",
+            inside.map(::cellOf).toSet(),
+            kept.map(::cellOf).toSet(),
+        )
+        assertEquals("more than one from some cell", kept.map(::cellOf).toSet().size, kept.size)
+        // The box is 0.16 degrees a side, so it spans about 1,024 cells and
+        // holds around 3,200 of these markers — three to a cell. Without this
+        // the assertions above would still pass on data too sparse to thin,
+        // and the test would be proving nothing.
+        assertTrue("the data is too sparse to be exercising thinning", kept.size * 2 < inside.size)
+    }
+
+    /** Cells coarser than the caller's separation would thin more than asked. */
+    @Test
+    fun thinnedQueryDeclinesWhenItsCellsAreTooCoarse() {
+        val index = MarkerGridIndex { scatter(2000, 35.68, 139.76, 0.4) }
+        assertNull(index.inBoundsThinned(bounds(35.6, 139.7, 35.7, 139.8), 0.004))
+    }
+
+    /** The wrap the plain query learned has to hold here too. */
+    @Test
+    fun thinnedQueryCrossesTheAntimeridian() {
+        val markers =
+            listOf(
+                entity(0, -18.0, 179.99),
+                entity(1, -18.0, -179.99),
+                entity(2, -18.0, 178.0),
+            )
+        val index = MarkerGridIndex { markers }
+        val kept = index.inBoundsThinned(bounds(-18.5, 179.5, -17.5, -179.5), 0.01)
+        assertNotNull(kept)
+        assertEquals(setOf("0", "1"), ids(kept!!))
     }
 
     @Test

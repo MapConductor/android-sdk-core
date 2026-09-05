@@ -85,6 +85,77 @@ internal class MarkerGridIndex<ActualMarker>(
     }
 
     /**
+     * Markers in [bounds], thinned to at most one per grid cell.
+     *
+     * For a caller that is about to drop markers closer together than
+     * [minSeparationDegrees] anyway, visiting the ones it will drop is pure
+     * cost. At zoom 9 a street tree tile holds 141,221 markers and keeps 9,216;
+     * reading a position off an entity costs 0.72 microseconds, so merely
+     * looking at that set is 101 ms before anything is done with it.
+     *
+     * Walking cells instead visits the roughly 5,000 that hold anything. Each
+     * one is a binary search and, where the cell lies wholly inside the box, a
+     * single entry taken from the end of its run — no scan.
+     *
+     * Returns null when the index cannot help: cells coarser than the caller's
+     * separation would thin more than it asked for, and a box spanning more
+     * cells than [MAX_CELLS_PER_THINNED_QUERY] is cheaper to scan.
+     */
+    fun inBoundsThinned(
+        bounds: GeoRectBounds,
+        minSeparationDegrees: Double,
+    ): List<MarkerEntityInterface<ActualMarker>>? {
+        if (minSeparationDegrees < CELL_DEGREES) return null
+        val southWest = bounds.southWest ?: return null
+        val northEast = bounds.northEast ?: return null
+
+        val latFrom = Math.floor(southWest.latitude / CELL_DEGREES).toLong()
+        val latTo = Math.floor(northEast.latitude / CELL_DEGREES).toLong()
+        val lonFrom = Math.floor(southWest.longitude / CELL_DEGREES).toLong()
+        val lonEnd =
+            if (northEast.longitude < southWest.longitude) {
+                Math.floor(northEast.longitude / CELL_DEGREES).toLong() + LON_CELLS
+            } else {
+                Math.floor(northEast.longitude / CELL_DEGREES).toLong()
+            }
+        if ((latTo - latFrom + 1) * (lonEnd - lonFrom + 1) > MAX_CELLS_PER_THINNED_QUERY) return null
+
+        rebuildIfNeeded()
+        val found = ArrayList<MarkerEntityInterface<ActualMarker>>()
+        for (latCell in latFrom..latTo) {
+            // A cell wholly inside the box needs no containment test, and the
+            // last entry of its run can be taken without looking at the rest.
+            val latInside =
+                latCell > latFrom && latCell < latTo
+            for (lonCell in lonFrom..lonEnd) {
+                val key = cellKeyOf(latCell, wrapLon(lonCell))
+                val at = lowerBound(key shl INDEX_BITS)
+                if (at >= packed.size) continue
+                val limit = (key + 1) shl INDEX_BITS
+                if (packed[at] >= limit) continue
+
+                if (latInside && lonCell > lonFrom && lonCell < lonEnd) {
+                    var last = at
+                    while (last + 1 < packed.size && packed[last + 1] < limit) last++
+                    snapshot[(packed[last] and INDEX_MASK).toInt()]?.let { found.add(it) }
+                    continue
+                }
+                // On the border the cell straddles the box, so the last entry
+                // inside it is not necessarily the last entry of the run.
+                var winner: MarkerEntityInterface<ActualMarker>? = null
+                var cursor = at
+                while (cursor < packed.size && packed[cursor] < limit) {
+                    val entity = snapshot[(packed[cursor] and INDEX_MASK).toInt()]
+                    if (entity != null && bounds.contains(entity.state.position)) winner = entity
+                    cursor++
+                }
+                winner?.let { found.add(it) }
+            }
+        }
+        return found
+    }
+
+    /**
      * The marker nearest [position], by squared degrees.
      *
      * Rings of cells are searched outward from the one holding the point. The
@@ -223,6 +294,16 @@ internal class MarkerGridIndex<ActualMarker>(
          * stops paying for itself well before the pathological case.
          */
         private const val MAX_CELLS_PER_QUERY = 4096
+
+        /**
+         * The same budget for [inBoundsThinned], which earns far more per cell.
+         *
+         * A plain bounds query walking 20,000 cells is returning most of the
+         * markers anyway, so the walk buys nothing over a scan. A thinned query
+         * walking the same 20,000 returns one marker each instead of visiting
+         * 141,221, and each cell costs a binary search rather than a scan.
+         */
+        private const val MAX_CELLS_PER_THINNED_QUERY = 1 shl 18
 
         /** Roughly 45 km of rings before giving up and scanning. */
         private const val MAX_NEAREST_RINGS = 100
