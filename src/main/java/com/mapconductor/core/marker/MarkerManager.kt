@@ -122,9 +122,9 @@ open class MarkerManager<ActualMarker>(
 
     open fun findByIdPrefix(prefix: String): List<HexCell> {
         if (!usable("findByIdPrefix")) return emptyList()
-        semaphore.read {
-            return cellRegistry?.findByIdPrefix(prefix) ?: emptyList()
-        }
+        // The registry is built here and nowhere else: this is the one caller
+        // that needs hex cells rather than markers.
+        return ensureCellRegistry().findByIdPrefix(prefix)
     }
 
     open fun registerEntity(entity: MarkerEntityInterface<ActualMarker>) {
@@ -179,8 +179,8 @@ open class MarkerManager<ActualMarker>(
         usable("getMemoryStats")
         return MarkerManagerStats(
             entityCount = entities.size,
-            hasSpatialIndex = cellRegistry != null,
-            spatialIndexInitialized = cellRegistry != null,
+            hasSpatialIndex = true,
+            spatialIndexInitialized = gridIndex.isBuilt,
             estimatedMemoryKB = estimateMemoryUsage() / 1024,
         )
     }
@@ -189,7 +189,11 @@ open class MarkerManager<ActualMarker>(
         // Rough estimation in bytes
         val entityMapOverhead = entities.size * 64L // Map entry overhead + string key
         val entityObjects = entities.size * 200L // Rough entity size
-        val spatialIndexSize = if (cellRegistry != null) entities.size * 100L else 0L // Cell registry overhead
+        val gridSize = gridIndex.estimatedBytes()
+        // The hex registry is usually absent; when findByIdPrefix has built it,
+        // it costs a cell object and a string id per marker.
+        val hexSize = if (cellRegistry != null) entities.size * 100L else 0L
+        val spatialIndexSize = gridSize + hexSize
         return entityMapOverhead + entityObjects + spatialIndexSize
     }
 
@@ -207,15 +211,8 @@ open class MarkerManager<ActualMarker>(
         if (bounds.isEmpty) return emptyList()
 
         // For spatial queries, ensure the cell registry is initialized.
-        // `bounds.isEmpty` above already rules out a null corner, so the !! was
-        // safe — but it read as if it might not be, and `center` is a computed
-        // property that rebuilt the point on every access. Binding both up front
-        // states the precondition once and matches ios-sdk's `if count > n,
-        // let center = ..., let northEast = ...` shape.
-        val center = bounds.center
-        val northEast = bounds.northEast
         // Only use the spatial index for larger datasets.
-        if (entities.size > minMarkerCount && center != null && northEast != null) {
+        if (entities.size > minMarkerCount) {
             semaphore.read { return gridIndex.inBounds(bounds) }
         }
 

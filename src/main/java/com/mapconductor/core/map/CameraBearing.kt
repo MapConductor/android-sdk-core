@@ -20,7 +20,6 @@ import com.mapconductor.core.InternalMapConductorApi
  */
 @InternalMapConductorApi
 object CameraBearing {
-
     /** 角度を 0 以上 360 未満へ畳む。 */
     fun normalizeDegrees360(degrees: Double): Double {
         if (!degrees.isFinite()) return 0.0

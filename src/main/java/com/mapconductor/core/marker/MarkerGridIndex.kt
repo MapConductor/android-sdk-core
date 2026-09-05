@@ -40,6 +40,13 @@ internal class MarkerGridIndex<ActualMarker>(
     @Volatile
     private var dirty = true
 
+    /** Whether the index currently holds a built snapshot. */
+    val isBuilt: Boolean
+        get() = !dirty
+
+    /** Roughly what the index costs: two longs a marker, key and reference. */
+    fun estimatedBytes(): Long = packed.size * 8L + snapshot.size * 8L
+
     /** Marks the index stale. The rebuild happens on the next query. */
     fun invalidate() {
         dirty = true
@@ -55,15 +62,21 @@ internal class MarkerGridIndex<ActualMarker>(
         val lonFrom = Math.floor(southWest.longitude / CELL_DEGREES).toLong()
         val lonTo = Math.floor(northEast.longitude / CELL_DEGREES).toLong()
 
-        if ((latTo - latFrom + 1) * (lonTo - lonFrom + 1) > MAX_CELLS_PER_QUERY) {
+        // A box crossing the antimeridian has its east corner west of its west
+        // one. Walking to the unwrapped end and folding each column back onto
+        // the globe covers both halves without a second loop — and without the
+        // empty range that silently returned no markers there.
+        val lonEnd = if (northEast.longitude < southWest.longitude) lonTo + LON_CELLS else lonTo
+
+        if ((latTo - latFrom + 1) * (lonEnd - lonFrom + 1) > MAX_CELLS_PER_QUERY) {
             return source().filter { bounds.contains(it.state.position) }
         }
 
         rebuildIfNeeded()
         val found = ArrayList<MarkerEntityInterface<ActualMarker>>()
         for (latCell in latFrom..latTo) {
-            for (lonCell in lonFrom..lonTo) {
-                forEachInCell(cellKeyOf(latCell, lonCell)) { entity ->
+            for (lonCell in lonFrom..lonEnd) {
+                forEachInCell(cellKeyOf(latCell, wrapLon(lonCell))) { entity ->
                     if (bounds.contains(entity.state.position)) found.add(entity)
                 }
             }
@@ -74,9 +87,13 @@ internal class MarkerGridIndex<ActualMarker>(
     /**
      * The marker nearest [position], by squared degrees.
      *
-     * Rings of cells are searched outward from the one holding the point, and
-     * the search runs one ring past the first hit: a marker in the next ring
-     * out can still be closer than one in the far corner of this one.
+     * Rings of cells are searched outward from the one holding the point. The
+     * stopping rule is a distance, not a ring count: a ring is a square, so a
+     * hit in one of its corners sits about 1.4 cells further out than a hit on
+     * its edge, and stopping a fixed ring after the first hit returns the wrong
+     * marker. Having finished ring r, everything still unsearched is at least r
+     * cells away, so the search ends once that already exceeds the best
+     * distance found.
      */
     fun nearest(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
         rebuildIfNeeded()
@@ -88,9 +105,8 @@ internal class MarkerGridIndex<ActualMarker>(
         var best: MarkerEntityInterface<ActualMarker>? = null
         var bestDistance = Double.MAX_VALUE
         var ring = 0L
-        var ringsAfterHit = -1
 
-        while (ring <= MAX_NEAREST_RINGS && ringsAfterHit != 0) {
+        while (ring <= MAX_NEAREST_RINGS) {
             forEachInRing(centreLat, centreLon, ring) { entity ->
                 val distance = squaredDegrees(entity, position)
                 if (distance < bestDistance) {
@@ -98,8 +114,8 @@ internal class MarkerGridIndex<ActualMarker>(
                     best = entity
                 }
             }
-            if (best != null && ringsAfterHit < 0) ringsAfterHit = 1
-            if (ringsAfterHit > 0) ringsAfterHit--
+            val reach = ring * CELL_DEGREES
+            if (best != null && reach * reach >= bestDistance) break
             ring++
         }
 
@@ -128,12 +144,12 @@ internal class MarkerGridIndex<ActualMarker>(
             return
         }
         for (offset in -ring..ring) {
-            forEachInCell(cellKeyOf(centreLat - ring, centreLon + offset), body)
-            forEachInCell(cellKeyOf(centreLat + ring, centreLon + offset), body)
+            forEachInCell(cellKeyOf(centreLat - ring, wrapLon(centreLon + offset)), body)
+            forEachInCell(cellKeyOf(centreLat + ring, wrapLon(centreLon + offset)), body)
         }
         for (offset in (-ring + 1)..(ring - 1)) {
-            forEachInCell(cellKeyOf(centreLat + offset, centreLon - ring), body)
-            forEachInCell(cellKeyOf(centreLat + offset, centreLon + ring), body)
+            forEachInCell(cellKeyOf(centreLat + offset, wrapLon(centreLon - ring)), body)
+            forEachInCell(cellKeyOf(centreLat + offset, wrapLon(centreLon + ring)), body)
         }
     }
 
@@ -210,6 +226,12 @@ internal class MarkerGridIndex<ActualMarker>(
 
         /** Roughly 45 km of rings before giving up and scanning. */
         private const val MAX_NEAREST_RINGS = 100
+
+        /** Columns around the globe: the wrap the ring and box walks fold on. */
+        private val LON_CELLS = (360.0 / CELL_DEGREES).toLong()
+        private val MIN_LON_CELL = -LON_CELLS / 2
+
+        private fun wrapLon(lonCell: Long): Long = MIN_LON_CELL + Math.floorMod(lonCell - MIN_LON_CELL, LON_CELLS)
 
         // 24 bits of position, enough for 16.7M markers, under the cell key.
         private const val INDEX_BITS = 24
