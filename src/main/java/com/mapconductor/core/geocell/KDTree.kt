@@ -193,6 +193,55 @@ class KDTree(
     }
 
     /**
+     * Cells within [radius], unordered.
+     *
+     * The sorted, distance-carrying variant exists for callers that want the
+     * nearest first. Bounds queries do not: they use every cell and throw the
+     * distances away, and sorting them is the dominant cost of the search. A
+     * cell carries a String, so sorting 20k of them moves 20k references
+     * through some 286k comparisons — measured at 42 ms of a 64 ms query on an
+     * iPad Pro, against 1.8 ms without the sort.
+     */
+    fun withinRadius(
+        query: Offset,
+        radius: Double,
+    ): List<HexCell> {
+        require(radius >= 0) { "Radius must be non-negative" }
+        val start = root ?: return emptyList()
+
+        val result = mutableListOf<HexCell>()
+        withinRadiusUnordered(start, query, radius * radius, result)
+        return result
+    }
+
+    private fun withinRadiusUnordered(
+        node: Node,
+        query: Offset,
+        radiusSq: Double,
+        result: MutableList<HexCell>,
+    ) {
+        if (squaredDistance(query, node.cell.centerXY) <= radiusSq) {
+            result.add(node.cell)
+        }
+
+        val queryVal = if (node.axis == 0) query.x.toDouble() else query.y.toDouble()
+        val nodeVal =
+            if (node.axis == 0) {
+                node.cell.centerXY.x.toDouble()
+            } else {
+                node.cell.centerXY.y.toDouble()
+            }
+        val nearChild = if (queryVal < nodeVal) node.left else node.right
+        val farChild = if (queryVal < nodeVal) node.right else node.left
+
+        if (nearChild != null) withinRadiusUnordered(nearChild, query, radiusSq, result)
+        val axisDistance = queryVal - nodeVal
+        if (axisDistance * axisDistance <= radiusSq && farChild != null) {
+            withinRadiusUnordered(farChild, query, radiusSq, result)
+        }
+    }
+
+    /**
      * Recursive radius search
      */
     private fun withinRadius(
