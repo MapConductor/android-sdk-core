@@ -11,7 +11,6 @@ class MarkerCollector(
     updateDebounce: Duration = Settings.Default.composeEventDebounce,
     scope: CoroutineScope = CoroutineScope(Dispatchers.Main.immediate),
 ) : OverlayCollectorInterface<MarkerState> by OverlayCollector(
-        fingerPrintOf = { it.fingerPrint() },
         updateDebounce = updateDebounce,
         scope = scope,
     )

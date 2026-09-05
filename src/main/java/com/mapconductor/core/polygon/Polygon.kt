@@ -1,17 +1,14 @@
 package com.mapconductor.core.polygon
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mapconductor.core.ComponentState
+import com.mapconductor.core.StateMutationSignal
 import com.mapconductor.core.features.GeoPointInterface
 import java.io.Serializable
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
 
 class PolygonState(
     points: List<GeoPointInterface>,
@@ -41,10 +38,17 @@ class PolygonState(
                 ),
             )
         ).toString()
-    var strokeColor by mutableStateOf(strokeColor)
-    var strokeWidth by mutableStateOf(strokeWidth)
-    var fillColor by mutableStateOf(fillColor)
-    var geodesic by mutableStateOf(geodesic)
+
+    /**
+     * Writes to the fields below are announced here rather than discovered by
+     * reading them all back. See [StateMutationSignal].
+     */
+    override val mutations = StateMutationSignal()
+
+    var strokeColor by mutations.notifying(strokeColor)
+    var strokeWidth by mutations.notifying(strokeWidth)
+    var fillColor by mutations.notifying(fillColor)
+    var geodesic by mutations.notifying(geodesic)
 
     /**
      * タップを受け取るか。`false` ならこのポリゴンはタップに対して透過し、
@@ -54,12 +58,12 @@ class PolygonState(
      * どのプロバイダでも同じ挙動になる。描画には影響しないので [fingerPrint] には
      * 含めない（含めると値を変えるたびにオーバーレイが作り直される）。
      */
-    var clickable by mutableStateOf(clickable)
-    var zIndex by mutableStateOf(zIndex)
-    var points by mutableStateOf<List<GeoPointInterface>>(points)
-    var holes by mutableStateOf<List<List<GeoPointInterface>>>(holes)
-    var extra by mutableStateOf(extra)
-    var onClick by mutableStateOf(onClick)
+    var clickable by mutations.notifying(clickable)
+    var zIndex by mutations.notifying(zIndex)
+    var points by mutations.notifying<List<GeoPointInterface>>(points)
+    var holes by mutations.notifying<List<List<GeoPointInterface>>>(holes)
+    var extra by mutations.notifying(extra)
+    var onClick by mutations.notifying(onClick)
 
     private fun polygonId(hashCodes: List<Int>): Int =
         hashCodes.reduce { result, hashCode ->
@@ -139,8 +143,6 @@ class PolygonState(
             extra = extra,
             onClick = onClick,
         )
-
-    fun asFlow(): Flow<PolygonFingerPrint> = snapshotFlow { fingerPrint() }.distinctUntilChanged()
 }
 
 data class PolygonFingerPrint(

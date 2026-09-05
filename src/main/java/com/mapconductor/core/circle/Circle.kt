@@ -1,17 +1,14 @@
 package com.mapconductor.core.circle
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mapconductor.core.ComponentState
+import com.mapconductor.core.StateMutationSignal
 import com.mapconductor.core.features.GeoPointInterface
 import java.io.Serializable
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
 
 class CircleState(
     center: GeoPointInterface,
@@ -32,16 +29,22 @@ class CircleState(
     extra: Serializable? = null,
     onClick: OnCircleEventHandler? = null,
 ) : ComponentState {
-    var center by mutableStateOf(center)
-    var clickable by mutableStateOf(clickable)
-    var radiusMeters by mutableStateOf(radiusMeters)
-    var geodesic by mutableStateOf(geodesic)
-    var strokeColor by mutableStateOf(strokeColor)
-    var strokeWidth by mutableStateOf(strokeWidth)
-    var fillColor by mutableStateOf(fillColor)
-    var extra by mutableStateOf(extra)
-    var zIndex by mutableStateOf<Int?>(zIndex)
-    var onClick by mutableStateOf(onClick)
+    /**
+     * Writes to the fields below are announced here rather than discovered by
+     * reading them all back. See [StateMutationSignal].
+     */
+    override val mutations = StateMutationSignal()
+
+    var center by mutations.notifying(center)
+    var clickable by mutations.notifying(clickable)
+    var radiusMeters by mutations.notifying(radiusMeters)
+    var geodesic by mutations.notifying(geodesic)
+    var strokeColor by mutations.notifying(strokeColor)
+    var strokeWidth by mutations.notifying(strokeWidth)
+    var fillColor by mutations.notifying(fillColor)
+    var extra by mutations.notifying(extra)
+    var zIndex by mutations.notifying<Int?>(zIndex)
+    var onClick by mutations.notifying(onClick)
 
     override val id =
         (
@@ -78,8 +81,6 @@ class CircleState(
             zIndex = zIndex.hashCode(),
             extra = extra?.hashCode() ?: 0,
         )
-
-    fun asFlow(): Flow<CircleFingerPrint> = snapshotFlow { fingerPrint() }.distinctUntilChanged()
 
     fun copy(
         center: GeoPointInterface = this.center,
