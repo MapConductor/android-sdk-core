@@ -361,11 +361,13 @@ class MarkerTileRenderer<ActualMarker>(
                 )
             }
 
-            for (m in prepared) {
+            // Where each marker lands, and which icon it draws. Markers that
+            // agree on all of it sit exactly on top of one another.
+            val placements = LongArray(prepared.size)
+            val icons = arrayOfNulls<Bitmap>(prepared.size)
+            for ((index, m) in prepared.withIndex()) {
                 val centerX = (m.centerNorm.x * tilePx) + paddingPx.toDouble()
                 val centerY = (m.centerNorm.y * tilePx) + paddingPx.toDouble()
-                val anchorX = m.anchor.x.toDouble()
-                val anchorY = m.anchor.y.toDouble()
                 // Whole pixels, deliberately. The destination comes out of a
                 // projection, so it lands on a fraction of a pixel almost every
                 // time, and a filtered blit to a non-integer rectangle costs
@@ -374,12 +376,58 @@ class MarkerTileRenderer<ActualMarker>(
                 // Rounding moves a pin by at most half a pixel, which is not
                 // visible at icon scale, and when the icon is drawn at its
                 // natural size this also turns the blit into a straight copy.
-                val left = Math.round(centerX - m.drawW * anchorX).toInt()
-                val top = Math.round(centerY - m.drawH * anchorY).toInt()
+                val left = Math.round(centerX - m.drawW * m.anchor.x.toDouble()).toInt()
+                val top = Math.round(centerY - m.drawH * m.anchor.y.toDouble()).toInt()
                 val width = Math.round(m.drawW.toDouble()).toInt().coerceAtLeast(1)
                 val height = Math.round(m.drawH.toDouble()).toInt().coerceAtLeast(1)
+                // Packed rather than a data class: one Long per marker instead
+                // of 20k short-lived objects for the GC to sweep up.
+                placements[index] =
+                    (left.toLong() and 0xFFFF shl 48) or
+                        (top.toLong() and 0xFFFF shl 32) or
+                        (width.toLong() and 0xFFFF shl 16) or
+                        (height.toLong() and 0xFFFF)
+                icons[index] = m.bitmap
+            }
+
+            // Drop markers completely hidden by a later one.
+            //
+            // Zoom out far enough and a whole city collapses onto a few hundred
+            // pixels: at z6 a dataset of 20k markers resolves to roughly 2k
+            // distinct positions, and the other 18k are drawn underneath copies
+            // of themselves. Keeping the last of each group is what would have
+            // been visible anyway, since drawing is in painter's order.
+            //
+            // Only exact agreement counts — same rectangle, same icon — so
+            // nothing that could peek out from behind another is dropped. Where
+            // markers share a rectangle but not an icon, none are dropped: a
+            // different icon may be transparent where the one above it is not,
+            // and then the one underneath does show through.
+            val lastAt = HashMap<Long, Int>(prepared.size)
+            val iconAt = HashMap<Long, Bitmap>(prepared.size)
+            val mixedIcons = HashSet<Long>()
+            for (index in prepared.indices) {
+                val icon = icons[index] ?: continue
+                val key = placements[index]
+                val seen = iconAt[key]
+                if (seen != null && seen !== icon) mixedIcons.add(key)
+                iconAt[key] = icon
+                lastAt[key] = index
+            }
+
+            for (index in prepared.indices) {
+                val icon = icons[index] ?: continue
+                val packed = placements[index]
+                if (packed !in mixedIcons && lastAt[packed] != index) continue
+                // Sign-extended: a marker overhanging the tile's top or left
+                // edge has a negative origin, and masking it back to 16 bits
+                // unsigned would move it to the far side of the tile.
+                val left = (packed shr 48).toShort().toInt()
+                val top = (packed shr 32).toShort().toInt()
+                val width = (packed shr 16 and 0xFFFF).toInt()
+                val height = (packed and 0xFFFF).toInt()
                 dstRect.set(left, top, left + width, top + height)
-                canvas.drawBitmap(m.bitmap, null, dstRect, bmpPaint)
+                canvas.drawBitmap(icon, null, dstRect, bmpPaint)
             }
         }
 
