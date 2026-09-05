@@ -55,6 +55,8 @@ class MarkerTileRenderer<ActualMarker>(
     private val debugTileOverlay: Boolean = false,
     private val iconScaleCallback: ((MarkerState, Int) -> Double)? = null,
     val extraIconScale: Double = 1.0,
+    /** See [MarkerTilingOptions.declutterPx]. Zero draws every marker. */
+    private val declutterPx: Int = 0,
 ) : TileProviderInterface {
     @Volatile
     private var cacheVersion: Int = 0
@@ -403,35 +405,55 @@ class MarkerTileRenderer<ActualMarker>(
                 icons[index] = m.bitmap
             }
 
-            // Drop markers completely hidden by a later one.
+            // One survivor per group of markers that cover each other. What
+            // counts as a group depends on the mode, but the pass is the same
+            // one either way — a second pass over 144k markers costs more than
+            // the drawing it saves.
             //
-            // Zoom out far enough and a whole city collapses onto a few hundred
-            // pixels: at z6 a dataset of 20k markers resolves to roughly 2k
-            // distinct positions, and the other 18k are drawn underneath copies
-            // of themselves. Keeping the last of each group is what would have
-            // been visible anyway, since drawing is in painter's order.
+            //  - default: the exact same rectangle drawn with the exact same
+            //    icon. Those are invisible whatever happens, so dropping them
+            //    cannot change the tile. Markers sharing a rectangle but not an
+            //    icon are all kept: a different icon may be transparent where
+            //    the one above it is not.
             //
-            // Only exact agreement counts — same rectangle, same icon — so
-            // nothing that could peek out from behind another is dropped. Where
-            // markers share a rectangle but not an icon, none are dropped: a
-            // different icon may be transparent where the one above it is not,
-            // and then the one underneath does show through.
+            //  - declutterPx > 0: everything landing in the same cell of that
+            //    size. Markers a few pixels apart overlap almost completely,
+            //    and thinning them is a judgement about the map rather than a
+            //    free optimisation — hence opt-in.
+            //
+            // The last of each group wins, which is what painter's order would
+            // have left visible.
+            val declutter = declutterPx > 0
+            val cell = declutterPx.toDouble()
+
+            fun groupKey(packed: Long): Long {
+                if (!declutter) return packed
+                val left = (packed shr 48).toShort().toInt()
+                val top = (packed shr 32).toShort().toInt()
+                val cx = kotlin.math.floor(left / cell).toLong()
+                val cy = kotlin.math.floor(top / cell).toLong()
+                return (cx shl 32) xor (cy and 0xFFFFFFFFL)
+            }
+
             val lastAt = HashMap<Long, Int>(prepared.size)
-            val iconAt = HashMap<Long, Bitmap>(prepared.size)
-            val mixedIcons = HashSet<Long>()
+            val iconAt = if (declutter) null else HashMap<Long, Bitmap>(prepared.size)
+            val mixedIcons = if (declutter) null else HashSet<Long>()
             for (index in prepared.indices) {
                 val icon = icons[index] ?: continue
-                val key = placements[index]
-                val seen = iconAt[key]
-                if (seen != null && seen !== icon) mixedIcons.add(key)
-                iconAt[key] = icon
+                val key = groupKey(placements[index])
+                if (iconAt != null) {
+                    val seen = iconAt[key]
+                    if (seen != null && seen !== icon) mixedIcons!!.add(key)
+                    iconAt[key] = icon
+                }
                 lastAt[key] = index
             }
 
             for (index in prepared.indices) {
                 val icon = icons[index] ?: continue
                 val packed = placements[index]
-                if (packed !in mixedIcons && lastAt[packed] != index) continue
+                val key = groupKey(packed)
+                if (mixedIcons?.contains(key) != true && lastAt[key] != index) continue
                 // Sign-extended: a marker overhanging the tile's top or left
                 // edge has a negative origin, and masking it back to 16 bits
                 // unsigned would move it to the far side of the tile.
