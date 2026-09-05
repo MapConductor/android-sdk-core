@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import com.mapconductor.core.ResourceProvider
+import com.mapconductor.core.tileserver.TilePngEncoder
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.tileserver.TileProviderInterface
@@ -416,7 +417,7 @@ class MarkerTileRenderer<ActualMarker>(
         // renderer produces, and compress is what dominates a tile once the
         // drawing is aligned. Null means the native path was unavailable or
         // declined the bitmap, and the platform encoder takes over.
-        NativePngEncoder.encode(bitmap)?.let { return it }
+        TilePngEncoder.encode(bitmap)?.let { return it }
 
         // ThreadLocal.get() is a Java generic method, so Kotlin sees its return type as
         // nullable even though withInitial() guarantees a value; !! is safe here.
@@ -433,7 +434,7 @@ class MarkerTileRenderer<ActualMarker>(
         val safeSize = size.coerceAtLeast(1)
         synchronized(bitmapPoolLock) {
             val bucket = bitmapPool[safeSize]
-            while (bucket != null && bucket.isNotEmpty()) {
+            while (!bucket.isNullOrEmpty()) {
                 val candidate = bucket.removeFirst()
                 bitmapPoolCount = (bitmapPoolCount - 1).coerceAtLeast(0)
                 if (!candidate.isRecycled && candidate.width == safeSize && candidate.height == safeSize) {
