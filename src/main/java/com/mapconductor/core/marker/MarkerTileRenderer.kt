@@ -435,25 +435,62 @@ class MarkerTileRenderer<ActualMarker>(
                 return (cx shl 32) xor (cy and 0xFFFFFFFFL)
             }
 
-            val lastAt = HashMap<Long, Int>(prepared.size)
-            val iconAt = if (declutter) null else HashMap<Long, Bitmap>(prepared.size)
-            val mixedIcons = if (declutter) null else HashSet<Long>()
+            // Grouped by sorting, not by hashing.
+            //
+            // A HashMap keyed by the group boxes a Long and an Int per marker,
+            // and on a tile holding the whole dataset that is hundreds of
+            // thousands of objects — enough that the tile after it failed to
+            // allocate its bitmap and the process aborted inside
+            // Canvas::create_canvas. Sorting an array of (group, index) pairs
+            // needs two primitive arrays and answers the same question: the
+            // winner of a group is the last index in its run.
+            val order = LongArray(prepared.size)
+            var pairs = 0
             for (index in prepared.indices) {
-                val icon = icons[index] ?: continue
-                val key = groupKey(placements[index])
-                if (iconAt != null) {
-                    val seen = iconAt[key]
-                    if (seen != null && seen !== icon) mixedIcons!!.add(key)
-                    iconAt[key] = icon
+                if (icons[index] == null) continue
+                // 24 bits of index under 40 of group, so sorting orders by
+                // group first and by index within it.
+                order[pairs++] = (groupKey(placements[index]) shl 24) or index.toLong()
+            }
+            java.util.Arrays.sort(order, 0, pairs)
+
+            val draw = BooleanArray(prepared.size)
+            var runStart = 0
+            while (runStart < pairs) {
+                val group = order[runStart] ushr 24
+                var runEnd = runStart + 1
+                while (runEnd < pairs && (order[runEnd] ushr 24) == group) runEnd++
+
+                if (declutter) {
+                    // One survivor per cell, whatever it draws.
+                    draw[(order[runEnd - 1] and 0xFFFFFF).toInt()] = true
+                } else {
+                    // Same rectangle, but a different icon may be transparent
+                    // where the one above it is not — so a group holding more
+                    // than one icon keeps all of them.
+                    val first = icons[(order[runStart] and 0xFFFFFF).toInt()]
+                    var mixed = false
+                    for (at in runStart + 1 until runEnd) {
+                        if (icons[(order[at] and 0xFFFFFF).toInt()] !== first) {
+                            mixed = true
+                            break
+                        }
+                    }
+                    if (mixed) {
+                        for (at in runStart until runEnd) {
+                            draw[(order[at] and 0xFFFFFF).toInt()] = true
+                        }
+                    } else {
+                        draw[(order[runEnd - 1] and 0xFFFFFF).toInt()] = true
+                    }
                 }
-                lastAt[key] = index
+                runStart = runEnd
             }
 
             for (index in prepared.indices) {
+                if (!draw[index]) continue
                 val icon = icons[index] ?: continue
                 val packed = placements[index]
-                val key = groupKey(packed)
-                if (mixedIcons?.contains(key) != true && lastAt[key] != index) continue
                 // Sign-extended: a marker overhanging the tile's top or left
                 // edge has a negative origin, and masking it back to 16 bits
                 // unsigned would move it to the far side of the tile.
