@@ -14,9 +14,9 @@ import org.junit.Test
  * than trusting that the pruning was copied correctly.
  */
 class KDTreeRadiusTest {
-
     private fun cells(count: Int): List<HexCell> {
         var seed = 42L
+
         fun next(): Double {
             seed = seed * 6364136223846793005L + 1442695040888963407L
             return ((seed ushr 40).toDouble() / 1000.0)

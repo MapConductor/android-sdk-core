@@ -4,9 +4,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import com.mapconductor.core.ResourceProvider
-import com.mapconductor.core.tileserver.TilePngEncoder
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
+import com.mapconductor.core.tileserver.TilePngEncoder
 import com.mapconductor.core.tileserver.TileProviderInterface
 import com.mapconductor.core.tileserver.TileRequest
 import java.io.ByteArrayOutputStream
@@ -25,7 +25,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.RectF
 import android.util.LruCache
 
 data class PointD(
@@ -175,16 +174,17 @@ class MarkerTileRenderer<ActualMarker>(
      * field exists to avoid in the first place.
      */
     @Volatile
-    private var observedHalfExtentPx: Double = defaultIcon.toBitmapIcon().let { icon ->
-        val width = icon.size.width.toDouble() * extraIconScale
-        val height = icon.size.height.toDouble() * extraIconScale
-        val anchorX = icon.anchor.x.toDouble()
-        val anchorY = icon.anchor.y.toDouble()
-        maxOf(
-            max(kotlin.math.abs(width * anchorX), kotlin.math.abs(width * (1.0 - anchorX))),
-            max(kotlin.math.abs(height * anchorY), kotlin.math.abs(height * (1.0 - anchorY))),
-        )
-    }
+    private var observedHalfExtentPx: Double =
+        defaultIcon.toBitmapIcon().let { icon ->
+            val width = icon.size.width.toDouble() * extraIconScale
+            val height = icon.size.height.toDouble() * extraIconScale
+            val anchorX = icon.anchor.x.toDouble()
+            val anchorY = icon.anchor.y.toDouble()
+            maxOf(
+                max(kotlin.math.abs(width * anchorX), kotlin.math.abs(width * (1.0 - anchorX))),
+                max(kotlin.math.abs(height * anchorY), kotlin.math.abs(height * (1.0 - anchorY))),
+            )
+        }
 
     override fun renderTile(request: TileRequest): ByteArray? {
         val zoomInt = request.z
@@ -399,9 +399,9 @@ class MarkerTileRenderer<ActualMarker>(
                 // of 20k short-lived objects for the GC to sweep up.
                 placements[index] =
                     (left.toLong() and 0xFFFF shl 48) or
-                        (top.toLong() and 0xFFFF shl 32) or
-                        (width.toLong() and 0xFFFF shl 16) or
-                        (height.toLong() and 0xFFFF)
+                    (top.toLong() and 0xFFFF shl 32) or
+                    (width.toLong() and 0xFFFF shl 16) or
+                    (height.toLong() and 0xFFFF)
                 icons[index] = m.bitmap
             }
 

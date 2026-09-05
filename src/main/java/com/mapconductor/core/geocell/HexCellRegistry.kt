@@ -222,6 +222,7 @@ class HexCellRegistry<ActualMarker>(
             kdTree?.withinRadiusWithDistance(geocell.projection.project(point), radius).orEmpty()
         }
     }
+
     /** Cells within [radius], unordered — see [KDTree.withinRadius]. */
     fun findWithinRadius(
         point: GeoPointInterface,
@@ -232,7 +233,6 @@ class HexCellRegistry<ActualMarker>(
             kdTree?.withinRadius(geocell.projection.project(point), radius).orEmpty()
         }
     }
-
 
     /**
      * Get all hex cells

@@ -6,7 +6,6 @@ import com.mapconductor.core.geocell.HexCellRegistry
 import com.mapconductor.core.geocell.HexGeocell
 import com.mapconductor.core.geocell.HexGeocellInterface
 import com.mapconductor.core.projection.Earth
-import com.mapconductor.core.spherical.Spherical
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read

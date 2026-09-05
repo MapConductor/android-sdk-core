@@ -227,9 +227,11 @@ class KDTree(
         val queryVal = if (node.axis == 0) query.x.toDouble() else query.y.toDouble()
         val nodeVal =
             if (node.axis == 0) {
-                node.cell.centerXY.x.toDouble()
+                node.cell.centerXY.x
+                    .toDouble()
             } else {
-                node.cell.centerXY.y.toDouble()
+                node.cell.centerXY.y
+                    .toDouble()
             }
         val nearChild = if (queryVal < nodeVal) node.left else node.right
         val farChild = if (queryVal < nodeVal) node.right else node.left

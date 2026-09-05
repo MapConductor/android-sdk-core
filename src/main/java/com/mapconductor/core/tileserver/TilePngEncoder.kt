@@ -1,8 +1,8 @@
 package com.mapconductor.core.tileserver
 
-import android.graphics.Bitmap
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import android.graphics.Bitmap
 
 /**
  * PNG encoding in Rust, for tiles the SDK rasterises itself.
@@ -22,7 +22,6 @@ import java.nio.ByteOrder
  * expected to have a platform fallback.
  */
 object TilePngEncoder {
-
     /**
      * Scratch pixel buffer, one per calling thread.
      *
