@@ -158,18 +158,31 @@ class MarkerTileRenderer<ActualMarker>(
             isDither = true
         }
 
+    private val defaultIcon = DefaultMarkerIcon()
+
     /**
      * Largest icon half-extent any tile has needed so far, in px.
      *
-     * Seeds the padding used to widen a tile's marker query. Volatile rather
-     * than synchronised: renderTile runs concurrently, and a torn read costs at
-     * most one extra pass on one tile, which is what the field exists to avoid
-     * in the first place.
+     * Seeds the padding used to widen a tile's marker query. Starts from the
+     * default icon's own extent rather than a guess: the guess was 32dp, real
+     * icons are larger, and every tile therefore paid a second query and a
+     * second prepare.
+     *
+     * Volatile rather than synchronised: renderTile runs concurrently, and a
+     * torn read costs at most one extra pass on one tile, which is what the
+     * field exists to avoid in the first place.
      */
     @Volatile
-    private var observedHalfExtentPx: Double = ResourceProvider.dpToPxForBitmap(32.0)
-
-    private val defaultIcon = DefaultMarkerIcon()
+    private var observedHalfExtentPx: Double = defaultIcon.toBitmapIcon().let { icon ->
+        val width = icon.size.width.toDouble() * extraIconScale
+        val height = icon.size.height.toDouble() * extraIconScale
+        val anchorX = icon.anchor.x.toDouble()
+        val anchorY = icon.anchor.y.toDouble()
+        maxOf(
+            max(kotlin.math.abs(width * anchorX), kotlin.math.abs(width * (1.0 - anchorX))),
+            max(kotlin.math.abs(height * anchorY), kotlin.math.abs(height * (1.0 - anchorY))),
+        )
+    }
 
     override fun renderTile(request: TileRequest): ByteArray? {
         val zoomInt = request.z
