@@ -18,6 +18,9 @@ class LocalTileServer private constructor(
     forceNoStoreCache: Boolean,
 ) {
     private val providers = ConcurrentHashMap<String, TileProviderInterface>()
+
+    /** Requests dropped because the map had stopped waiting for them. */
+    private val abandoned = AtomicLong()
     private val loggedRoutes = ConcurrentHashMap.newKeySet<String>()
     private val running = AtomicBoolean(false)
     private val acceptThread = Thread { acceptLoop() }
@@ -166,7 +169,17 @@ class LocalTileServer private constructor(
                         break
                     }
 
-                    val tileResponse = resolveTile(path)
+                    // The map may have moved on since this request was
+                    // queued -- a pinch or a fling abandons whole screens of
+                    // tiles -- and drawing one it no longer wants puts it in
+                    // front of the tiles it does. Rendering is where the time
+                    // goes, so the cheapest thing that helps is not starting.
+                    if (clientGone(client)) {
+                        abandoned.incrementAndGet()
+                        break
+                    }
+
+                    val tileResponse = resolveTile(path) { clientGone(client) }
                     val status: String
                     val contentType: String
                     val body: ByteArray
@@ -302,7 +315,28 @@ class LocalTileServer private constructor(
         }
     }
 
-    private fun resolveTile(path: String): TileResponse? {
+    /**
+     * Whether the other end has gone away.
+     *
+     * There is no portable way to ask a socket whether the peer is still
+     * there, but a byte of urgent data fails once the connection is dead and
+     * is discarded by a peer that never asks for it -- which is every HTTP
+     * client. Cheap enough to call at each step of a render.
+     */
+    private fun clientGone(client: Socket): Boolean {
+        if (client.isClosed || !client.isConnected) return true
+        return try {
+            client.sendUrgentData(0xFF)
+            false
+        } catch (_: java.io.IOException) {
+            true
+        }
+    }
+
+    private fun resolveTile(
+        path: String,
+        isCancelled: () -> Boolean,
+    ): TileResponse? {
         val key = parseTileKey(path) ?: return null
         val routeId = key.routeId
         val z = key.z
@@ -317,6 +351,7 @@ class LocalTileServer private constructor(
         val bytes =
             provider.renderTile(
                 TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
+                isCancelled,
             ) ?: return null
         val cacheControl =
             if (forceNoStoreCache) {
