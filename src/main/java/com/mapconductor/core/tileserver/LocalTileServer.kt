@@ -121,6 +121,13 @@ class LocalTileServer private constructor(
                 continue
             }
             try {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(
+                        TAG,
+                        "accepted a connection; workers busy=${clientExecutor.activeCount} " +
+                            "queued=${clientExecutor.queue.size}",
+                    )
+                }
                 clientExecutor.execute { handleClient(socket) }
             } catch (_: RejectedExecutionException) {
                 // Saturated: shed the connection; the map SDK will retry the tile.
@@ -178,7 +185,10 @@ class LocalTileServer private constructor(
                     // front of the tiles it does. Rendering is where the time
                     // goes, so the cheapest thing that helps is not starting.
                     if (clientGone(client, peek)) {
-                        abandoned.incrementAndGet()
+                        val total = abandoned.incrementAndGet()
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "Gone before we started: $path (total=$total)")
+                        }
                         break
                     }
 
@@ -195,7 +205,9 @@ class LocalTileServer private constructor(
                     // map reads as a failure it may retry.
                     if (tileResponse == null && clientGone(client, peek)) {
                         val total = abandoned.incrementAndGet()
-                        Log.d(TAG, "Abandoned mid-render, no answer sent: $path (total=$total)")
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "Abandoned mid-render, no answer sent: $path (total=$total)")
+                        }
                         break
                     }
                     if (tileResponse == null) {
