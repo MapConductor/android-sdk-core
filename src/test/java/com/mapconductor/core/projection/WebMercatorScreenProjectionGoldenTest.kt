@@ -94,12 +94,19 @@ class WebMercatorScreenProjectionGoldenTest {
         assertTrue("ratio=$ratio", abs(ratio - 2f) < 1e-4)
     }
 
+    /**
+     * bearing は「地図を時計回りに回す量」。90 なら地図が右へ 90 度回り、
+     * 画面の上には**西**が来る（東は画面の下）。
+     */
     @Test
-    fun `bearing=90 では東が上に来る`() {
+    fun `bearing=90 では西が上に来る`() {
         val c = camera(bearing = 90.0)
+        val west = project(GeoPoint(c.position.latitude, c.position.longitude - 0.05), c)!!
+        assertTrue("west.y=${west.y}", west.y < 400f)
+        assertClose(200.0, west.x)
+
         val east = project(GeoPoint(c.position.latitude, c.position.longitude + 0.05), c)!!
-        assertTrue("east.y=${east.y}", east.y < 400f)
-        assertClose(200.0, east.x)
+        assertTrue("east.y=${east.y}", east.y > 400f)
     }
 
     @Test

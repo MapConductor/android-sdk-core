@@ -3,6 +3,7 @@ package com.mapconductor.core.projection
 import androidx.compose.ui.geometry.Offset
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
+import com.mapconductor.core.map.CameraBearing
 import com.mapconductor.core.map.MapCameraPosition
 import kotlin.math.cos
 import kotlin.math.pow
@@ -66,8 +67,9 @@ object WebMercatorScreenProjection {
         var sx = dx * worldSize
         var sy = (target.y - center.y) * worldSize
         if (camera.bearing != 0.0) {
-            // bearing は「画面の上が指す方位（北から時計回り）」。世界を -bearing 回す。
-            val angle = -camera.bearing * Math.PI / 180.0
+            // 画面の上が指す方位はカメラの heading（= bearing の符号反転）。世界を
+            // -heading 回すと、その方位が画面の上（-y）に来る。
+            val angle = -CameraBearing.toNativeHeading(camera.bearing) * Math.PI / 180.0
             val rx = sx * cos(angle) - sy * sin(angle)
             val ry = sx * sin(angle) + sy * cos(angle)
             sx = rx
@@ -90,7 +92,7 @@ object WebMercatorScreenProjection {
         var sx = offset.x - widthPx / 2.0
         var sy = offset.y - heightPx / 2.0
         if (camera.bearing != 0.0) {
-            val angle = camera.bearing * Math.PI / 180.0
+            val angle = CameraBearing.toNativeHeading(camera.bearing) * Math.PI / 180.0
             val rx = sx * cos(angle) - sy * sin(angle)
             val ry = sx * sin(angle) + sy * cos(angle)
             sx = rx
