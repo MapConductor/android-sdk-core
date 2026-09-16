@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
  * costs one call per actual change, and during a drag markers do not change at
  * all. So the states push instead.
  */
+@InternalMapConductorApi
 class StateMutationSignal {
     @Volatile
     private var listener: (() -> Unit)? = null
@@ -64,6 +65,7 @@ class StateMutationSignal {
  * structural equality before waking its own readers, so nothing new is spent
  * here, and the collector's old fingerprint diff ignored equal values too.
  */
+@InternalMapConductorApi
 private class NotifyingState<T>(
     private val inner: MutableState<T>,
     private val signal: StateMutationSignal,

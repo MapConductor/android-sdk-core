@@ -60,6 +60,14 @@ android {
     }
 }
 
+// 自分で宣言したドライバー実装点（@InternalMapConductorApi）を、core 自身の
+// 状態クラスが使う（各 ComponentState が StateMutationSignal を持つ）。
+kotlin {
+    compilerOptions {
+        optIn.add("com.mapconductor.core.InternalMapConductorApi")
+    }
+}
+
 dependencies {
     // Make Compose dependencies implementation instead of compileOnly for proper runtime support
     implementation(platform(libs.androidx.compose.bom))

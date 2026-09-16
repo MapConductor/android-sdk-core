@@ -68,6 +68,7 @@ interface OverlayCollectorInterface<T : ComponentState> {
  *   one delivery per 5ms window per state, latest value wins. Delivered through
  *   the update handler, never through [flow].
  */
+@InternalMapConductorApi
 class OverlayCollector<T : ComponentState>(
     private val updateDebounce: Duration,
     scope: CoroutineScope = CoroutineScope(Dispatchers.Main.immediate),

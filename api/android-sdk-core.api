@@ -8,6 +8,7 @@ public final class com.mapconductor.core.BitmapIconCache {
 }
 public interface com.mapconductor.core.ComponentState {
   public abstract java.lang.String getId();
+  public abstract com.mapconductor.core.StateMutationSignal getMutations();
 }
 public final class com.mapconductor.core.EventsKt {
 }
@@ -31,15 +32,6 @@ public final class com.mapconductor.core.IconResource {
 public final class com.mapconductor.core.MathExtKt {
   public static final java.lang.String toFixed(double, int);
   public static final java.lang.String toFixed(float, int);
-}
-public final class com.mapconductor.core.OverlayCollector<T extends com.mapconductor.core.ComponentState, FingerPrint> implements com.mapconductor.core.OverlayCollectorInterface<T> {
-  public com.mapconductor.core.OverlayCollector(kotlin.jvm.functions.Function1, long, kotlinx.coroutines.CoroutineScope, int, kotlin.jvm.internal.DefaultConstructorMarker);
-  public kotlinx.coroutines.flow.MutableStateFlow<java.util.Map<java.lang.String, T>> getFlow();
-  public java.lang.Object add(T, kotlin.coroutines.Continuation<? super kotlin.Unit>);
-  public void remove(java.lang.String);
-  public void setUpdateHandler(kotlin.jvm.functions.Function2<? super T, ? super kotlin.coroutines.Continuation<? super kotlin.Unit>, ? extends java.lang.Object>);
-  public void replaceAll(java.util.List<? extends T>);
-  public com.mapconductor.core.OverlayCollector(kotlin.jvm.functions.Function1, long, kotlinx.coroutines.CoroutineScope, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 public interface com.mapconductor.core.OverlayCollectorInterface<T extends com.mapconductor.core.ComponentState> {
   public abstract kotlinx.coroutines.flow.MutableStateFlow<java.util.Map<java.lang.String, T>> getFlow();
@@ -211,6 +203,7 @@ public interface com.mapconductor.core.circle.CircleOverlayRendererInterface$Cha
 }
 public final class com.mapconductor.core.circle.CircleState implements com.mapconductor.core.ComponentState {
   public com.mapconductor.core.circle.CircleState(com.mapconductor.core.features.GeoPointInterface, double, boolean, boolean, long, float, long, java.lang.String, java.lang.Integer, java.io.Serializable, kotlin.jvm.functions.Function1, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.StateMutationSignal getMutations();
   public final com.mapconductor.core.features.GeoPointInterface getCenter();
   public final void setCenter(com.mapconductor.core.features.GeoPointInterface);
   public final boolean getClickable();
@@ -233,7 +226,6 @@ public final class com.mapconductor.core.circle.CircleState implements com.mapco
   public final void setOnClick(kotlin.jvm.functions.Function1<? super com.mapconductor.core.circle.CircleEvent, kotlin.Unit>);
   public java.lang.String getId();
   public final com.mapconductor.core.circle.CircleFingerPrint fingerPrint();
-  public final kotlinx.coroutines.flow.Flow<com.mapconductor.core.circle.CircleFingerPrint> asFlow();
   public final com.mapconductor.core.circle.CircleState copy-H0InVkU(com.mapconductor.core.features.GeoPointInterface, double, boolean, boolean, long, float, long, java.lang.String, java.lang.Integer, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.circle.CircleEvent, kotlin.Unit>);
   public boolean equals(java.lang.Object);
   public int hashCode();
@@ -460,6 +452,7 @@ public final class com.mapconductor.core.geocell.HexCellRegistry<ActualMarker> {
   public final com.mapconductor.core.geocell.HexCellWithDistance findNearestWithDistance(com.mapconductor.core.features.GeoPointInterface);
   public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> findNearestKWithDistance(com.mapconductor.core.features.GeoPointInterface, int);
   public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> findWithinRadiusWithDistance(com.mapconductor.core.features.GeoPointInterface, double);
+  public final java.util.List<com.mapconductor.core.geocell.HexCell> findWithinRadius(com.mapconductor.core.features.GeoPointInterface, double);
   public final java.util.List<com.mapconductor.core.geocell.HexCell> all();
   public final java.util.Set<java.lang.String> getEntryIDsByHexCell(com.mapconductor.core.geocell.HexCell);
   public final double metersPerPixel(com.mapconductor.core.features.GeoPointInterface, double, double, int);
@@ -543,6 +536,7 @@ public final class com.mapconductor.core.geocell.KDTree {
   public final com.mapconductor.core.geocell.HexCellWithDistance nearestWithDistance-k-4lQ0M(long);
   public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> nearestKWithDistance-3MmeM6k(long, int);
   public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> withinRadiusWithDistance-3MmeM6k(long, double);
+  public final java.util.List<com.mapconductor.core.geocell.HexCell> withinRadius-3MmeM6k(long, double);
   public final com.mapconductor.core.geocell.KDTreeStats getStats();
 }
 final class com.mapconductor.core.geocell.KDTree$Node {
@@ -728,6 +722,7 @@ public final class com.mapconductor.core.groundimage.GroundImageState implements
   public com.mapconductor.core.groundimage.GroundImageState(com.mapconductor.core.features.GeoRectBounds, android.graphics.drawable.Drawable, float, int, boolean, java.lang.String, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit>);
   public com.mapconductor.core.groundimage.GroundImageState(com.mapconductor.core.features.GeoRectBounds, android.graphics.drawable.Drawable, float, int, boolean, java.lang.String, java.io.Serializable, kotlin.jvm.functions.Function1, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public java.lang.String getId();
+  public com.mapconductor.core.StateMutationSignal getMutations();
   public final com.mapconductor.core.features.GeoRectBounds getBounds();
   public final void setBounds(com.mapconductor.core.features.GeoRectBounds);
   public final android.graphics.drawable.Drawable getImage();
@@ -743,7 +738,6 @@ public final class com.mapconductor.core.groundimage.GroundImageState implements
   public final kotlin.jvm.functions.Function1<com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit> getOnClick();
   public final void setOnClick(kotlin.jvm.functions.Function1<? super com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit>);
   public final com.mapconductor.core.groundimage.GroundImageFingerPrint fingerPrint();
-  public final kotlinx.coroutines.flow.Flow<com.mapconductor.core.groundimage.GroundImageFingerPrint> asFlow();
   public final com.mapconductor.core.groundimage.GroundImageState copy(com.mapconductor.core.features.GeoRectBounds, android.graphics.drawable.Drawable, float, int, boolean, java.lang.String, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit>);
   public boolean equals(java.lang.Object);
   public int hashCode();
@@ -756,6 +750,7 @@ public final class com.mapconductor.core.groundimage.GroundImageTileProvider imp
   public final int getTileSize();
   public final void update(com.mapconductor.core.groundimage.GroundImageState, float);
   public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest);
+  public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
   public com.mapconductor.core.groundimage.GroundImageTileProvider();
 }
 public final class com.mapconductor.core.groundimage.GroundImageTileProvider$Companion {
@@ -1074,17 +1069,19 @@ public final class com.mapconductor.core.map.MapServiceRegistryKt {
 }
 public final class com.mapconductor.core.map.MapUISettings {
   public static final com.mapconductor.core.map.MapUISettings$Companion Companion;
-  public com.mapconductor.core.map.MapUISettings(boolean, boolean, boolean, boolean);
-  public com.mapconductor.core.map.MapUISettings(boolean, boolean, boolean, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.map.MapUISettings(boolean, boolean, boolean, boolean, com.mapconductor.core.map.MapPaddings);
+  public com.mapconductor.core.map.MapUISettings(boolean, boolean, boolean, boolean, com.mapconductor.core.map.MapPaddings, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final boolean getScrollGesture();
   public final boolean getZoomGesture();
   public final boolean getRotateGesture();
   public final boolean getTiltGesture();
+  public final com.mapconductor.core.map.MapPaddings getPaddings();
   public final boolean component1();
   public final boolean component2();
   public final boolean component3();
   public final boolean component4();
-  public final com.mapconductor.core.map.MapUISettings copy(boolean, boolean, boolean, boolean);
+  public final com.mapconductor.core.map.MapPaddings component5();
+  public final com.mapconductor.core.map.MapUISettings copy(boolean, boolean, boolean, boolean, com.mapconductor.core.map.MapPaddings);
   public java.lang.String toString();
   public int hashCode();
   public boolean equals(java.lang.Object);
@@ -1115,8 +1112,8 @@ public abstract class com.mapconductor.core.map.MapViewHolderStoreBaseAsync<TMap
   public abstract java.lang.Object getOrCreate(android.content.Context, java.lang.String, TOptions, kotlin.coroutines.Continuation<? super com.mapconductor.core.map.MapViewHolderInterface<TMapView, TMap>>);
 }
 public abstract class com.mapconductor.core.map.MapViewState<ActualMapDesignType> implements com.mapconductor.core.map.MapViewStateInterface<ActualMapDesignType> {
-  public com.mapconductor.core.map.MapViewState(com.mapconductor.core.map.MapCameraPosition, boolean);
-  public com.mapconductor.core.map.MapViewState(com.mapconductor.core.map.MapCameraPosition, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.map.MapViewState(com.mapconductor.core.map.MapCameraPosition, boolean, com.mapconductor.core.map.MapPaddings);
+  public com.mapconductor.core.map.MapViewState(com.mapconductor.core.map.MapCameraPosition, boolean, com.mapconductor.core.map.MapPaddings, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public com.mapconductor.core.map.MutableMapServiceRegistry getServiceRegistry();
   public com.mapconductor.core.map.MapUISettings getUiSettings();
   public void setUiSettings(com.mapconductor.core.map.MapUISettings);
@@ -1550,6 +1547,7 @@ public class com.mapconductor.core.marker.MarkerManager<ActualMarker> {
   public void registerEntity(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
   public void updateEntity(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
   public java.util.List<com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>> allEntities();
+  public final java.util.List<com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>> findMarkersInBounds(com.mapconductor.core.features.GeoRectBounds, double);
   public final com.mapconductor.core.marker.MarkerManagerStats getMemoryStats();
   public void clear();
   public final java.util.List<com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>> findMarkersInBounds(com.mapconductor.core.features.GeoRectBounds);
@@ -1634,6 +1632,7 @@ public final class com.mapconductor.core.marker.MarkerState implements com.mapco
   public final java.io.Serializable getExtra();
   public final void setExtra(java.io.Serializable);
   public java.lang.String getId();
+  public com.mapconductor.core.StateMutationSignal getMutations();
   public final com.mapconductor.core.marker.MarkerIconInterface getIcon();
   public final void setIcon(com.mapconductor.core.marker.MarkerIconInterface);
   public final boolean getClickable();
@@ -1662,20 +1661,20 @@ public final class com.mapconductor.core.marker.MarkerState implements com.mapco
   public boolean equals(java.lang.Object);
   public int hashCode();
   public final com.mapconductor.core.marker.MarkerFingerPrint fingerPrint();
-  public final kotlinx.coroutines.flow.Flow<com.mapconductor.core.marker.MarkerFingerPrint> asFlow();
 }
 public interface com.mapconductor.core.marker.MarkerTileRasterLayerCallback {
   public abstract java.lang.Object onRasterLayerUpdate(com.mapconductor.core.raster.RasterLayerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
 }
 public final class com.mapconductor.core.marker.MarkerTileRenderer<ActualMarker> implements com.mapconductor.core.tileserver.TileProviderInterface {
-  public com.mapconductor.core.marker.MarkerTileRenderer(com.mapconductor.core.marker.MarkerManager<ActualMarker>, int, int, boolean, kotlin.jvm.functions.Function2<? super com.mapconductor.core.marker.MarkerState, ? super java.lang.Integer, java.lang.Double>, double);
-  public com.mapconductor.core.marker.MarkerTileRenderer(com.mapconductor.core.marker.MarkerManager, int, int, boolean, kotlin.jvm.functions.Function2, double, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.marker.MarkerTileRenderer(com.mapconductor.core.marker.MarkerManager<ActualMarker>, int, int, boolean, kotlin.jvm.functions.Function2<? super com.mapconductor.core.marker.MarkerState, ? super java.lang.Integer, java.lang.Double>, double, int);
+  public com.mapconductor.core.marker.MarkerTileRenderer(com.mapconductor.core.marker.MarkerManager, int, int, boolean, kotlin.jvm.functions.Function2, double, int, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final com.mapconductor.core.marker.MarkerManager<ActualMarker> getMarkerManager();
   public final int getTileSize();
   public final double getExtraIconScale();
   public final void invalidate();
   public final void clear();
   public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest);
+  public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
 }
 final class com.mapconductor.core.marker.MarkerTileRenderer$Companion {
 }
@@ -1697,13 +1696,14 @@ public final class com.mapconductor.core.marker.MarkerTileRenderer$renderTile$Pr
 }
 public final class com.mapconductor.core.marker.MarkerTilingOptions {
   public static final com.mapconductor.core.marker.MarkerTilingOptions$Companion Companion;
-  public com.mapconductor.core.marker.MarkerTilingOptions(boolean, boolean, int, int, kotlin.jvm.functions.Function2<? super com.mapconductor.core.marker.MarkerState, ? super java.lang.Integer, java.lang.Double>);
-  public com.mapconductor.core.marker.MarkerTilingOptions(boolean, boolean, int, int, kotlin.jvm.functions.Function2, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.marker.MarkerTilingOptions(boolean, boolean, int, int, kotlin.jvm.functions.Function2<? super com.mapconductor.core.marker.MarkerState, ? super java.lang.Integer, java.lang.Double>, int);
+  public com.mapconductor.core.marker.MarkerTilingOptions(boolean, boolean, int, int, kotlin.jvm.functions.Function2, int, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final boolean getEnabled();
   public final boolean getDebugTileOverlay();
   public final int getMinMarkerCount();
   public final int getCacheSize();
   public final kotlin.jvm.functions.Function2<com.mapconductor.core.marker.MarkerState, java.lang.Integer, java.lang.Double> getIconScaleCallback();
+  public final int getDeclutterPx();
   public final com.mapconductor.core.marker.MarkerViewportPolicy getViewport();
   public final boolean shouldUseTiles(int);
   public final boolean component1();
@@ -1711,7 +1711,8 @@ public final class com.mapconductor.core.marker.MarkerTilingOptions {
   public final int component3();
   public final int component4();
   public final kotlin.jvm.functions.Function2<com.mapconductor.core.marker.MarkerState, java.lang.Integer, java.lang.Double> component5();
-  public final com.mapconductor.core.marker.MarkerTilingOptions copy(boolean, boolean, int, int, kotlin.jvm.functions.Function2<? super com.mapconductor.core.marker.MarkerState, ? super java.lang.Integer, java.lang.Double>);
+  public final int component6();
+  public final com.mapconductor.core.marker.MarkerTilingOptions copy(boolean, boolean, int, int, kotlin.jvm.functions.Function2<? super com.mapconductor.core.marker.MarkerState, ? super java.lang.Integer, java.lang.Double>, int);
   public java.lang.String toString();
   public int hashCode();
   public boolean equals(java.lang.Object);
@@ -2023,6 +2024,7 @@ public interface com.mapconductor.core.polygon.PolygonOverlayRendererInterface$C
 public final class com.mapconductor.core.polygon.PolygonState implements com.mapconductor.core.ComponentState {
   public com.mapconductor.core.polygon.PolygonState(java.util.List, java.util.List, java.lang.String, long, float, long, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public java.lang.String getId();
+  public com.mapconductor.core.StateMutationSignal getMutations();
   public final long getStrokeColor-0d7_KjU();
   public final void setStrokeColor-8_81llA(long);
   public final float getStrokeWidth-D9Ej5fM();
@@ -2047,7 +2049,6 @@ public final class com.mapconductor.core.polygon.PolygonState implements com.map
   public int hashCode();
   public final com.mapconductor.core.polygon.PolygonFingerPrint fingerPrint();
   public final com.mapconductor.core.polygon.PolygonState copy-lqbfp2Q(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>>, java.lang.String, long, float, long, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.polygon.PolygonEvent, kotlin.Unit>);
-  public final kotlinx.coroutines.flow.Flow<com.mapconductor.core.polygon.PolygonFingerPrint> asFlow();
   public com.mapconductor.core.polygon.PolygonState(java.util.List, java.util.List, java.lang.String, long, float, long, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 public final class com.mapconductor.core.polygon.PolygonUnionKt {
@@ -2233,6 +2234,7 @@ public interface com.mapconductor.core.polyline.PolylineOverlayRendererInterface
 public final class com.mapconductor.core.polyline.PolylineState implements com.mapconductor.core.ComponentState {
   public com.mapconductor.core.polyline.PolylineState(java.util.List, java.lang.String, long, float, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public java.lang.String getId();
+  public com.mapconductor.core.StateMutationSignal getMutations();
   public final long getStrokeColor-0d7_KjU();
   public final void setStrokeColor-8_81llA(long);
   public final float getStrokeWidth-D9Ej5fM();
@@ -2253,7 +2255,6 @@ public final class com.mapconductor.core.polyline.PolylineState implements com.m
   public int hashCode();
   public final com.mapconductor.core.polyline.PolylineState copy-uKGX-YA(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.lang.String, long, float, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.polyline.PolylineEvent, kotlin.Unit>);
   public final com.mapconductor.core.polyline.PolylineFingerPrint fingerPrint();
-  public final kotlinx.coroutines.flow.Flow<com.mapconductor.core.polyline.PolylineFingerPrint> asFlow();
   public com.mapconductor.core.polyline.PolylineState(java.util.List, java.lang.String, long, float, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 public final class com.mapconductor.core.projection.Earth {
@@ -2496,6 +2497,7 @@ public final class com.mapconductor.core.raster.RasterLayerState implements com.
   public com.mapconductor.core.raster.RasterLayerState(com.mapconductor.core.raster.RasterLayerSource, float, boolean, int, java.lang.String, boolean, java.lang.String, java.util.Map<java.lang.String, java.lang.String>);
   public com.mapconductor.core.raster.RasterLayerState(com.mapconductor.core.raster.RasterLayerSource, float, boolean, int, java.lang.String, boolean, java.lang.String, java.util.Map, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public java.lang.String getId();
+  public com.mapconductor.core.StateMutationSignal getMutations();
   public final com.mapconductor.core.raster.RasterLayerSource getSource();
   public final void setSource(com.mapconductor.core.raster.RasterLayerSource);
   public final float getOpacity();
@@ -2514,7 +2516,6 @@ public final class com.mapconductor.core.raster.RasterLayerState implements com.
   public int hashCode();
   public final com.mapconductor.core.raster.RasterLayerState copy(com.mapconductor.core.raster.RasterLayerSource, float, boolean, int, boolean, java.lang.String, java.lang.String, java.util.Map<java.lang.String, java.lang.String>);
   public final com.mapconductor.core.raster.RasterLayerFingerPrint fingerPrint();
-  public final kotlinx.coroutines.flow.Flow<com.mapconductor.core.raster.RasterLayerFingerPrint> asFlow();
 }
 public final class com.mapconductor.core.raster.RasterLayerState$Companion {
 }
@@ -2683,8 +2684,18 @@ public final class com.mapconductor.core.tileserver.TileCoordinate {
   public int hashCode();
   public boolean equals(java.lang.Object);
 }
+public final class com.mapconductor.core.tileserver.TilePngEncoder {
+  public static final com.mapconductor.core.tileserver.TilePngEncoder INSTANCE;
+  public final boolean isAvailable();
+  public final byte[] encode(android.graphics.Bitmap);
+  public final byte[] encode(java.nio.ByteBuffer, int, int, boolean);
+}
 public interface com.mapconductor.core.tileserver.TileProviderInterface {
   public abstract byte[] renderTile(com.mapconductor.core.tileserver.TileRequest);
+  public default byte[] renderTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
+}
+public final class com.mapconductor.core.tileserver.TileProviderInterface$DefaultImpls {
+  public static byte[] renderTile(com.mapconductor.core.tileserver.TileProviderInterface, com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
 }
 public final class com.mapconductor.core.tileserver.TileRequest {
   public com.mapconductor.core.tileserver.TileRequest(int, int, int, int);

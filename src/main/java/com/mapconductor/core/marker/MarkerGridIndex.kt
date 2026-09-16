@@ -1,5 +1,6 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.features.GeoRectBounds
 import java.util.Arrays
@@ -29,6 +30,7 @@ import java.util.Arrays
  * already keeps — an id-to-slot map of its own cost several megabytes at this
  * size, for information that already existed.
  */
+@InternalMapConductorApi
 internal class MarkerGridIndex<ActualMarker>(
     private val source: () -> Collection<MarkerEntityInterface<ActualMarker>>,
 ) {
@@ -272,6 +274,9 @@ internal class MarkerGridIndex<ActualMarker>(
         return low
     }
 
+    // 注釈の判定はクラス単位で、Companion は別のクラスファイルになる。
+    // 外側に付けただけでは空のエントリが凍結サーフェスに残る。
+    @InternalMapConductorApi
     companion object {
         /**
          * About 450 m at Tokyo's latitude.
