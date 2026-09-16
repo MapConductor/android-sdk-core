@@ -6,6 +6,7 @@ import androidx.core.graphics.createBitmap
 import com.mapconductor.core.ResourceProvider
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
+import com.mapconductor.core.tileserver.TilePngEncoder
 import com.mapconductor.core.tileserver.TileProviderInterface
 import com.mapconductor.core.tileserver.TileRequest
 import java.io.ByteArrayOutputStream
@@ -24,7 +25,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.RectF
 import android.util.LruCache
 
 data class PointD(
@@ -54,6 +54,8 @@ class MarkerTileRenderer<ActualMarker>(
     private val debugTileOverlay: Boolean = false,
     private val iconScaleCallback: ((MarkerState, Int) -> Double)? = null,
     val extraIconScale: Double = 1.0,
+    /** See [MarkerTilingOptions.declutterPx]. Zero draws every marker. */
+    private val declutterPx: Int = 0,
 ) : TileProviderInterface {
     @Volatile
     private var cacheVersion: Int = 0
@@ -158,6 +160,31 @@ class MarkerTileRenderer<ActualMarker>(
         }
 
     private val defaultIcon = DefaultMarkerIcon()
+
+    /**
+     * Largest icon half-extent any tile has needed so far, in px.
+     *
+     * Seeds the padding used to widen a tile's marker query. Starts from the
+     * default icon's own extent rather than a guess: the guess was 32dp, real
+     * icons are larger, and every tile therefore paid a second query and a
+     * second prepare.
+     *
+     * Volatile rather than synchronised: renderTile runs concurrently, and a
+     * torn read costs at most one extra pass on one tile, which is what the
+     * field exists to avoid in the first place.
+     */
+    @Volatile
+    private var observedHalfExtentPx: Double =
+        defaultIcon.toBitmapIcon().let { icon ->
+            val width = icon.size.width.toDouble() * extraIconScale
+            val height = icon.size.height.toDouble() * extraIconScale
+            val anchorX = icon.anchor.x.toDouble()
+            val anchorY = icon.anchor.y.toDouble()
+            maxOf(
+                max(kotlin.math.abs(width * anchorX), kotlin.math.abs(width * (1.0 - anchorX))),
+                max(kotlin.math.abs(height * anchorY), kotlin.math.abs(height * (1.0 - anchorY))),
+            )
+        }
 
     override fun renderTile(request: TileRequest): ByteArray? {
         val zoomInt = request.z
@@ -268,12 +295,40 @@ class MarkerTileRenderer<ActualMarker>(
             //
             // maptiler / longdo のようにタイル専用の manager を別に持つプロバイダでは
             // 全 entity が tiling = true なので、この絞り込みは何もしない。
-            return markerManager.findMarkersInBounds(extended).filter { it.tiling }
+            // Decluttering is about to keep one marker per cell of that many
+            // pixels, so markers closer together than a cell are
+            // interchangeable and the index may hand back whichever it likes.
+            // Saying so is what lets it answer from its cells instead of
+            // reading every marker: at zoom 9 that is the 5,000 cells holding
+            // Tokyo's street trees rather than all 141,221 of them, and reading
+            // a position off an entity alone costs 0.72 microseconds. The index
+            // falls back to the full query when its own cells are too coarse to
+            // honour the separation, so the pass below still has to apply the
+            // real rule.
+            val separationDegrees =
+                if (declutterPx > 0) {
+                    val span = extended.toSpan() ?: GeoPoint(0.0, 0.0)
+                    max(span.latitude, span.longitude) * declutterPx / tilePx
+                } else {
+                    0.0
+                }
+            val found =
+                if (separationDegrees > 0.0) {
+                    markerManager.findMarkersInBounds(extended, separationDegrees)
+                } else {
+                    markerManager.findMarkersInBounds(extended)
+                }
+            return found.filter { it.tiling }
         }
 
         // First query uses a conservative padding (in dp) so we capture markers slightly outside
         // the tile that can overlap its edges.
-        val assumedHalfExtentPx = ResourceProvider.dpToPxForBitmap(32.0) // assume up to 32dp icons
+        // Start from the largest extent any tile has actually needed rather than
+        // from a fixed 32dp guess. The guess was smaller than the real icons on
+        // every tile measured, so the "conservative first pass" never paid off
+        // and query+prepare simply ran twice for every tile. Widening it as
+        // soon as one tile knows better costs one extra pass in total.
+        val assumedHalfExtentPx = observedHalfExtentPx
 
         var entities = queryByHalfExtentPx(assumedHalfExtentPx)
 
@@ -297,6 +352,7 @@ class MarkerTileRenderer<ActualMarker>(
         var prepared = result0.first
         var maxHalfExtentPx = result0.second
         if (maxHalfExtentPx > assumedHalfExtentPx + 1.0) {
+            observedHalfExtentPx = maxHalfExtentPx
             entities = queryByHalfExtentPx(maxHalfExtentPx)
             val result2 = prepareMarkers(entities)
             prepared = result2.first
@@ -325,6 +381,7 @@ class MarkerTileRenderer<ActualMarker>(
                 .ceil(maxHalfExtentPx + 2.0)
                 .toInt()
                 .coerceAtLeast(2)
+        val dstRect = Rect()
         val offscreenSize = tilePxInt + paddingPx * 2
         val offscreenBitmap = acquireBitmap(offscreenSize)
         offscreenBitmap.eraseColor(Color.TRANSPARENT)
@@ -342,19 +399,130 @@ class MarkerTileRenderer<ActualMarker>(
                 )
             }
 
-            for (m in prepared) {
+            // Where each marker lands, and which icon it draws. Markers that
+            // agree on all of it sit exactly on top of one another.
+            val placements = LongArray(prepared.size)
+            val icons = arrayOfNulls<Bitmap>(prepared.size)
+            for ((index, m) in prepared.withIndex()) {
                 val centerX = (m.centerNorm.x * tilePx) + paddingPx.toDouble()
                 val centerY = (m.centerNorm.y * tilePx) + paddingPx.toDouble()
-                val anchorX = m.anchor.x.toDouble()
-                val anchorY = m.anchor.y.toDouble()
-                val dst =
-                    RectF(
-                        (centerX - m.drawW * anchorX).toFloat(),
-                        (centerY - m.drawH * anchorY).toFloat(),
-                        (centerX + m.drawW * (1.0 - anchorX)).toFloat(),
-                        (centerY + m.drawH * (1.0 - anchorY)).toFloat(),
-                    )
-                canvas.drawBitmap(m.bitmap, null, dst, bmpPaint)
+                // Whole pixels, deliberately. The destination comes out of a
+                // projection, so it lands on a fraction of a pixel almost every
+                // time, and a filtered blit to a non-integer rectangle costs
+                // about twenty times an aligned one: 20k markers measured at
+                // 4270 ms unaligned against 203 ms aligned on a Pixel 5a.
+                // Rounding moves a pin by at most half a pixel, which is not
+                // visible at icon scale, and when the icon is drawn at its
+                // natural size this also turns the blit into a straight copy.
+                val left = Math.round(centerX - m.drawW * m.anchor.x.toDouble()).toInt()
+                val top = Math.round(centerY - m.drawH * m.anchor.y.toDouble()).toInt()
+                val width = Math.round(m.drawW.toDouble()).toInt().coerceAtLeast(1)
+                val height = Math.round(m.drawH.toDouble()).toInt().coerceAtLeast(1)
+                // Packed rather than a data class: one Long per marker instead
+                // of 20k short-lived objects for the GC to sweep up.
+                placements[index] =
+                    (left.toLong() and 0xFFFF shl 48) or
+                    (top.toLong() and 0xFFFF shl 32) or
+                    (width.toLong() and 0xFFFF shl 16) or
+                    (height.toLong() and 0xFFFF)
+                icons[index] = m.bitmap
+            }
+
+            // One survivor per group of markers that cover each other. What
+            // counts as a group depends on the mode, but the pass is the same
+            // one either way — a second pass over 144k markers costs more than
+            // the drawing it saves.
+            //
+            //  - default: the exact same rectangle drawn with the exact same
+            //    icon. Those are invisible whatever happens, so dropping them
+            //    cannot change the tile. Markers sharing a rectangle but not an
+            //    icon are all kept: a different icon may be transparent where
+            //    the one above it is not.
+            //
+            //  - declutterPx > 0: everything landing in the same cell of that
+            //    size. Markers a few pixels apart overlap almost completely,
+            //    and thinning them is a judgement about the map rather than a
+            //    free optimisation — hence opt-in.
+            //
+            // The last of each group wins, which is what painter's order would
+            // have left visible.
+            val declutter = declutterPx > 0
+            val cell = declutterPx.toDouble()
+
+            fun groupKey(packed: Long): Long {
+                if (!declutter) return packed
+                val left = (packed shr 48).toShort().toInt()
+                val top = (packed shr 32).toShort().toInt()
+                val cx = kotlin.math.floor(left / cell).toLong()
+                val cy = kotlin.math.floor(top / cell).toLong()
+                return cellKeyOf(cx, cy)
+            }
+
+            // Grouped by sorting, not by hashing.
+            //
+            // A HashMap keyed by the group boxes a Long and an Int per marker,
+            // and on a tile holding the whole dataset that is hundreds of
+            // thousands of objects — enough that the tile after it failed to
+            // allocate its bitmap and the process aborted inside
+            // Canvas::create_canvas. Sorting an array of (group, index) pairs
+            // needs two primitive arrays and answers the same question: the
+            // winner of a group is the last index in its run.
+            val order = LongArray(prepared.size)
+            var pairs = 0
+            for (index in prepared.indices) {
+                if (icons[index] == null) continue
+                // [INDEX_BITS] of index under the group, so sorting orders by
+                // group first and by index within it.
+                order[pairs++] = (groupKey(placements[index]) shl INDEX_BITS) or index.toLong()
+            }
+            java.util.Arrays.sort(order, 0, pairs)
+
+            val draw = BooleanArray(prepared.size)
+            var runStart = 0
+            while (runStart < pairs) {
+                val group = order[runStart] ushr INDEX_BITS
+                var runEnd = runStart + 1
+                while (runEnd < pairs && (order[runEnd] ushr INDEX_BITS) == group) runEnd++
+
+                if (declutter) {
+                    // One survivor per cell, whatever it draws.
+                    draw[(order[runEnd - 1] and INDEX_MASK).toInt()] = true
+                } else {
+                    // Same rectangle, but a different icon may be transparent
+                    // where the one above it is not — so a group holding more
+                    // than one icon keeps all of them.
+                    val first = icons[(order[runStart] and INDEX_MASK).toInt()]
+                    var mixed = false
+                    for (at in runStart + 1 until runEnd) {
+                        if (icons[(order[at] and INDEX_MASK).toInt()] !== first) {
+                            mixed = true
+                            break
+                        }
+                    }
+                    if (mixed) {
+                        for (at in runStart until runEnd) {
+                            draw[(order[at] and INDEX_MASK).toInt()] = true
+                        }
+                    } else {
+                        draw[(order[runEnd - 1] and INDEX_MASK).toInt()] = true
+                    }
+                }
+                runStart = runEnd
+            }
+
+            for (index in prepared.indices) {
+                if (!draw[index]) continue
+                val icon = icons[index] ?: continue
+                val packed = placements[index]
+                // Sign-extended: a marker overhanging the tile's top or left
+                // edge has a negative origin, and masking it back to 16 bits
+                // unsigned would move it to the far side of the tile.
+                val left = (packed shr 48).toShort().toInt()
+                val top = (packed shr 32).toShort().toInt()
+                val width = (packed shr 16 and 0xFFFF).toInt()
+                val height = (packed and 0xFFFF).toInt()
+                dstRect.set(left, top, left + width, top + height)
+                canvas.drawBitmap(icon, null, dstRect, bmpPaint)
             }
         }
 
@@ -388,6 +556,12 @@ class MarkerTileRenderer<ActualMarker>(
         ThreadLocal.withInitial { ByteArrayOutputStream(16 * 1024) }
 
     private fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
+        // Rust first: it is 4-6x faster than Bitmap.compress on the tiles this
+        // renderer produces, and compress is what dominates a tile once the
+        // drawing is aligned. Null means the native path was unavailable or
+        // declined the bitmap, and the platform encoder takes over.
+        TilePngEncoder.encode(bitmap)?.let { return it }
+
         // ThreadLocal.get() is a Java generic method, so Kotlin sees its return type as
         // nullable even though withInitial() guarantees a value; !! is safe here.
         val outputStream = tileByteStream.get()!!
@@ -403,7 +577,7 @@ class MarkerTileRenderer<ActualMarker>(
         val safeSize = size.coerceAtLeast(1)
         synchronized(bitmapPoolLock) {
             val bucket = bitmapPool[safeSize]
-            while (bucket != null && bucket.isNotEmpty()) {
+            while (!bucket.isNullOrEmpty()) {
                 val candidate = bucket.removeFirst()
                 bitmapPoolCount = (bitmapPoolCount - 1).coerceAtLeast(0)
                 if (!candidate.isRecycled && candidate.width == safeSize && candidate.height == safeSize) {
@@ -491,6 +665,28 @@ class MarkerTileRenderer<ActualMarker>(
     }
 
     private companion object {
+        /**
+         * How the declutter pass packs a cell and a marker index into one Long:
+         * [INDEX_BITS] of index under 40 bits of cell key, which is exactly 64.
+         *
+         * The previous key was `(cx shl 32) xor cy`, and shifting that left by
+         * the index width threw away all but the low 8 bits of `cx`. At the
+         * default 14 px cell a tile spans about 100 columns and nothing showed;
+         * at a 1 px cell on a 1344 px tile, columns 0 and 256 shared a key and
+         * markers 256 px apart were decluttered into one another. Twenty bits a
+         * side leaves room for every cell a tile can hold.
+         */
+        private const val INDEX_BITS = 24
+        private const val INDEX_MASK = (1L shl INDEX_BITS) - 1
+        private const val CELL_BITS = 20
+        private const val CELL_ORIGIN = 1L shl (CELL_BITS - 1)
+
+        /** Offset so a marker above or left of the tile still keys positive. */
+        private fun cellKeyOf(
+            cx: Long,
+            cy: Long,
+        ): Long = ((cx + CELL_ORIGIN) shl CELL_BITS) or (cy + CELL_ORIGIN)
+
         private const val MAX_MERCATOR_LAT = 85.05112878
     }
 }

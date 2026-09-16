@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The tile server binds a loopback socket, which the test process may not do
+    without this. The library's own manifest does not declare it, because an
+    app that uses the SDK declares what it needs itself.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>

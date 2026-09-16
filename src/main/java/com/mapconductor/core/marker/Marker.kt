@@ -1,18 +1,15 @@
 package com.mapconductor.core.marker
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.mapconductor.core.ComponentState
+import com.mapconductor.core.StateMutationSignal
 import com.mapconductor.core.features.GeoPointInterface
 import java.io.ByteArrayOutputStream
 import java.io.Serializable
 import android.graphics.Bitmap
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
 
 // ------- Core Types ----------
 class MarkerState(
@@ -50,18 +47,24 @@ class MarkerState(
             31 * result + hashCode
         }
 
-    var icon by mutableStateOf<MarkerIconInterface?>(icon)
-    var clickable by mutableStateOf(clickable)
-    var draggable by mutableStateOf(draggable)
-    var onClick by mutableStateOf(onClick)
-    var onDragStart by mutableStateOf(onDragStart)
-    var onDrag by mutableStateOf(onDrag)
-    var onDragEnd by mutableStateOf(onDragEnd)
-    var onAnimateStart by mutableStateOf(onAnimateStart)
-    var onAnimateEnd by mutableStateOf(onAnimateEnd)
-    var zIndex by mutableStateOf<Int?>(zIndex)
+    /**
+     * Writes to the fields below are announced here rather than discovered by
+     * reading them all back. See [StateMutationSignal].
+     */
+    override val mutations = StateMutationSignal()
 
-    private var internalAnimation by mutableStateOf<MarkerAnimation?>(animation)
+    var icon by mutations.notifying<MarkerIconInterface?>(icon)
+    var clickable by mutations.notifying(clickable)
+    var draggable by mutations.notifying(draggable)
+    var onClick by mutations.notifying(onClick)
+    var onDragStart by mutations.notifying(onDragStart)
+    var onDrag by mutations.notifying(onDrag)
+    var onDragEnd by mutations.notifying(onDragEnd)
+    var onAnimateStart by mutations.notifying(onAnimateStart)
+    var onAnimateEnd by mutations.notifying(onAnimateEnd)
+    var zIndex by mutations.notifying<Int?>(zIndex)
+
+    private var internalAnimation by mutations.notifying<MarkerAnimation?>(animation)
 
     fun animate(animation: MarkerAnimation?) {
         internalAnimation = animation
@@ -69,7 +72,7 @@ class MarkerState(
 
     fun getAnimation(): MarkerAnimation? = internalAnimation
 
-    private val currentPosition = mutableStateOf(position)
+    private val currentPosition = mutations.notifying(position)
     var position: GeoPointInterface
         get() {
             return currentPosition.value
@@ -148,8 +151,6 @@ class MarkerState(
             internalAnimation?.hashCode() ?: 1,
             zIndex.hashCode(),
         )
-
-    fun asFlow(): Flow<MarkerFingerPrint> = snapshotFlow { fingerPrint() }.distinctUntilChanged()
 }
 
 data class MarkerFingerPrint(

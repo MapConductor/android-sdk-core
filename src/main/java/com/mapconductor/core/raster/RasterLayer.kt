@@ -1,12 +1,9 @@
 package com.mapconductor.core.raster
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import com.mapconductor.core.ComponentState
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
+import com.mapconductor.core.StateMutationSignal
 
 class RasterLayerState(
     source: RasterLayerSource,
@@ -31,13 +28,19 @@ class RasterLayerState(
             )
         ).toString()
 
-    var source by mutableStateOf(source)
-    var opacity by mutableStateOf(opacity)
-    var visible by mutableStateOf(visible)
-    var zIndex by mutableStateOf(zIndex)
-    var userAgent by mutableStateOf(userAgent)
-    var debug by mutableStateOf(debug)
-    var extraHeaders by mutableStateOf(extraHeaders)
+    /**
+     * Writes to the fields below are announced here rather than discovered by
+     * reading them all back. See [StateMutationSignal].
+     */
+    override val mutations = StateMutationSignal()
+
+    var source by mutations.notifying(source)
+    var opacity by mutations.notifying(opacity)
+    var visible by mutations.notifying(visible)
+    var zIndex by mutations.notifying(zIndex)
+    var userAgent by mutations.notifying(userAgent)
+    var debug by mutations.notifying(debug)
+    var extraHeaders by mutations.notifying(extraHeaders)
 
     private fun rasterLayerId(hashCodes: List<Int>): Int =
         hashCodes.reduce { result, hashCode ->
@@ -92,10 +95,6 @@ class RasterLayerState(
             debug = debug.hashCode(),
             extra = extraHeaders?.hashCode() ?: 0,
         )
-
-    fun asFlow(): Flow<RasterLayerFingerPrint> =
-        snapshotFlow { fingerPrint() }
-            .distinctUntilChanged()
 
     companion object {
         /**

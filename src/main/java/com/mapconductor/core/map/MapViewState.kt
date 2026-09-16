@@ -99,6 +99,7 @@ interface MapViewStateInterface<ActualMapDesignType> {
 abstract class MapViewState<ActualMapDesignType>(
     initialCameraPosition: MapCameraPosition = MapCameraPosition.Default,
     private val optimisticCameraUpdate: Boolean = false,
+    paddings: MapPaddings = MapPaddings.Zeros,
 ) : MapViewStateInterface<ActualMapDesignType> {
     /** @see MapViewStateInterface.serviceRegistry */
     override val serviceRegistry: MutableMapServiceRegistry = MutableMapServiceRegistry()

@@ -24,6 +24,21 @@ data class MarkerTilingOptions(
      * `effectiveScale = (markerState.icon?.scale ?: 1.0) * (iconScaleCallback?.invoke(markerState, zoom) ?: 1.0)`
      */
     val iconScaleCallback: ((MarkerState, Int) -> Double)? = null,
+    /**
+     * Collapse markers that land within this many pixels of one already drawn.
+     *
+     * Off by default, because it changes what the map shows. The renderer
+     * always drops markers hidden *exactly* behind another — same rectangle,
+     * same icon — since that is invisible either way. This is the other kind:
+     * markers a few pixels apart overlap almost completely, and thinning them
+     * is a judgement about the map rather than a free optimisation.
+     *
+     * A sensible value is the icon's own size, so what survives never overlaps
+     * by more than half. On a dense dataset the saving is large: Tokyo's
+     * 144,183 street trees draw in a fraction of the time, because a city
+     * block's worth of trees becomes the handful you could actually distinguish.
+     */
+    val declutterPx: Int = 0,
 ) {
     /**
      * ビューポート内のマーカーが少ないとき、タイルをやめてネイティブマーカーで描くための設定。

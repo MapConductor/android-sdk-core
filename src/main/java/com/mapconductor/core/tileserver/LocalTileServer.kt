@@ -18,6 +18,9 @@ class LocalTileServer private constructor(
     forceNoStoreCache: Boolean,
 ) {
     private val providers = ConcurrentHashMap<String, TileProviderInterface>()
+
+    /** Requests dropped because the map had stopped waiting for them. */
+    private val abandoned = AtomicLong()
     private val loggedRoutes = ConcurrentHashMap.newKeySet<String>()
     private val running = AtomicBoolean(false)
     private val acceptThread = Thread { acceptLoop() }
@@ -118,6 +121,13 @@ class LocalTileServer private constructor(
                 continue
             }
             try {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(
+                        TAG,
+                        "accepted a connection; workers busy=${clientExecutor.activeCount} " +
+                            "queued=${clientExecutor.queue.size}",
+                    )
+                }
                 clientExecutor.execute { handleClient(socket) }
             } catch (_: RejectedExecutionException) {
                 // Saturated: shed the connection; the map SDK will retry the tile.
@@ -138,8 +148,11 @@ class LocalTileServer private constructor(
     private fun handleClient(socket: Socket) {
         socket.use { client ->
             try {
-                client.soTimeout = 5000
-                val reader = BufferedReader(InputStreamReader(client.getInputStream()))
+                client.soTimeout = SOCKET_TIMEOUT_MS
+                // Unbuffered on purpose: the liveness check reads a byte from
+                // here, and a buffer between the two would hide it.
+                val peek = java.io.PushbackInputStream(client.getInputStream(), 1)
+                val reader = BufferedReader(InputStreamReader(peek))
                 var handled = 0
                 while (handled < MAX_KEEP_ALIVE_REQUESTS) {
                     val request = readRequest(reader) ?: break
@@ -166,11 +179,37 @@ class LocalTileServer private constructor(
                         break
                     }
 
-                    val tileResponse = resolveTile(path)
+                    // The map may have moved on since this request was
+                    // queued -- a pinch or a fling abandons whole screens of
+                    // tiles -- and drawing one it no longer wants puts it in
+                    // front of the tiles it does. Rendering is where the time
+                    // goes, so the cheapest thing that helps is not starting.
+                    if (clientGone(client, peek)) {
+                        val total = abandoned.incrementAndGet()
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "Gone before we started: $path (total=$total)")
+                        }
+                        break
+                    }
+
+                    val tileResponse = resolveTile(path) { clientGone(client, peek) }
                     val status: String
                     val contentType: String
                     val body: ByteArray
                     val headers: Map<String, String>
+                    // A tile that was abandoned mid-render looks exactly like
+                    // a tile that does not exist, and the difference matters:
+                    // a map told "not found" believes it and leaves the area
+                    // showing whatever older zoom it still has. Nothing is
+                    // answered at all -- the connection simply ends, which the
+                    // map reads as a failure it may retry.
+                    if (tileResponse == null && clientGone(client, peek)) {
+                        val total = abandoned.incrementAndGet()
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "Abandoned mid-render, no answer sent: $path (total=$total)")
+                        }
+                        break
+                    }
                     if (tileResponse == null) {
                         status = "404 Not Found"
                         contentType = "text/plain"
@@ -302,7 +341,50 @@ class LocalTileServer private constructor(
         }
     }
 
-    private fun resolveTile(path: String): TileResponse? {
+    /**
+     * Whether the other end has gone away.
+     *
+     * There is no portable way to ask a socket whether the peer is still
+     * there, so this asks the only question a socket does answer: is there
+     * anything to read. A closed connection reads end-of-stream at once; a
+     * live idle one times out, which is the answer we want.
+     *
+     * The first version sent a byte of urgent data instead, which fails on a
+     * dead connection and is discarded by any client that does not ask for it.
+     * That is true of every HTTP client, and it is still a byte pushed into a
+     * live connection at a moment of its choosing -- a poor thing to do to a
+     * stream we also have to parse. Reading cannot corrupt anything, and the
+     * byte is pushed back for the parser when there is one.
+     */
+    private fun clientGone(
+        client: Socket,
+        peek: java.io.PushbackInputStream,
+    ): Boolean {
+        if (client.isClosed || !client.isConnected) return true
+        val timeout = runCatching { client.soTimeout }.getOrDefault(SOCKET_TIMEOUT_MS)
+        return try {
+            client.soTimeout = 1
+            val byte = peek.read()
+            if (byte == -1) {
+                true
+            } else {
+                // A pipelined request, which is the parser's business.
+                peek.unread(byte)
+                false
+            }
+        } catch (_: java.net.SocketTimeoutException) {
+            false
+        } catch (_: java.io.IOException) {
+            true
+        } finally {
+            runCatching { client.soTimeout = timeout }
+        }
+    }
+
+    private fun resolveTile(
+        path: String,
+        isCancelled: () -> Boolean,
+    ): TileResponse? {
         val key = parseTileKey(path) ?: return null
         val routeId = key.routeId
         val z = key.z
@@ -317,6 +399,7 @@ class LocalTileServer private constructor(
         val bytes =
             provider.renderTile(
                 TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
+                isCancelled,
             ) ?: return null
         val cacheControl =
             if (forceNoStoreCache) {
@@ -418,6 +501,7 @@ class LocalTileServer private constructor(
     companion object {
         private const val TAG = "LocalTileServer"
         private const val MAX_KEEP_ALIVE_REQUESTS = 200
+        private const val SOCKET_TIMEOUT_MS = 5000
         private const val MAX_HEADER_COUNT = 64
         private const val MAX_LINE_LENGTH = 8192
 

@@ -6,7 +6,6 @@ import com.mapconductor.core.geocell.HexCellRegistry
 import com.mapconductor.core.geocell.HexGeocell
 import com.mapconductor.core.geocell.HexGeocellInterface
 import com.mapconductor.core.projection.Earth
-import com.mapconductor.core.spherical.Spherical
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -30,7 +29,20 @@ open class MarkerManager<ActualMarker>(
     // Primary storage - single source of truth
     private val entities = ConcurrentHashMap<String, MarkerEntityInterface<ActualMarker>>()
 
-    // Lazy-initialized spatial index only when needed
+    /**
+     * The spatial index the per-tile paths use.
+     *
+     * A uniform grid rather than the hex-cell registry below: that one is built
+     * at a fixed zoom of 20, which puts a cell at about 12 cm, so every marker
+     * lands in its own and it groups nothing. See [MarkerGridIndex].
+     */
+    private val gridIndex = MarkerGridIndex<ActualMarker> { entities.values }
+
+    /**
+     * Kept only for [findByIdPrefix], which hands out HexCells and has no
+     * caller inside the SDK. Built the first time that is asked for, so nothing
+     * pays for it otherwise.
+     */
     @Volatile
     private var cellRegistry: HexCellRegistry<ActualMarker>? = null
 
@@ -67,7 +79,8 @@ open class MarkerManager<ActualMarker>(
         if (!usable("removeEntity")) return null
         val removed = entities.remove(id)
         if (removed != null) {
-            // Only update spatial index if it exists
+            gridIndex.invalidate()
+            // Only update the hex registry if something asked for one.
             cellRegistry?.removePoint(removed)
         }
         return removed
@@ -89,24 +102,11 @@ open class MarkerManager<ActualMarker>(
     open fun findNearest(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
         if (!usable("findNearest")) return null
 
-        if (entities.size > minMarkerCount) { // Use spatial index for larger datasets
-            val registry = ensureCellRegistry() // must be called outside read lock to avoid write-lock upgrade deadlock
-            semaphore.read {
-                val nearestCell = registry.findNearest(position)
-                nearestCell?.let { cell ->
-                    // Find the nearest entity within the nearest cell
-                    return registry
-                        .getEntryIDsByHexCell(cell)
-                        ?.mapNotNull { id -> entities[id] }
-                        ?.minByOrNull { entity ->
-                            val deltaLatitude = entity.state.position.latitude - position.latitude
-                            val deltaLongitude = entity.state.position.longitude - position.longitude
-                            deltaLatitude * deltaLatitude + deltaLongitude * deltaLongitude
-                        }
-                }
-            }
+        if (entities.size > minMarkerCount) {
+            semaphore.read { return gridIndex.nearest(position) }
         }
-        // Brute force search for small datasets
+        // Below the threshold the grid cannot narrow anything down worth the
+        // rings, so scan.
         return bruteForceNearest(position)
     }
 
@@ -122,16 +122,17 @@ open class MarkerManager<ActualMarker>(
 
     open fun findByIdPrefix(prefix: String): List<HexCell> {
         if (!usable("findByIdPrefix")) return emptyList()
-        semaphore.read {
-            return cellRegistry?.findByIdPrefix(prefix) ?: emptyList()
-        }
+        // The registry is built here and nowhere else: this is the one caller
+        // that needs hex cells rather than markers.
+        return ensureCellRegistry().findByIdPrefix(prefix)
     }
 
     open fun registerEntity(entity: MarkerEntityInterface<ActualMarker>) {
         if (!usable("registerEntity")) return
         semaphore.write {
             entities[entity.state.id] = entity
-            // Only update spatial index if it exists
+            gridIndex.invalidate()
+            // Only update the hex registry if something asked for one.
             cellRegistry?.setPoint(entity)
         }
     }
@@ -157,7 +158,9 @@ open class MarkerManager<ActualMarker>(
         if (!usable("updateEntity")) return
         semaphore.write {
             entities[entity.state.id] = entity
-            // Only update spatial index if it exists
+            // A marker that moved changes which cell it belongs to.
+            gridIndex.invalidate()
+            // Only update the hex registry if something asked for one.
             cellRegistry?.setPoint(entity)
         }
     }
@@ -170,14 +173,39 @@ open class MarkerManager<ActualMarker>(
     }
 
     /**
+     * Markers in [bounds], where the caller is going to drop anything closer
+     * together than [minSeparationDegrees] regardless.
+     *
+     * The index can then answer from its cells rather than from its markers,
+     * which is the difference between visiting 141,221 street trees and
+     * visiting the 5,000 cells that hold them. It falls back to the full query
+     * whenever it cannot honour the separation, so the caller still has to
+     * apply its own rule to the result — this only promises not to return
+     * markers it was told are interchangeable.
+     */
+    fun findMarkersInBounds(
+        bounds: com.mapconductor.core.features.GeoRectBounds,
+        minSeparationDegrees: Double,
+    ): List<MarkerEntityInterface<ActualMarker>> {
+        if (!usable("findMarkersInBounds")) return emptyList()
+        if (bounds.isEmpty) return emptyList()
+        if (entities.size > minMarkerCount) {
+            semaphore.read {
+                gridIndex.inBoundsThinned(bounds, minSeparationDegrees)?.let { return it }
+            }
+        }
+        return findMarkersInBounds(bounds)
+    }
+
+    /**
      * Get memory usage statistics for debugging and optimization
      */
     fun getMemoryStats(): MarkerManagerStats {
         usable("getMemoryStats")
         return MarkerManagerStats(
             entityCount = entities.size,
-            hasSpatialIndex = cellRegistry != null,
-            spatialIndexInitialized = cellRegistry != null,
+            hasSpatialIndex = true,
+            spatialIndexInitialized = gridIndex.isBuilt,
             estimatedMemoryKB = estimateMemoryUsage() / 1024,
         )
     }
@@ -186,13 +214,18 @@ open class MarkerManager<ActualMarker>(
         // Rough estimation in bytes
         val entityMapOverhead = entities.size * 64L // Map entry overhead + string key
         val entityObjects = entities.size * 200L // Rough entity size
-        val spatialIndexSize = if (cellRegistry != null) entities.size * 100L else 0L // Cell registry overhead
+        val gridSize = gridIndex.estimatedBytes()
+        // The hex registry is usually absent; when findByIdPrefix has built it,
+        // it costs a cell object and a string id per marker.
+        val hexSize = if (cellRegistry != null) entities.size * 100L else 0L
+        val spatialIndexSize = gridSize + hexSize
         return entityMapOverhead + entityObjects + spatialIndexSize
     }
 
     open fun clear() {
         if (!usable("clear")) return
         entities.clear()
+        gridIndex.invalidate()
         cellRegistry?.clear()
     }
 
@@ -203,26 +236,9 @@ open class MarkerManager<ActualMarker>(
         if (bounds.isEmpty) return emptyList()
 
         // For spatial queries, ensure the cell registry is initialized.
-        // `bounds.isEmpty` above already rules out a null corner, so the !! was
-        // safe — but it read as if it might not be, and `center` is a computed
-        // property that rebuilt the point on every access. Binding both up front
-        // states the precondition once and matches ios-sdk's `if count > n,
-        // let center = ..., let northEast = ...` shape.
-        val center = bounds.center
-        val northEast = bounds.northEast
-        // Only use spatial index for larger datasets.
-        if (entities.size > minMarkerCount && center != null && northEast != null) {
-            val registry = ensureCellRegistry()
-            semaphore.read {
-                val distance = Spherical.computeDistanceBetween(center, northEast)
-                val hexCells = registry.findWithinRadiusWithDistance(center, distance)
-                val entryIDs: List<String> =
-                    hexCells
-                        .map { registry.getEntryIDsByHexCell(it.cell) }
-                        .mapNotNull { it }
-                        .flatMap { it.toList() }
-                return entryIDs.mapNotNull { getEntity(it) }
-            }
+        // Only use the spatial index for larger datasets.
+        if (entities.size > minMarkerCount) {
+            semaphore.read { return gridIndex.inBounds(bounds) }
         }
 
         // Brute force filtering - simple and efficient for small to medium datasets

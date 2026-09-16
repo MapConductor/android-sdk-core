@@ -1,16 +1,13 @@
 package com.mapconductor.core.groundimage
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import com.mapconductor.core.ComponentState
+import com.mapconductor.core.StateMutationSignal
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
 import java.io.Serializable
 import android.graphics.drawable.Drawable
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
 
 class GroundImageState(
     bounds: GeoRectBounds,
@@ -24,11 +21,17 @@ class GroundImageState(
 ) : ComponentState {
     override val id = (id ?: generateId(bounds, image, opacity, tileSize, clickable, extra)).toString()
 
+    /**
+     * Writes to the fields below are announced here rather than discovered by
+     * reading them all back. See [StateMutationSignal].
+     */
+    override val mutations = StateMutationSignal()
+
 //    var bounds by StateFlowDelegate(bounds)
-    var bounds by mutableStateOf(bounds)
-    var image by mutableStateOf(image)
-    var opacity by mutableStateOf(opacity)
-    var tileSize by mutableStateOf(tileSize)
+    var bounds by mutations.notifying(bounds)
+    var image by mutations.notifying(image)
+    var opacity by mutations.notifying(opacity)
+    var tileSize by mutations.notifying(tileSize)
 
     /**
      * タップを受け取るか。`false` ならこのグラウンドイメージはタップに対して透過し、
@@ -38,9 +41,9 @@ class GroundImageState(
      * 行うため、どのプロバイダでも同じ挙動になる。描画には影響しないので
      * [fingerPrint] には含めない（含めると値を変えるたびにタイルが作り直される）。
      */
-    var clickable by mutableStateOf(clickable)
-    var extra by mutableStateOf(extra)
-    var onClick by mutableStateOf(onClick)
+    var clickable by mutations.notifying(clickable)
+    var extra by mutations.notifying(extra)
+    var onClick by mutations.notifying(onClick)
 
     fun fingerPrint(): GroundImageFingerPrint =
         GroundImageFingerPrint(
@@ -51,11 +54,6 @@ class GroundImageState(
             tileSize = tileSize.hashCode(),
             extra = extra?.hashCode() ?: 0,
         )
-
-    fun asFlow(): Flow<GroundImageFingerPrint> =
-        snapshotFlow {
-            fingerPrint()
-        }.distinctUntilChanged()
 
     private fun generateId(
         bounds: GeoRectBounds,
