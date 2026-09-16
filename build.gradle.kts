@@ -75,6 +75,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.common.java8)
 
     testImplementation(libs.junit)
+    // OverlayCollectorMutationTest drives the collector's debounce on a virtual
+    // clock; without it the test source set does not compile.
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
