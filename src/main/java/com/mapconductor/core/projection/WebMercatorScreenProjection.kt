@@ -105,9 +105,9 @@ object WebMercatorScreenProjection {
         wx -= Math.floor(wx)
 
         val projected =
-            Offset(
-                ((wx - 0.5) * 2.0 * WEB_MERCATOR_MAX_EXTENT_METERS).toFloat(),
-                ((0.5 - wy) * 2.0 * WEB_MERCATOR_MAX_EXTENT_METERS).toFloat(),
+            ProjectedPoint(
+                (wx - 0.5) * 2.0 * WEB_MERCATOR_MAX_EXTENT_METERS,
+                (0.5 - wy) * 2.0 * WEB_MERCATOR_MAX_EXTENT_METERS,
             )
         val point = WebMercator.unproject(projected)
         if (!point.latitude.isFinite() || !point.longitude.isFinite()) return null

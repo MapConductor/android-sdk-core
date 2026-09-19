@@ -1,9 +1,9 @@
 ﻿package com.mapconductor.core.geocell
 
-import androidx.compose.ui.geometry.Offset
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.marker.MarkerState
+import com.mapconductor.core.projection.ProjectedPoint
 import com.mapconductor.core.projection.ProjectionInterface
 import com.mapconductor.core.projection.WebMercator
 import kotlin.math.PI
@@ -47,7 +47,7 @@ enum class Direction6(
 data class HexCell(
     val coord: HexCoord,
     val centerLatLng: GeoPointInterface,
-    val centerXY: Offset,
+    val centerXY: ProjectedPoint,
     val id: String,
 ) {
     fun idPrefix(levels: Int): String = id.split("_").take(levels + 1).joinToString("_")
@@ -139,7 +139,7 @@ class HexGeocell(
             val angle = Math.toRadians(60.0 * i - 30.0) // Start at -30° for flat-top
             val x = center.x + circumRadius * cos(angle)
             val y = center.y + circumRadius * sin(angle)
-            projection.unproject(Offset(x.toFloat(), y.toFloat()))
+            projection.unproject(ProjectedPoint(x, y))
         }
     }
 
@@ -233,20 +233,20 @@ class HexGeocell(
     private fun hexCenterXY(
         coord: HexCoord,
         hexSideLength: Double,
-    ): Offset {
+    ): ProjectedPoint {
         // For flat-top hexagons with side length s:
         // - Distance between adjacent hex centers in q direction = s * 3/2
         // - Distance between adjacent hex centers in r direction = s * √3
         val x = hexSideLength * (3.0 / 2.0 * coord.q)
         val y = hexSideLength * (sqrt(3.0) * (coord.r + coord.q / 2.0))
-        return Offset(x.toFloat(), y.toFloat())
+        return ProjectedPoint(x, y)
     }
 
     /**
      * Convert pixel coordinates to hex coordinate
      */
     private fun pixelToHex(
-        offset: Offset,
+        offset: ProjectedPoint,
         hexSideLength: Double,
     ): HexCoord {
         val q = (2.0 / 3.0 * offset.x / hexSideLength)

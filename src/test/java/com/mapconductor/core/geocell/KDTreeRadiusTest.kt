@@ -1,6 +1,6 @@
 package com.mapconductor.core.geocell
 
-import androidx.compose.ui.geometry.Offset
+import com.mapconductor.core.projection.ProjectedPoint
 import com.mapconductor.core.features.GeoPoint
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -25,7 +25,7 @@ class KDTreeRadiusTest {
             HexCell(
                 coord = HexCoord(index, index),
                 centerLatLng = GeoPoint(0.0, 0.0),
-                centerXY = Offset(next().toFloat(), next().toFloat()),
+                centerXY = ProjectedPoint(next(), next()),
                 id = "cell-$index",
             )
         }
@@ -34,7 +34,7 @@ class KDTreeRadiusTest {
     @Test
     fun unorderedMatchesSorted() {
         val tree = KDTree(cells(2_000))
-        val query = Offset(8_000f, 8_000f)
+        val query = ProjectedPoint(8_000.0, 8_000.0)
 
         // A spread of radii: one that excludes everything, several partial, and
         // one that takes the lot. A traversal bug that only shows at the

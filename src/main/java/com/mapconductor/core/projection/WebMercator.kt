@@ -1,6 +1,5 @@
 package com.mapconductor.core.projection
 
-import androidx.compose.ui.geometry.Offset
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
 import kotlin.math.PI
@@ -16,22 +15,36 @@ import kotlin.math.tan
  */
 const val WEB_MERCATOR_MAX_EXTENT_METERS: Double = PI * Earth.RADIUS_METERS
 
+/**
+ * 投影が定義される緯度の端。
+ *
+ * Web Mercator は極で発散するので、正方形のワールドに収まる範囲で切る。
+ * 世界中のタイルサーバが使っている値で、ここが `MAX_EXTENT` と一致する緯度。
+ */
+const val WEB_MERCATOR_MAX_LATITUDE: Double = 85.05112878
+
 object WebMercator : ProjectionInterface {
-    override fun project(position: GeoPointInterface): Offset {
-        val x = position.longitude * WEB_MERCATOR_MAX_EXTENT_METERS / 180
-        val y = ln(tan((90 + position.latitude) * Math.PI / 360)) * WEB_MERCATOR_MAX_EXTENT_METERS / Math.PI
-        return Offset(x.toFloat(), y.toFloat())
+    /**
+     * 緯度経度 → EPSG:3857 メートル。
+     *
+     * 入力は投影前に wrap とクランプを通す。通さないと `latitude = 90` で
+     * `tan()` が発散し、呼び出し側に無限大が渡る。実測では web / android の
+     * 旧実装が `+90` で 238107693（有限のゴミ）を、`-90` で `-inf` を返して
+     * いた -- 同じ式が符号で違う壊れ方をしていた。ios-sdk は最初からクランプ
+     * していたので、そちらに合わせてある。
+     */
+    override fun project(position: GeoPointInterface): ProjectedPoint {
+        val wrapped = position.wrap()
+        val latitude = wrapped.latitude.coerceIn(-WEB_MERCATOR_MAX_LATITUDE, WEB_MERCATOR_MAX_LATITUDE)
+        val x = wrapped.longitude * WEB_MERCATOR_MAX_EXTENT_METERS / 180
+        val y = ln(tan((90 + latitude) * PI / 360)) * WEB_MERCATOR_MAX_EXTENT_METERS / PI
+        return ProjectedPoint(x, y)
     }
 
-    override fun unproject(point: Offset): GeoPointInterface {
+    /** EPSG:3857 メートル → 緯度経度。結果は wrap して返す。 */
+    override fun unproject(point: ProjectedPoint): GeoPointInterface {
         val longitude = point.x * 180 / WEB_MERCATOR_MAX_EXTENT_METERS
-        val latitude = 180 / Math.PI * (2 * atan(exp(point.y * Math.PI / WEB_MERCATOR_MAX_EXTENT_METERS)) - Math.PI / 2)
-        return object : GeoPointInterface {
-            override val latitude: Double = latitude
-            override val longitude: Double = longitude
-            override val altitude: Double? = null
-
-            override fun wrap(): GeoPointInterface = GeoPoint(latitude, longitude, altitude ?: 0.0).wrap()
-        }
+        val latitude = 180 / PI * (2 * atan(exp(point.y * PI / WEB_MERCATOR_MAX_EXTENT_METERS)) - PI / 2)
+        return GeoPoint(latitude, longitude, 0.0).wrap()
     }
 }

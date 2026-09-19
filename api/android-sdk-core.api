@@ -426,20 +426,20 @@ public final class com.mapconductor.core.geocell.Direction6 extends java.lang.En
   public static kotlin.enums.EnumEntries<com.mapconductor.core.geocell.Direction6> getEntries();
 }
 public final class com.mapconductor.core.geocell.HexCell {
+  public com.mapconductor.core.geocell.HexCell(com.mapconductor.core.geocell.HexCoord, com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.projection.ProjectedPoint, java.lang.String);
   public final com.mapconductor.core.geocell.HexCoord getCoord();
   public final com.mapconductor.core.features.GeoPointInterface getCenterLatLng();
-  public final long getCenterXY-F1C5BW0();
+  public final com.mapconductor.core.projection.ProjectedPoint getCenterXY();
   public final java.lang.String getId();
   public final java.lang.String idPrefix(int);
   public final com.mapconductor.core.geocell.HexCoord component1();
   public final com.mapconductor.core.features.GeoPointInterface component2();
-  public final long component3-F1C5BW0();
+  public final com.mapconductor.core.projection.ProjectedPoint component3();
   public final java.lang.String component4();
-  public final com.mapconductor.core.geocell.HexCell copy-Rg1IO4c(com.mapconductor.core.geocell.HexCoord, com.mapconductor.core.features.GeoPointInterface, long, java.lang.String);
+  public final com.mapconductor.core.geocell.HexCell copy(com.mapconductor.core.geocell.HexCoord, com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.projection.ProjectedPoint, java.lang.String);
   public java.lang.String toString();
   public int hashCode();
   public boolean equals(java.lang.Object);
-  public com.mapconductor.core.geocell.HexCell(com.mapconductor.core.geocell.HexCoord, com.mapconductor.core.features.GeoPointInterface, long, java.lang.String, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 public final class com.mapconductor.core.geocell.HexCellRegistry<ActualMarker> {
   public com.mapconductor.core.geocell.HexCellRegistry(com.mapconductor.core.geocell.HexGeocellInterface, double);
@@ -532,11 +532,11 @@ public final class com.mapconductor.core.geocell.IdentifiedHexCell {
 }
 public final class com.mapconductor.core.geocell.KDTree {
   public com.mapconductor.core.geocell.KDTree(java.util.List<com.mapconductor.core.geocell.HexCell>);
-  public final com.mapconductor.core.geocell.HexCell nearest-k-4lQ0M(long);
-  public final com.mapconductor.core.geocell.HexCellWithDistance nearestWithDistance-k-4lQ0M(long);
-  public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> nearestKWithDistance-3MmeM6k(long, int);
-  public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> withinRadiusWithDistance-3MmeM6k(long, double);
-  public final java.util.List<com.mapconductor.core.geocell.HexCell> withinRadius-3MmeM6k(long, double);
+  public final com.mapconductor.core.geocell.HexCell nearest(com.mapconductor.core.projection.ProjectedPoint);
+  public final com.mapconductor.core.geocell.HexCellWithDistance nearestWithDistance(com.mapconductor.core.projection.ProjectedPoint);
+  public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> nearestKWithDistance(com.mapconductor.core.projection.ProjectedPoint, int);
+  public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> withinRadiusWithDistance(com.mapconductor.core.projection.ProjectedPoint, double);
+  public final java.util.List<com.mapconductor.core.geocell.HexCell> withinRadius(com.mapconductor.core.projection.ProjectedPoint, double);
   public final com.mapconductor.core.geocell.KDTreeStats getStats();
 }
 final class com.mapconductor.core.geocell.KDTree$Node {
@@ -2265,22 +2265,34 @@ public final class com.mapconductor.core.projection.Earth {
   public static final double SEMI_MINOR_AXIS_METERS;
   public static final double ECCENTRICITY_SQUARED;
 }
+public final class com.mapconductor.core.projection.ProjectedPoint {
+  public com.mapconductor.core.projection.ProjectedPoint(double, double);
+  public final double getX();
+  public final double getY();
+  public final double component1();
+  public final double component2();
+  public final com.mapconductor.core.projection.ProjectedPoint copy(double, double);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
 public interface com.mapconductor.core.projection.ProjectionInterface {
-  public abstract long project-tuRUvjQ(com.mapconductor.core.features.GeoPointInterface);
-  public abstract com.mapconductor.core.features.GeoPointInterface unproject-k-4lQ0M(long);
+  public abstract com.mapconductor.core.projection.ProjectedPoint project(com.mapconductor.core.features.GeoPointInterface);
+  public abstract com.mapconductor.core.features.GeoPointInterface unproject(com.mapconductor.core.projection.ProjectedPoint);
 }
 public final class com.mapconductor.core.projection.WGS84 implements com.mapconductor.core.projection.ProjectionInterface {
   public static final com.mapconductor.core.projection.WGS84 INSTANCE;
-  public long project-tuRUvjQ(com.mapconductor.core.features.GeoPointInterface);
-  public com.mapconductor.core.features.GeoPointInterface unproject-k-4lQ0M(long);
+  public com.mapconductor.core.projection.ProjectedPoint project(com.mapconductor.core.features.GeoPointInterface);
+  public com.mapconductor.core.features.GeoPointInterface unproject(com.mapconductor.core.projection.ProjectedPoint);
 }
 public final class com.mapconductor.core.projection.WebMercator implements com.mapconductor.core.projection.ProjectionInterface {
   public static final com.mapconductor.core.projection.WebMercator INSTANCE;
-  public long project-tuRUvjQ(com.mapconductor.core.features.GeoPointInterface);
-  public com.mapconductor.core.features.GeoPointInterface unproject-k-4lQ0M(long);
+  public com.mapconductor.core.projection.ProjectedPoint project(com.mapconductor.core.features.GeoPointInterface);
+  public com.mapconductor.core.features.GeoPointInterface unproject(com.mapconductor.core.projection.ProjectedPoint);
 }
 public final class com.mapconductor.core.projection.WebMercatorKt {
   public static final double WEB_MERCATOR_MAX_EXTENT_METERS;
+  public static final double WEB_MERCATOR_MAX_LATITUDE;
 }
 public final class com.mapconductor.core.projection.WebMercatorScreenProjection {
   public static final com.mapconductor.core.projection.WebMercatorScreenProjection INSTANCE;

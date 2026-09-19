@@ -1,6 +1,6 @@
 package com.mapconductor.core.geocell
 
-import androidx.compose.ui.geometry.Offset
+import com.mapconductor.core.projection.ProjectedPoint
 import java.util.PriorityQueue
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -48,14 +48,14 @@ class KDTree(
     /**
      * Find the nearest hex cell to a query point
      */
-    fun nearest(query: Offset): HexCell? = root?.let { nearest(it, query, null, Double.MAX_VALUE) }
+    fun nearest(query: ProjectedPoint): HexCell? = root?.let { nearest(it, query, null, Double.MAX_VALUE) }
 
     /**
      * Recursive nearest neighbor search
      */
     private fun nearest(
         node: Node,
-        query: Offset,
+        query: ProjectedPoint,
         best: HexCell?,
         bestDistSq: Double,
     ): HexCell? {
@@ -104,7 +104,7 @@ class KDTree(
     /**
      * Find the nearest hex cell with distance
      */
-    fun nearestWithDistance(query: Offset): HexCellWithDistance? {
+    fun nearestWithDistance(query: ProjectedPoint): HexCellWithDistance? {
         val cell = nearest(query) ?: return null
         val distance = distance(query, cell.centerXY).toDouble()
         return HexCellWithDistance(cell, distance)
@@ -114,7 +114,7 @@ class KDTree(
      * Find k nearest hex cells with distances
      */
     fun nearestKWithDistance(
-        query: Offset,
+        query: ProjectedPoint,
         k: Int,
     ): List<HexCellWithDistance> {
         require(k > 0) { "k must be positive" }
@@ -139,7 +139,7 @@ class KDTree(
      */
     private fun nearestK(
         node: Node,
-        query: Offset,
+        query: ProjectedPoint,
         k: Int,
         queue: PriorityQueue<Pair<Double, HexCell>>,
     ) {
@@ -179,7 +179,7 @@ class KDTree(
      * Find all hex cells within a radius with distances
      */
     fun withinRadiusWithDistance(
-        query: Offset,
+        query: ProjectedPoint,
         radius: Double,
     ): List<HexCellWithDistance> {
         require(radius >= 0) { "Radius must be non-negative" }
@@ -203,7 +203,7 @@ class KDTree(
      * iPad Pro, against 1.8 ms without the sort.
      */
     fun withinRadius(
-        query: Offset,
+        query: ProjectedPoint,
         radius: Double,
     ): List<HexCell> {
         require(radius >= 0) { "Radius must be non-negative" }
@@ -216,7 +216,7 @@ class KDTree(
 
     private fun withinRadiusUnordered(
         node: Node,
-        query: Offset,
+        query: ProjectedPoint,
         radiusSq: Double,
         result: MutableList<HexCell>,
     ) {
@@ -248,7 +248,7 @@ class KDTree(
      */
     private fun withinRadius(
         node: Node,
-        query: Offset,
+        query: ProjectedPoint,
         radiusSq: Double,
         result: MutableList<HexCellWithDistance>,
     ) {
@@ -285,9 +285,9 @@ class KDTree(
      * Calculate squared Euclidean distance between two points
      */
     private fun squaredDistance(
-        a: Offset,
-        b: Offset,
-    ): Float {
+        a: ProjectedPoint,
+        b: ProjectedPoint,
+    ): Double {
         val deltaX = a.x - b.x
         val deltaY = a.y - b.y
         return deltaX * deltaX + deltaY * deltaY
@@ -297,9 +297,9 @@ class KDTree(
      * Calculate Euclidean distance between two points
      */
     private fun distance(
-        a: Offset,
-        b: Offset,
-    ): Float = sqrt(squaredDistance(a, b))
+        a: ProjectedPoint,
+        b: ProjectedPoint,
+    ): Double = sqrt(squaredDistance(a, b))
 
     /**
      * Get statistics about the tree structure
