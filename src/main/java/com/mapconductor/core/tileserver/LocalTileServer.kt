@@ -192,34 +192,51 @@ class LocalTileServer private constructor(
                         break
                     }
 
-                    val tileResponse = resolveTile(path) { clientGone(client, peek) }
-                    val status: String
-                    val contentType: String
-                    val body: ByteArray
-                    val headers: Map<String, String>
-                    // A tile that was abandoned mid-render looks exactly like
-                    // a tile that does not exist, and the difference matters:
-                    // a map told "not found" believes it and leaves the area
-                    // showing whatever older zoom it still has. Nothing is
-                    // answered at all -- the connection simply ends, which the
-                    // map reads as a failure it may retry.
-                    if (tileResponse == null && clientGone(client, peek)) {
+                    val outcome = resolveTile(path) { clientGone(client, peek) }
+                    // A tile that was abandoned mid-render comes back from the
+                    // provider looking empty, and the difference matters: an
+                    // "empty" answer is a picture the map would cache. Nothing
+                    // is answered at all -- the connection simply ends, which
+                    // the map reads as a failure it may retry.
+                    val fromProvider = outcome is TileOutcome.Empty || outcome is TileOutcome.Failed
+                    if (fromProvider && clientGone(client, peek)) {
                         val total = abandoned.incrementAndGet()
                         if (Log.isLoggable(TAG, Log.DEBUG)) {
                             Log.d(TAG, "Abandoned mid-render, no answer sent: $path (total=$total)")
                         }
                         break
                     }
-                    if (tileResponse == null) {
-                        status = "404 Not Found"
-                        contentType = "text/plain"
-                        body = "Not found".toByteArray()
-                        headers = cacheHeaders(NO_STORE_CACHE_CONTROL)
-                    } else {
-                        status = "200 OK"
-                        contentType = "image/png"
-                        body = tileResponse.body
-                        headers = cacheHeaders(tileResponse.cacheControl)
+                    val status: String
+                    val contentType: String
+                    val body: ByteArray
+                    val headers: Map<String, String>
+                    when (outcome) {
+                        TileOutcome.NotFound -> {
+                            status = "404 Not Found"
+                            contentType = "text/plain"
+                            body = "Not found".toByteArray()
+                            headers = cacheHeaders(NO_STORE_CACHE_CONTROL)
+                        }
+                        TileOutcome.Failed -> {
+                            // 503: the map will retry. If these repeat for the
+                            // same path, the provider is the place to look.
+                            status = "503 Service Unavailable"
+                            contentType = "text/plain"
+                            body = "Tile render failed".toByteArray()
+                            headers = cacheHeaders(NO_STORE_CACHE_CONTROL) + ("Retry-After" to "1")
+                        }
+                        is TileOutcome.Empty -> {
+                            status = "200 OK"
+                            contentType = "image/png"
+                            body = TransparentTilePng.bytes(outcome.pixelSize)
+                            headers = cacheHeaders(outcome.cacheControl)
+                        }
+                        is TileOutcome.Tile -> {
+                            status = "200 OK"
+                            contentType = "image/png"
+                            body = outcome.body
+                            headers = cacheHeaders(outcome.cacheControl)
+                        }
                     }
 
                     val ok =
@@ -384,8 +401,8 @@ class LocalTileServer private constructor(
     private fun resolveTile(
         path: String,
         isCancelled: () -> Boolean,
-    ): TileResponse? {
-        val key = parseTileKey(path) ?: return null
+    ): TileOutcome {
+        val key = parseTileKey(path) ?: return TileOutcome.NotFound
         val routeId = key.routeId
         val z = key.z
         val x = key.x
@@ -395,19 +412,24 @@ class LocalTileServer private constructor(
             Log.d("LocalTileServer", "First tile request route=$routeId tileSize=${key.tileSize} z=$z x=$x y=$y")
         }
 
-        val provider = providers[routeId] ?: return null
-        val bytes =
-            provider.renderTile(
-                TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
-                isCancelled,
-            ) ?: return null
+        val provider = providers[routeId] ?: return TileOutcome.NotFound
         val cacheControl =
             if (forceNoStoreCache) {
                 NO_STORE_CACHE_CONTROL
             } else {
                 LONG_CACHE_CONTROL
             }
-        return TileResponse(bytes, cacheControl)
+        val bytes =
+            try {
+                provider.renderTile(
+                    TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
+                    isCancelled,
+                )
+            } catch (error: Exception) {
+                Log.w(TAG, "Tile render failed route=$routeId z=$z x=$x y=$y", error)
+                return TileOutcome.Failed
+            } ?: return TileOutcome.Empty(key.tileSize * key.pixelRatio, cacheControl)
+        return TileOutcome.Tile(bytes, cacheControl)
     }
 
     private fun parseTileKey(path: String): TileKey? {
@@ -484,10 +506,30 @@ class LocalTileServer private constructor(
         val valid: Boolean,
     )
 
-    private data class TileResponse(
-        val body: ByteArray,
-        val cacheControl: String,
-    )
+    /**
+     * What a request resolved to. The distinctions matter because map SDKs
+     * remember the answers differently: 404 is taken as permanent, so it is
+     * reserved for requests that name nothing — a bad path, an unregistered
+     * route. A provider with nothing to draw gets a transparent picture (an
+     * empty spot is a real answer, cacheable and later replaced when the data
+     * version moves the URL), and a provider that threw gets a 503 the map
+     * knows to retry.
+     */
+    private sealed interface TileOutcome {
+        class Tile(
+            val body: ByteArray,
+            val cacheControl: String,
+        ) : TileOutcome
+
+        class Empty(
+            val pixelSize: Int,
+            val cacheControl: String,
+        ) : TileOutcome
+
+        object NotFound : TileOutcome
+
+        object Failed : TileOutcome
+    }
 
     private data class TileKey(
         val routeId: String,

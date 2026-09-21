@@ -1,6 +1,14 @@
 package com.mapconductor.core.tileserver
 
 interface TileProviderInterface {
+    /**
+     * Draws one tile, or returns null when there is nothing to draw there.
+     *
+     * Null is "this spot is empty", and the server answers it with a
+     * transparent tile — not a 404, which map SDKs remember as permanent. A
+     * render that cannot be completed right now should throw instead; the
+     * server turns that into a 503 the map knows to retry.
+     */
     fun renderTile(request: TileRequest): ByteArray?
 
     /**
