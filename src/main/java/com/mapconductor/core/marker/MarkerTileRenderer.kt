@@ -282,7 +282,16 @@ class MarkerTileRenderer<ActualMarker>(
 
         fun queryByHalfExtentPx(halfExtentPx: Double): List<MarkerEntityInterface<ActualMarker>> {
             val span = bounds.toSpan() ?: GeoPoint(0.0, 0.0)
-            val padNorm = (halfExtentPx / tilePx).coerceAtLeast(0.0)
+            // A whole declutter cell beyond the icon overhang.
+            //
+            // The overhang alone is enough to draw the tile, but not enough to
+            // decide it: a declutter cell straddling the edge would have some of
+            // its markers inside the query and some outside, and the tile next
+            // door would see a different part of the same cell. Both would keep
+            // a marker and the two would not be the same one, which is an icon
+            // cut at the seam. Growing by the cell as well means every cell that
+            // reaches this tile is here in full, so both tiles see all of it.
+            val padNorm = ((halfExtentPx + declutterPx) / tilePx).coerceAtLeast(0.0)
             val latPad = span.latitude * padNorm
             val lonPad = span.longitude * padNorm
             val extended = bounds.expandedByDegrees(latPad, lonPad)
@@ -305,9 +314,13 @@ class MarkerTileRenderer<ActualMarker>(
             // falls back to the full query when its own cells are too coarse to
             // honour the separation, so the pass below still has to apply the
             // real rule.
+            // From the tile's own span, not the grown one. ios-sdk and react-sdk
+            // both take it from the tile, and the two now differ by more than
+            // they used to: the query grew by a declutter cell on every side to
+            // keep the seams intact, so measuring the separation off `extended`
+            // would ask for a coarser cell here than there.
             val separationDegrees =
                 if (declutterPx > 0) {
-                    val span = extended.toSpan() ?: GeoPoint(0.0, 0.0)
                     max(span.latitude, span.longitude) * declutterPx / tilePx
                 } else {
                     0.0
@@ -402,7 +415,16 @@ class MarkerTileRenderer<ActualMarker>(
             // Where each marker lands, and which icon it draws. Markers that
             // agree on all of it sit exactly on top of one another.
             val placements = LongArray(prepared.size)
+            val groups = LongArray(prepared.size)
             val icons = arrayOfNulls<Bitmap>(prepared.size)
+            val declutter = declutterPx > 0
+            val cell = declutterPx.coerceAtLeast(1).toDouble()
+            // The cell the tile's own corner falls in. Subtracting it keeps the
+            // group numbers inside the 20 bits [cellKeyOf] packs them into,
+            // without moving the grid: two tiles still agree about which markers
+            // share a cell, which is the only thing the grouping is asked for.
+            val baseCellX = Math.floor(tileX * tilePx / cell)
+            val baseCellY = Math.floor(tileY * tilePx / cell)
             for ((index, m) in prepared.withIndex()) {
                 val centerX = (m.centerNorm.x * tilePx) + paddingPx.toDouble()
                 val centerY = (m.centerNorm.y * tilePx) + paddingPx.toDouble()
@@ -426,6 +448,24 @@ class MarkerTileRenderer<ActualMarker>(
                     (width.toLong() and 0xFFFF shl 16) or
                     (height.toLong() and 0xFFFF)
                 icons[index] = m.bitmap
+                // The declutter cell is anchored to the world, not to this tile.
+                //
+                // `centerNorm` is the position within this tile, so a cell keyed
+                // off it moves with the tile: the same ground lands in a
+                // different cell on the tile next door, the two tiles keep
+                // different markers, and a marker drawn on one and dropped on
+                // the other is **cut at the seam.** Adding the tile's own
+                // coordinate back gives the world tile coordinate the projection
+                // produced, which is the same number whichever tile is asking.
+                groups[index] =
+                    if (!declutter) {
+                        placements[index]
+                    } else {
+                        cellKeyOf(
+                            (Math.floor((m.centerNorm.x + tileX) * tilePx / cell) - baseCellX).toLong(),
+                            (Math.floor((m.centerNorm.y + tileY) * tilePx / cell) - baseCellY).toLong(),
+                        )
+                    }
             }
 
             // One survivor per group of markers that cover each other. What
@@ -446,17 +486,6 @@ class MarkerTileRenderer<ActualMarker>(
             //
             // The last of each group wins, which is what painter's order would
             // have left visible.
-            val declutter = declutterPx > 0
-            val cell = declutterPx.toDouble()
-
-            fun groupKey(packed: Long): Long {
-                if (!declutter) return packed
-                val left = (packed shr 48).toShort().toInt()
-                val top = (packed shr 32).toShort().toInt()
-                val cx = kotlin.math.floor(left / cell).toLong()
-                val cy = kotlin.math.floor(top / cell).toLong()
-                return cellKeyOf(cx, cy)
-            }
 
             // Grouped by sorting, not by hashing.
             //
@@ -473,7 +502,7 @@ class MarkerTileRenderer<ActualMarker>(
                 if (icons[index] == null) continue
                 // [INDEX_BITS] of index under the group, so sorting orders by
                 // group first and by index within it.
-                order[pairs++] = (groupKey(placements[index]) shl INDEX_BITS) or index.toLong()
+                order[pairs++] = (groups[index] shl INDEX_BITS) or index.toLong()
             }
             java.util.Arrays.sort(order, 0, pairs)
 

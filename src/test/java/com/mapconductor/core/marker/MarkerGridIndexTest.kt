@@ -125,43 +125,67 @@ class MarkerGridIndexTest {
      */
     @Test
     fun thinnedQueryKeepsOneMarkerFromEveryCellItCovers() {
-        val markers = scatter(20000, 35.68, 139.76, 0.4)
+        val markers = scatter(60000, 35.68, 139.76, 0.4)
         val index = MarkerGridIndex { markers }
         val box = bounds(35.60, 139.68, 35.76, 139.84)
 
-        val thinned = index.inBoundsThinned(box, minSeparationDegrees = 0.01)
-        assertNotNull("0.01 degrees is coarser than a cell, so this must be answered", thinned)
+        val thinned = index.inBoundsThinned(box, minSeparationDegrees = 0.005)
+        assertNotNull("0.005 degrees is coarser than a cell, so this must be answered", thinned)
         val kept = thinned!!
 
         val inside = markers.filter { box.contains(it.state.position) }
         assertTrue("the box should hold something to compare", inside.size > 1000)
 
-        // Same coupling as the index: a cell is 0.005 degrees a side.
-        fun cellOf(entity: MarkerEntityInterface<Int>): Pair<Long, Long> =
-            Math.floor(entity.state.position.latitude / 0.005).toLong() to
-                Math.floor(entity.state.position.longitude / 0.005).toLong()
+        // The level the index picks, worked out here the same way. 0.005 degrees
+        // gives level 16, an even level, so the cell has a whole-character name
+        // of 9 characters and can be compared as a string.
+        assertEquals(16L, MarkerGrid.levelForSeparation(0.005)!!.toLong())
+        fun cellOf(entity: MarkerEntityInterface<Int>): String =
+            MarkerGrid.geocell(
+                entity.state.position.latitude,
+                entity.state.position.longitude,
+                characters = 9,
+            )
 
-        for (entity in kept) {
-            assertTrue("returned a marker outside the box", box.contains(entity.state.position))
-        }
-        assertEquals(
-            "one marker per populated cell, no more and no fewer",
-            inside.map(::cellOf).toSet(),
-            kept.map(::cellOf).toSet(),
+        // Every cell holding something inside the box has to be represented.
+        // Markers from outside the box are fine and expected: a cell's winner
+        // is chosen without reference to the box, so a cell on the edge can be
+        // represented by a marker just outside it. Not trimming those is what
+        // makes neighbouring tiles agree — see `MarkerTileSeamTest`.
+        assertTrue(
+            "some populated cell returned no representative",
+            kept.map(::cellOf).toSet().containsAll(inside.map(::cellOf).toSet()),
+        )
+        val outside = kept.count { !box.contains(it.state.position) }
+        assertTrue(
+            "more markers outside the box than one edge cell can explain",
+            outside < kept.size * 0.15,
         )
         assertEquals("more than one from some cell", kept.map(::cellOf).toSet().size, kept.size)
-        // The box is 0.16 degrees a side, so it spans about 1,024 cells and
-        // holds around 3,200 of these markers — three to a cell. Without this
-        // the assertions above would still pass on data too sparse to thin,
-        // and the test would be proving nothing.
+        // The box is 0.16 degrees a side, so at level 16 it spans about 3,400
+        // square cells of 0.00275 degrees and holds around 9,600 of these
+        // markers — nearly three to a cell. Without this the assertions above
+        // would still pass on data too sparse to thin, proving nothing.
         assertTrue("the data is too sparse to be exercising thinning", kept.size * 2 < inside.size)
     }
 
-    /** Cells coarser than the caller's separation would thin more than asked. */
+    /**
+     * Cells coarser than the caller's separation would thin more than asked.
+     *
+     * While the grid was flat that floor was 0.005 degrees. Now that it is a
+     * hierarchy the floor is the bottom level — 0.000687 degrees on a side —
+     * and anything coarser is answered by picking a level. That difference is
+     * what makes thinning work at the deeper zooms.
+     */
     @Test
     fun thinnedQueryDeclinesWhenItsCellsAreTooCoarse() {
         val index = MarkerGridIndex { scatter(2000, 35.68, 139.76, 0.4) }
-        assertNull(index.inBoundsThinned(bounds(35.6, 139.7, 35.7, 139.8), 0.004))
+        val box = bounds(35.6, 139.7, 35.7, 139.8)
+        assertNull(index.inBoundsThinned(box, 0.0005))
+        assertNotNull(
+            "0.001 degrees is coarser than the bottom level, so a level can be chosen",
+            index.inBoundsThinned(box, 0.001),
+        )
     }
 
     /** The wrap the plain query learned has to hold here too. */
@@ -232,5 +256,63 @@ class MarkerGridIndexTest {
         val deltaLat = entity.state.position.latitude - point.latitude
         val deltaLon = entity.state.position.longitude - point.longitude
         return deltaLat * deltaLat + deltaLon * deltaLon
+    }
+
+    /**
+     * Whatever shape the box is, the index has to answer what a scan answers.
+     *
+     * Square boxes alone never reach the new level choice's **per-axis cap** —
+     * the path a very flat band or a very narrow column takes. Get that wrong
+     * and nothing on the map changes except that queries of that shape quietly
+     * drop markers.
+     *
+     * The near-global box is here because column indices fold: the column
+     * holding 180 and the one holding -180 are the same, so taking the end of
+     * the walk from the east corner covers a single column. See
+     * `MarkerGrid.columnWalk`.
+     *
+     * Pairs with ios-sdk's `testBoundsQueryMatchesBruteForceForEveryShapeOfBox`
+     * and react-sdk's test of the same name.
+     */
+    @Test
+    fun boundsQueryMatchesBruteForceForEveryShapeOfBox() {
+        // The second group's ids are shifted. `scatter` numbers from zero every
+        // time, so adding them straight makes ids collide, and `ids()` folds two
+        // different markers into one — the index could return duplicates and the
+        // sets would still agree.
+        val near = scatter(30000, 35.68, 139.76, 0.8)
+        val far =
+            scatter(10000, -18.0, 179.95, 0.6).map {
+                entity(it.state.id.toInt() + 30000, it.state.position.latitude, it.state.position.longitude)
+            }
+        val markers = near + far
+        val index = MarkerGridIndex { markers }
+
+        var nonEmpty = 0
+        val boxes =
+            listOf(
+                // Tile-sized, from z=14 down to z=9.
+                bounds(35.6800, 139.7600, 35.6946, 139.7820),
+                bounds(35.6000, 139.6000, 35.7000, 139.8000),
+                bounds(35.2000, 139.2000, 36.2000, 140.2000),
+                // A very flat band and a very narrow column. Area alone cannot
+                // choose a level for either.
+                bounds(35.6790, 139.0000, 35.6810, 140.5000),
+                bounds(35.0000, 139.7590, 36.4000, 139.7610),
+                // Nearly the whole globe.
+                bounds(-85.0, -179.9, 85.0, 179.9),
+                // Across the antimeridian.
+                bounds(-18.5, 179.5, -17.5, -179.5),
+                // Empty ground: the one box where returning nothing is right.
+                bounds(10.0, 100.0, 11.0, 101.0),
+            )
+        for ((at, box) in boxes.withIndex()) {
+            val expected = ids(markers.filter { box.contains(it.state.position) })
+            val found = index.inBounds(box)
+            assertEquals("box $at: the grid disagreed with a scan", expected, ids(found))
+            assertEquals("box $at: returned the same marker twice", expected.size, found.size)
+            if (expected.isNotEmpty()) nonEmpty++
+        }
+        assertEquals("only comparing empty sets to empty sets", 7, nonEmpty)
     }
 }

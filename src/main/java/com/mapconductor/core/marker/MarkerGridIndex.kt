@@ -6,7 +6,7 @@ import com.mapconductor.core.features.GeoRectBounds
 import java.util.Arrays
 
 /**
- * A uniform lat/lng grid over the markers, held as one sorted primitive array.
+ * A hierarchical lat/lng grid over the markers, held as one sorted primitive array.
  *
  * Replaces the hex-cell registry and its kd-tree on the paths that run per
  * tile. That index was built at a fixed zoom of 20, which puts a cell at about
@@ -20,10 +20,14 @@ import java.util.Arrays
  * 41 ms for those same 144,183 markers on a Pixel 5a, in 1.15 MB.
  *
  * A bounds query walks the cells the box covers and binary-searches each one's
- * run — 0.06 ms for a tile-sized box, against 1.9 ms to scan every marker. When
- * the box is wide enough to touch more cells than [MAX_CELLS_PER_QUERY], it
- * scans instead: an index that cannot narrow anything down is slower than not
- * having one, and the same measurement shows where the crossover falls.
+ * run — 0.06 ms for a tile-sized box, against 1.9 ms to scan every marker.
+ *
+ * The key is a Morton code over a hierarchy of cells, described in [MarkerGrid].
+ * What it buys the index is that a cell at *any* level is one contiguous run,
+ * so a query walks the level that suits its box rather than the finest one. The
+ * first version had a single fixed cell size of 0.005 degrees and had to fall
+ * back to scanning once a box touched more than 4,096 of them; choosing the
+ * level removes that cliff.
  *
  * The index owns no markers. It is handed the manager's collection and takes a
  * snapshot when it rebuilds, so nothing here duplicates the map the manager
@@ -36,7 +40,7 @@ internal class MarkerGridIndex<ActualMarker>(
 ) {
     private var snapshot: Array<MarkerEntityInterface<ActualMarker>?> = emptyArray()
 
-    /** Sorted `(cellKey shl INDEX_BITS) or position-in-snapshot`. */
+    /** Sorted `(mortonKey shl INDEX_BITS) or position-in-snapshot`. */
     private var packed = LongArray(0)
 
     @Volatile
@@ -59,26 +63,23 @@ internal class MarkerGridIndex<ActualMarker>(
         val southWest = bounds.southWest ?: return emptyList()
         val northEast = bounds.northEast ?: return emptyList()
 
-        val latFrom = Math.floor(southWest.latitude / CELL_DEGREES).toLong()
-        val latTo = Math.floor(northEast.latitude / CELL_DEGREES).toLong()
-        val lonFrom = Math.floor(southWest.longitude / CELL_DEGREES).toLong()
-        val lonTo = Math.floor(northEast.longitude / CELL_DEGREES).toLong()
-
         // A box crossing the antimeridian has its east corner west of its west
-        // one. Walking to the unwrapped end and folding each column back onto
-        // the globe covers both halves without a second loop — and without the
-        // empty range that silently returned no markers there.
-        val lonEnd = if (northEast.longitude < southWest.longitude) lonTo + LON_CELLS else lonTo
+        // one, and a padded box can run past ±180 outright. Both fold into a
+        // single eastward sweep from the west edge.
+        val lonSpan = MarkerGrid.eastwardSpan(southWest.longitude, northEast.longitude)
+        val level = MarkerGrid.queryLevel(northEast.latitude - southWest.latitude, lonSpan)
 
-        if ((latTo - latFrom + 1) * (lonEnd - lonFrom + 1) > MAX_CELLS_PER_QUERY) {
-            return source().filter { bounds.contains(it.state.position) }
-        }
+        val latFrom = MarkerGrid.latCell(southWest.latitude, level)
+        val latTo = MarkerGrid.latCell(northEast.latitude, level)
+        if (latTo < latFrom) return emptyList()
+        val (firstColumn, columnCount) = MarkerGrid.columnWalk(southWest.longitude, lonSpan, level)
 
         rebuildIfNeeded()
         val found = ArrayList<MarkerEntityInterface<ActualMarker>>()
         for (latCell in latFrom..latTo) {
-            for (lonCell in lonFrom..lonEnd) {
-                forEachInCell(cellKeyOf(latCell, wrapLon(lonCell))) { entity ->
+            for (step in 0 until columnCount) {
+                val key = MarkerGrid.morton(latCell, MarkerGrid.wrap(firstColumn + step, level), level)
+                forEachInCell(key, level) { entity ->
                     if (bounds.contains(entity.state.position)) found.add(entity)
                 }
             }
@@ -87,7 +88,7 @@ internal class MarkerGridIndex<ActualMarker>(
     }
 
     /**
-     * Markers in [bounds], thinned to at most one per grid cell.
+     * One marker for each cell the bounds touch.
      *
      * For a caller that is about to drop markers closer together than
      * [minSeparationDegrees] anyway, visiting the ones it will drop is pure
@@ -95,63 +96,69 @@ internal class MarkerGridIndex<ActualMarker>(
      * reading a position off an entity costs 0.72 microseconds, so merely
      * looking at that set is 101 ms before anything is done with it.
      *
-     * Walking cells instead visits the roughly 5,000 that hold anything. Each
-     * one is a binary search and, where the cell lies wholly inside the box, a
-     * single entry taken from the end of its run — no scan.
+     * Walking cells instead visits the roughly 5,000 that hold anything, and
+     * each one is a binary search and a single entry taken from the end of its
+     * run. The level comes from the separation: the coarsest one whose cells
+     * are no wider than the caller asked for.
      *
-     * Returns null when the index cannot help: cells coarser than the caller's
-     * separation would thin more than it asked for, and a box spanning more
+     * ## Why the winner cannot depend on the bounds
+     *
+     * A cell's representative is the **last entry of its run, always** — not
+     * the last entry that falls inside the bounds. The difference is what a map
+     * made of tiles looks like at the seams.
+     *
+     * Tiles are rendered one at a time, each asking for its own box grown by
+     * the icon overhang. A cell straddling the boundary is asked about twice,
+     * by two different boxes. Choose the winner from what is inside the box and
+     * the two tiles choose **different markers:** one marker gets its left half
+     * drawn on the left tile and nothing on the right, so the icon is cut down
+     * the seam with no error anywhere. Measured on Tokyo's street trees, 74
+     * markers at zoom 9 and 84 at zoom 10 were drawn by one tile and not by its
+     * neighbour.
+     *
+     * Choosing without looking at the box removes the disagreement: a marker
+     * whose icon reaches the next tile is inside that tile's grown box too, so
+     * that tile asks about the same cell and gets the same answer.
+     *
+     * A returned marker may therefore lie just outside [bounds], by less than
+     * one cell. The renderer clips it; what it must not do is filter the list
+     * back down to the box, because that would put the disagreement back.
+     *
+     * Returns null when the index cannot help: a separation finer than the
+     * bottom level would thin more than it asked for, and a box spanning more
      * cells than [MAX_CELLS_PER_THINNED_QUERY] is cheaper to scan.
      */
     fun inBoundsThinned(
         bounds: GeoRectBounds,
         minSeparationDegrees: Double,
     ): List<MarkerEntityInterface<ActualMarker>>? {
-        if (minSeparationDegrees < CELL_DEGREES) return null
+        val level = MarkerGrid.levelForSeparation(minSeparationDegrees) ?: return null
         val southWest = bounds.southWest ?: return null
         val northEast = bounds.northEast ?: return null
 
-        val latFrom = Math.floor(southWest.latitude / CELL_DEGREES).toLong()
-        val latTo = Math.floor(northEast.latitude / CELL_DEGREES).toLong()
-        val lonFrom = Math.floor(southWest.longitude / CELL_DEGREES).toLong()
-        val lonEnd =
-            if (northEast.longitude < southWest.longitude) {
-                Math.floor(northEast.longitude / CELL_DEGREES).toLong() + LON_CELLS
-            } else {
-                Math.floor(northEast.longitude / CELL_DEGREES).toLong()
-            }
-        if ((latTo - latFrom + 1) * (lonEnd - lonFrom + 1) > MAX_CELLS_PER_THINNED_QUERY) return null
+        val lonSpan = MarkerGrid.eastwardSpan(southWest.longitude, northEast.longitude)
+        val latFrom = MarkerGrid.latCell(southWest.latitude, level)
+        val latTo = MarkerGrid.latCell(northEast.latitude, level)
+        if (latTo < latFrom) return emptyList()
+        val (firstColumn, columnCount) = MarkerGrid.columnWalk(southWest.longitude, lonSpan, level)
+        if ((latTo - latFrom + 1) * columnCount > MAX_CELLS_PER_THINNED_QUERY) return null
 
         rebuildIfNeeded()
+        val shift = INDEX_BITS + 2 * (MarkerGrid.GRID_DEPTH - level)
         val found = ArrayList<MarkerEntityInterface<ActualMarker>>()
         for (latCell in latFrom..latTo) {
-            // A cell wholly inside the box needs no containment test, and the
-            // last entry of its run can be taken without looking at the rest.
-            val latInside =
-                latCell > latFrom && latCell < latTo
-            for (lonCell in lonFrom..lonEnd) {
-                val key = cellKeyOf(latCell, wrapLon(lonCell))
-                val at = lowerBound(key shl INDEX_BITS)
+            for (step in 0 until columnCount) {
+                val key = MarkerGrid.morton(latCell, MarkerGrid.wrap(firstColumn + step, level), level)
+                val at = lowerBound(key shl shift)
                 if (at >= packed.size) continue
-                val limit = (key + 1) shl INDEX_BITS
+                val limit = (key + 1) shl shift
                 if (packed[at] >= limit) continue
-
-                if (latInside && lonCell > lonFrom && lonCell < lonEnd) {
-                    var last = at
-                    while (last + 1 < packed.size && packed[last + 1] < limit) last++
-                    snapshot[(packed[last] and INDEX_MASK).toInt()]?.let { found.add(it) }
-                    continue
-                }
-                // On the border the cell straddles the box, so the last entry
-                // inside it is not necessarily the last entry of the run.
-                var winner: MarkerEntityInterface<ActualMarker>? = null
-                var cursor = at
-                while (cursor < packed.size && packed[cursor] < limit) {
-                    val entity = snapshot[(packed[cursor] and INDEX_MASK).toInt()]
-                    if (entity != null && bounds.contains(entity.state.position)) winner = entity
-                    cursor++
-                }
-                winner?.let { found.add(it) }
+                // The run's last entry. No containment test anywhere: that is
+                // the whole point, and it is also why this is cheaper than the
+                // version that scanned every border cell.
+                var last = at
+                while (last + 1 < packed.size && packed[last + 1] < limit) last++
+                snapshot[(packed[last] and INDEX_MASK).toInt()]?.let { found.add(it) }
             }
         }
         return found
@@ -172,22 +179,25 @@ internal class MarkerGridIndex<ActualMarker>(
         rebuildIfNeeded()
         if (packed.isEmpty()) return null
 
-        val centreLat = Math.floor(position.latitude / CELL_DEGREES).toLong()
-        val centreLon = Math.floor(position.longitude / CELL_DEGREES).toLong()
+        val level = NEAREST_LEVEL
+        val centreLat = MarkerGrid.latCell(position.latitude, level)
+        val centreLon = MarkerGrid.lonCell(position.longitude, level)
 
         var best: MarkerEntityInterface<ActualMarker>? = null
         var bestDistance = Double.MAX_VALUE
         var ring = 0L
 
         while (ring <= MAX_NEAREST_RINGS) {
-            forEachInRing(centreLat, centreLon, ring) { entity ->
+            forEachInRing(centreLat, centreLon, ring, level) { entity ->
                 val distance = squaredDegrees(entity, position)
                 if (distance < bestDistance) {
                     bestDistance = distance
                     best = entity
                 }
             }
-            val reach = ring * CELL_DEGREES
+            // A ring is a square: the nearest unsearched point is `ring` cells
+            // away on the shorter axis, which is latitude.
+            val reach = ring * MarkerGrid.cellSize(level)
             if (best != null && reach * reach >= bestDistance) break
             ring++
         }
@@ -210,28 +220,49 @@ internal class MarkerGridIndex<ActualMarker>(
         centreLat: Long,
         centreLon: Long,
         ring: Long,
+        level: Int,
         body: (MarkerEntityInterface<ActualMarker>) -> Unit,
     ) {
+        // 行は極で打ち切る。折り返す経度と違い、緯度は 0..rows-1 の外に出たら
+        // そこにセルは無い。inline 関数なので、ローカル関数に切り出して body を
+        // 渡すことはできない -- 行の妥当性はここで直接見る。
+        val rows = MarkerGrid.rows(level)
         if (ring == 0L) {
-            forEachInCell(cellKeyOf(centreLat, centreLon), body)
+            if (centreLat in 0 until rows) {
+                forEachInCell(MarkerGrid.morton(centreLat, MarkerGrid.wrap(centreLon, level), level), level, body)
+            }
             return
         }
+        val south = centreLat - ring
+        val north = centreLat + ring
         for (offset in -ring..ring) {
-            forEachInCell(cellKeyOf(centreLat - ring, wrapLon(centreLon + offset)), body)
-            forEachInCell(cellKeyOf(centreLat + ring, wrapLon(centreLon + offset)), body)
+            if (south in 0 until rows) {
+                forEachInCell(MarkerGrid.morton(south, MarkerGrid.wrap(centreLon + offset, level), level), level, body)
+            }
+            if (north in 0 until rows) {
+                forEachInCell(MarkerGrid.morton(north, MarkerGrid.wrap(centreLon + offset, level), level), level, body)
+            }
         }
         for (offset in (-ring + 1)..(ring - 1)) {
-            forEachInCell(cellKeyOf(centreLat + offset, wrapLon(centreLon - ring)), body)
-            forEachInCell(cellKeyOf(centreLat + offset, wrapLon(centreLon + ring)), body)
+            val row = centreLat + offset
+            if (row !in 0 until rows) continue
+            forEachInCell(MarkerGrid.morton(row, MarkerGrid.wrap(centreLon - ring, level), level), level, body)
+            forEachInCell(MarkerGrid.morton(row, MarkerGrid.wrap(centreLon + ring, level), level), level, body)
         }
     }
 
+    /**
+     * Walks one cell at [level]. Its markers are the run whose keys share the
+     * cell's prefix, which is what interleaving the bits bought.
+     */
     private inline fun forEachInCell(
         key: Long,
+        level: Int,
         body: (MarkerEntityInterface<ActualMarker>) -> Unit,
     ) {
-        var at = lowerBound(key shl INDEX_BITS)
-        val limit = (key + 1) shl INDEX_BITS
+        val shift = INDEX_BITS + 2 * (MarkerGrid.GRID_DEPTH - level)
+        var at = lowerBound(key shl shift)
+        val limit = (key + 1) shl shift
         while (at < packed.size && packed[at] < limit) {
             snapshot[(packed[at] and INDEX_MASK).toInt()]?.let(body)
             at++
@@ -249,7 +280,7 @@ internal class MarkerGridIndex<ActualMarker>(
             if (at == taken.size) break // grew while we were reading; the next query rebuilds
             val position = entity.state.position
             taken[at] = entity
-            keys[at] = (cellKeyFor(position) shl INDEX_BITS) or at.toLong()
+            keys[at] = (MarkerGrid.mortonKeyFor(position) shl INDEX_BITS) or at.toLong()
             at++
         }
         Arrays.sort(keys, 0, at)
@@ -257,12 +288,6 @@ internal class MarkerGridIndex<ActualMarker>(
         packed = if (at == keys.size) keys else keys.copyOf(at)
         dirty = false
     }
-
-    private fun cellKeyFor(position: GeoPointInterface): Long =
-        cellKeyOf(
-            Math.floor(position.latitude / CELL_DEGREES).toLong(),
-            Math.floor(position.longitude / CELL_DEGREES).toLong(),
-        )
 
     private fun lowerBound(target: Long): Int {
         var low = 0
@@ -279,28 +304,6 @@ internal class MarkerGridIndex<ActualMarker>(
     @InternalMapConductorApi
     companion object {
         /**
-         * About 450 m at Tokyo's latitude.
-         *
-         * Chosen by measurement rather than by round number: on 144k markers a
-         * tile-sized query took 0.06 ms here, 0.03 ms at 0.001 degrees and
-         * 2.31 ms at 0.02 degrees — the last being no better than scanning,
-         * because a cell that size returns five times the markers a tile needs.
-         * Finer wins on dense data and loses on sparse, where a tile spans more
-         * empty cells than it saves.
-         */
-        private const val CELL_DEGREES = 0.005
-
-        /**
-         * Past this many cells, scan every marker instead.
-         *
-         * A query covering most of the world touches more empty cells than
-         * there are markers. Measured on the same 144k: a box over all of Tokyo
-         * costs 2.27 ms through the grid and 1.98 ms scanning, so the index
-         * stops paying for itself well before the pathological case.
-         */
-        private const val MAX_CELLS_PER_QUERY = 4096
-
-        /**
          * The same budget for [inBoundsThinned], which earns far more per cell.
          *
          * A plain bounds query walking 20,000 cells is returning most of the
@@ -310,24 +313,19 @@ internal class MarkerGridIndex<ActualMarker>(
          */
         private const val MAX_CELLS_PER_THINNED_QUERY = 1 shl 18
 
+        /**
+         * The level [nearest] walks its rings at, and the reach that buys.
+         *
+         * Level 15 is 0.0055 degrees on a side, matching the flat cell this
+         * index used to have, so 100 rings is about 45 km as before.
+         */
+        private const val NEAREST_LEVEL = 15
+
         /** Roughly 45 km of rings before giving up and scanning. */
         private const val MAX_NEAREST_RINGS = 100
-
-        /** Columns around the globe: the wrap the ring and box walks fold on. */
-        private val LON_CELLS = (360.0 / CELL_DEGREES).toLong()
-        private val MIN_LON_CELL = -LON_CELLS / 2
-
-        private fun wrapLon(lonCell: Long): Long = MIN_LON_CELL + Math.floorMod(lonCell - MIN_LON_CELL, LON_CELLS)
 
         // 24 bits of position, enough for 16.7M markers, under the cell key.
         private const val INDEX_BITS = 24
         private const val INDEX_MASK = (1L shl INDEX_BITS) - 1
-
-        // Offsets keep keys positive, so their ordering matches the numeric
-        // ordering the sort and the binary search depend on.
-        private fun cellKeyOf(
-            latCell: Long,
-            lonCell: Long,
-        ): Long = ((latCell + 262144) shl 20) or (lonCell + 524288)
     }
 }
