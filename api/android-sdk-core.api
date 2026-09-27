@@ -2531,6 +2531,13 @@ public final class com.mapconductor.core.raster.RasterLayerState implements com.
 }
 public final class com.mapconductor.core.raster.RasterLayerState$Companion {
 }
+public interface com.mapconductor.core.raster.RasterTilePreference {
+  public abstract int getPreferredTileSize();
+}
+public final class com.mapconductor.core.raster.RasterTilePreferenceKey implements com.mapconductor.core.map.MapServiceKey<com.mapconductor.core.raster.RasterTilePreference> {
+  public static final com.mapconductor.core.raster.RasterTilePreferenceKey INSTANCE;
+  public com.mapconductor.core.map.MapCapability getCapability();
+}
 public final class com.mapconductor.core.raster.TileScheme extends java.lang.Enum<com.mapconductor.core.raster.TileScheme> {
   public static final com.mapconductor.core.raster.TileScheme XYZ;
   public static final com.mapconductor.core.raster.TileScheme TMS;
