@@ -2641,6 +2641,7 @@ public final class com.mapconductor.core.tileserver.LocalTileServer {
   public final void setForceNoStoreCache(boolean);
   public final void register(java.lang.String, com.mapconductor.core.tileserver.TileProviderInterface);
   public final void unregister(java.lang.String);
+  public final void setLevelGate(java.lang.String, kotlin.jvm.functions.Function1<? super java.lang.Integer, java.lang.Boolean>);
   public final java.lang.String urlTemplate(java.lang.String, int);
   public final java.lang.String urlTemplate(java.lang.String, int, java.lang.String);
   public final java.lang.String urlTemplateWithQueryCacheKey(java.lang.String, int, java.lang.String);

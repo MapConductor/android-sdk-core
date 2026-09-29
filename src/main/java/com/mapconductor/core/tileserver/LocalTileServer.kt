@@ -19,6 +19,17 @@ class LocalTileServer private constructor(
 ) {
     private val providers = ConcurrentHashMap<String, TileProviderInterface>()
 
+    /**
+     * ルートごとの「このレベルは透明でよい」判定。
+     *
+     * ArcGIS の 3D ビューは画面のレベルより上の全レベルも要求し、画面のレベルが
+     * 載れば一枚も描かない。要求ごとのフックを持たない Android の
+     * `WebTiledLayer` では、ここで provider を呼ぶ前に透明を返すのが唯一の手。
+     * 透明は `no-store` で返す。ArcGIS 側のキャッシュは別で、それは呼び手が
+     * レイヤーを作り直して捨てる。
+     */
+    private val levelGates = ConcurrentHashMap<String, (Int) -> Boolean>()
+
     /** Requests dropped because the map had stopped waiting for them. */
     private val abandoned = AtomicLong()
     private val loggedRoutes = ConcurrentHashMap.newKeySet<String>()
@@ -56,6 +67,18 @@ class LocalTileServer private constructor(
 
     fun unregister(routeId: String) {
         providers.remove(routeId)
+        levelGates.remove(routeId)
+    }
+
+    /**
+     * [gate] が true を返すレベルの要求は、provider を呼ばずに透明タイルで答える。
+     * null で解除。
+     */
+    fun setLevelGate(
+        routeId: String,
+        gate: ((level: Int) -> Boolean)?,
+    ) {
+        if (gate == null) levelGates.remove(routeId) else levelGates[routeId] = gate
     }
 
     fun urlTemplate(
@@ -413,6 +436,9 @@ class LocalTileServer private constructor(
         }
 
         val provider = providers[routeId] ?: return TileOutcome.NotFound
+        levelGates[routeId]?.let { gate ->
+            if (gate(z)) return TileOutcome.Empty(key.tileSize * key.pixelRatio, NO_STORE_CACHE_CONTROL)
+        }
         val cacheControl =
             if (forceNoStoreCache) {
                 NO_STORE_CACHE_CONTROL
