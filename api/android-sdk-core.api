@@ -800,6 +800,13 @@ public abstract class com.mapconductor.core.map.BaseMapViewSaver<T extends com.m
   public final androidx.compose.runtime.saveable.Saver<T, android.os.Bundle> createSaver();
   protected abstract java.lang.String getStateId(T);
 }
+public final class com.mapconductor.core.map.BlankMapStyle {
+  public static final com.mapconductor.core.map.BlankMapStyle INSTANCE;
+  public static final java.lang.String BACKGROUND_COLOR;
+  public static final java.lang.String JSON;
+  public static final java.lang.String ASSET_URI;
+  public static final java.lang.String ASSET_FILE_URL;
+}
 public final class com.mapconductor.core.map.CameraRestriction implements java.io.Serializable {
   public static final com.mapconductor.core.map.CameraRestriction$Companion Companion;
   public com.mapconductor.core.map.CameraRestriction(com.mapconductor.core.features.GeoRectBounds, java.lang.Double, java.lang.Double);
