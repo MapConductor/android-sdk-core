@@ -30,6 +30,25 @@ class LocalTileServer private constructor(
      */
     private val levelGates = ConcurrentHashMap<String, (Int) -> Boolean>()
 
+    /**
+     * Whole documents served by id, beside the tiles: a style JSON that a
+     * vector-capable map is to read directly, for one. Served `no-store` --
+     * the id changes when the content does, so there is nothing to revalidate,
+     * and a map holding on to a stale document is harder to notice than one
+     * refetching a small one.
+     */
+    private val documents = ConcurrentHashMap<String, Document>()
+
+    /**
+     * Directories served by route, for a map that reads its style's tiles,
+     * glyphs and sprite straight from the device: an offline package. A path
+     * that is not in the directory is offered to the route's fallback, which
+     * is how "online" and "offline" differ for the same package -- online,
+     * the fallback fetches upstream; offline, there is none, and the map is
+     * told there is no such tile.
+     */
+    private val fileRoutes = ConcurrentHashMap<String, FileRoute>()
+
     /** Requests dropped because the map had stopped waiting for them. */
     private val abandoned = AtomicLong()
     private val loggedRoutes = ConcurrentHashMap.newKeySet<String>()
@@ -80,6 +99,50 @@ class LocalTileServer private constructor(
     ) {
         if (gate == null) levelGates.remove(routeId) else levelGates[routeId] = gate
     }
+
+    /**
+     * Serves [body] at [documentUrl] until [unregisterDocument].
+     *
+     * [id] must be URL-safe as given; it is matched against the request path
+     * verbatim.
+     */
+    fun registerDocument(
+        id: String,
+        contentType: String,
+        body: ByteArray,
+    ) {
+        documents[id] = Document(contentType, body)
+    }
+
+    fun unregisterDocument(id: String) {
+        documents.remove(id)
+    }
+
+    fun documentUrl(id: String): String = "$baseUrl/$DOCS_PREFIX/$id"
+
+    /**
+     * Serves the files under [directory] at [filesUrl]`/<relative path>`.
+     *
+     * The content type follows the extension (`.mvt`, `.pbf`, `.json`,
+     * `.png`); a file is served as immutable, since a package does not change
+     * under a map. A path with no file is answered by [fallback] -- served
+     * `no-store`, so what came from upstream is not mistaken for the package
+     * -- or, when that is null or answers null, with 404, which the map takes
+     * as "no such tile" and does not retry.
+     */
+    fun registerFiles(
+        routeId: String,
+        directory: java.io.File,
+        fallback: ((relativePath: String) -> ByteArray?)? = null,
+    ) {
+        fileRoutes[routeId] = FileRoute(directory, fallback)
+    }
+
+    fun unregisterFiles(routeId: String) {
+        fileRoutes.remove(routeId)
+    }
+
+    fun filesUrl(routeId: String): String = "$baseUrl/$FILES_PREFIX/$routeId"
 
     fun urlTemplate(
         routeId: String,
@@ -200,6 +263,42 @@ class LocalTileServer private constructor(
                             extraHeaders = mapOf("Allow" to "GET", "Cache-Control" to "no-store"),
                         )
                         break
+                    }
+
+                    if (path.startsWith("$DOCS_PREFIX/")) {
+                        val document = documents[path.removePrefix("$DOCS_PREFIX/")]
+                        val ok =
+                            if (document == null) {
+                                writeResponse(
+                                    client,
+                                    "404 Not Found",
+                                    "text/plain",
+                                    "Not found".toByteArray(),
+                                    keepAlive = keepAlive,
+                                    extraHeaders = cacheHeaders(NO_STORE_CACHE_CONTROL),
+                                )
+                            } else {
+                                writeResponse(
+                                    client,
+                                    "200 OK",
+                                    document.contentType,
+                                    document.body,
+                                    keepAlive = keepAlive,
+                                    extraHeaders = cacheHeaders(NO_STORE_CACHE_CONTROL),
+                                )
+                            }
+                        if (!ok) break
+                        handled += 1
+                        if (!keepAlive) break
+                        continue
+                    }
+
+                    if (path.startsWith("$FILES_PREFIX/")) {
+                        val ok = serveFile(client, path.removePrefix("$FILES_PREFIX/"), keepAlive)
+                        if (!ok) break
+                        handled += 1
+                        if (!keepAlive) break
+                        continue
                     }
 
                     // The map may have moved on since this request was
@@ -481,6 +580,68 @@ class LocalTileServer private constructor(
         )
     }
 
+    /** `<routeId>/<relative path>` under the files prefix. */
+    private fun serveFile(
+        client: Socket,
+        routePath: String,
+        keepAlive: Boolean,
+    ): Boolean {
+        val routeId = routePath.substringBefore('/')
+        val relative =
+            runCatching { java.net.URLDecoder.decode(routePath.substringAfter('/', ""), "UTF-8") }
+                .getOrDefault("")
+        val route = fileRoutes[routeId]
+        // No escaping the directory, whatever the request says.
+        val safe = relative.isNotEmpty() && relative.split('/').none { it == ".." || it.isEmpty() }
+        val file = if (route != null && safe) java.io.File(route.directory, relative) else null
+        if (file != null && file.isFile) {
+            return writeResponse(
+                client,
+                "200 OK",
+                contentTypeFor(relative),
+                file.readBytes(),
+                keepAlive = keepAlive,
+                extraHeaders = cacheHeaders(LONG_CACHE_CONTROL),
+            )
+        }
+        val fetched =
+            if (route?.fallback != null && safe) {
+                runCatching { route.fallback.invoke(relative) }
+                    .onFailure { Log.w(TAG, "file fallback failed: $relative", it) }
+                    .getOrNull()
+            } else {
+                null
+            }
+        return if (fetched != null) {
+            writeResponse(
+                client,
+                "200 OK",
+                contentTypeFor(relative),
+                fetched,
+                keepAlive = keepAlive,
+                extraHeaders = cacheHeaders(NO_STORE_CACHE_CONTROL),
+            )
+        } else {
+            writeResponse(
+                client,
+                "404 Not Found",
+                "text/plain",
+                "Not found".toByteArray(),
+                keepAlive = keepAlive,
+                extraHeaders = cacheHeaders(NO_STORE_CACHE_CONTROL),
+            )
+        }
+    }
+
+    private fun contentTypeFor(path: String): String =
+        when (path.substringAfterLast('.', "").lowercase()) {
+            "mvt" -> "application/vnd.mapbox-vector-tile"
+            "pbf" -> "application/x-protobuf"
+            "json" -> "application/json"
+            "png" -> "image/png"
+            else -> "application/octet-stream"
+        }
+
     private fun cacheHeaders(cacheControl: String): Map<String, String> =
         mapOf(
             "Cache-Control" to cacheControl,
@@ -557,6 +718,16 @@ class LocalTileServer private constructor(
         object Failed : TileOutcome
     }
 
+    private class Document(
+        val contentType: String,
+        val body: ByteArray,
+    )
+
+    private class FileRoute(
+        val directory: java.io.File,
+        val fallback: ((String) -> ByteArray?)?,
+    )
+
     private data class TileKey(
         val routeId: String,
         val tileSize: Int,
@@ -568,6 +739,8 @@ class LocalTileServer private constructor(
 
     companion object {
         private const val TAG = "LocalTileServer"
+        private const val DOCS_PREFIX = "docs"
+        private const val FILES_PREFIX = "files"
         private const val MAX_KEEP_ALIVE_REQUESTS = 200
         private const val SOCKET_TIMEOUT_MS = 5000
         private const val MAX_HEADER_COUNT = 64

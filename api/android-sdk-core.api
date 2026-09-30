@@ -1175,6 +1175,24 @@ public abstract class com.mapconductor.core.map.StaticHolder<ValueType> {
   public final void remove(java.lang.String);
   public final void clearAll();
 }
+public final class com.mapconductor.core.map.VectorStyleAsDesign<Design extends com.mapconductor.core.map.MapDesignTypeInterface<?>> implements com.mapconductor.core.map.VectorStyleSupport {
+  public static final long CLEAR_GRACE_MS;
+  public com.mapconductor.core.map.VectorStyleAsDesign(com.mapconductor.core.map.MapViewStateInterface<Design>, kotlin.jvm.functions.Function2<? super java.lang.String, ? super java.util.List<com.mapconductor.core.map.AttributionRule>, ? extends Design>);
+  public void showStyle(java.lang.String, java.util.List<com.mapconductor.core.map.AttributionRule>);
+  public void clearStyle();
+}
+final class com.mapconductor.core.map.VectorStyleAsDesign$Companion {
+}
+public interface com.mapconductor.core.map.VectorStyleSupport {
+  public abstract void showStyle(java.lang.String, java.util.List<com.mapconductor.core.map.AttributionRule>);
+  public abstract void clearStyle();
+}
+public final class com.mapconductor.core.map.VectorStyleSupport$DefaultImpls {
+}
+public final class com.mapconductor.core.map.VectorStyleSupportKey implements com.mapconductor.core.map.MapServiceKey<com.mapconductor.core.map.VectorStyleSupport> {
+  public static final com.mapconductor.core.map.VectorStyleSupportKey INSTANCE;
+  public com.mapconductor.core.map.MapCapability getCapability();
+}
 public final class com.mapconductor.core.map.VisibleRegion {
   public com.mapconductor.core.map.VisibleRegion(com.mapconductor.core.features.GeoRectBounds, com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.features.GeoPointInterface);
   public final com.mapconductor.core.features.GeoRectBounds getBounds();
@@ -2642,6 +2660,12 @@ public final class com.mapconductor.core.tileserver.LocalTileServer {
   public final void register(java.lang.String, com.mapconductor.core.tileserver.TileProviderInterface);
   public final void unregister(java.lang.String);
   public final void setLevelGate(java.lang.String, kotlin.jvm.functions.Function1<? super java.lang.Integer, java.lang.Boolean>);
+  public final void registerDocument(java.lang.String, java.lang.String, byte[]);
+  public final void unregisterDocument(java.lang.String);
+  public final java.lang.String documentUrl(java.lang.String);
+  public final void registerFiles(java.lang.String, java.io.File, kotlin.jvm.functions.Function1<? super java.lang.String, byte[]>);
+  public final void unregisterFiles(java.lang.String);
+  public final java.lang.String filesUrl(java.lang.String);
   public final java.lang.String urlTemplate(java.lang.String, int);
   public final java.lang.String urlTemplate(java.lang.String, int, java.lang.String);
   public final java.lang.String urlTemplateWithQueryCacheKey(java.lang.String, int, java.lang.String);
@@ -2652,6 +2676,14 @@ public final class com.mapconductor.core.tileserver.LocalTileServer {
 }
 public final class com.mapconductor.core.tileserver.LocalTileServer$Companion {
   public final com.mapconductor.core.tileserver.LocalTileServer startServer(boolean);
+}
+final class com.mapconductor.core.tileserver.LocalTileServer$Document {
+  public final java.lang.String getContentType();
+  public final byte[] getBody();
+}
+final class com.mapconductor.core.tileserver.LocalTileServer$FileRoute {
+  public final java.io.File getDirectory();
+  public final kotlin.jvm.functions.Function1<java.lang.String, byte[]> getFallback();
 }
 final class com.mapconductor.core.tileserver.LocalTileServer$Request {
   public final java.lang.String getMethod();
