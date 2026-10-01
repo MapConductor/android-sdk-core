@@ -166,6 +166,30 @@ class LocalTileServer private constructor(
     ): String = "$baseUrl/tiles/$routeId/$tileSize/{z}/{x}/{y}.png?v=$cacheKey"
 
     /**
+     * Draws the tile a local URL names, in this process, without the HTTP hop.
+     *
+     * A map SDK that fetches through its own network stack may refuse to
+     * while the device reports no connectivity -- HERE will not even ask
+     * 127.0.0.1 -- so its layer hands the request here instead. Same
+     * providers, same answers: the bytes of a drawn tile, a transparent tile
+     * where the provider has nothing, and null when the route is unknown or
+     * the render failed, which the caller reports as a failure the map may
+     * retry. The URL is one this server's own templates produced.
+     */
+    fun renderLocalTile(
+        url: String,
+        isCancelled: () -> Boolean = { false },
+    ): ByteArray? {
+        if (!url.startsWith("$baseUrl/")) return null
+        val path = url.removePrefix("$baseUrl/").substringBefore('?')
+        return when (val outcome = resolveTile(path, isCancelled)) {
+            is TileOutcome.Tile -> outcome.body
+            is TileOutcome.Empty -> TransparentTilePng.bytes(outcome.pixelSize)
+            TileOutcome.NotFound, TileOutcome.Failed -> null
+        }
+    }
+
+    /**
      * Whether the server is accepting connections. A stopped server cannot be
      * restarted (its socket and worker pool are closed) — create a new one.
      */

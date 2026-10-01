@@ -2669,6 +2669,7 @@ public final class com.mapconductor.core.tileserver.LocalTileServer {
   public final java.lang.String urlTemplate(java.lang.String, int);
   public final java.lang.String urlTemplate(java.lang.String, int, java.lang.String);
   public final java.lang.String urlTemplateWithQueryCacheKey(java.lang.String, int, java.lang.String);
+  public final byte[] renderLocalTile(java.lang.String, kotlin.jvm.functions.Function0<java.lang.Boolean>);
   public final boolean isRunning();
   public final void start();
   public final void stop();
