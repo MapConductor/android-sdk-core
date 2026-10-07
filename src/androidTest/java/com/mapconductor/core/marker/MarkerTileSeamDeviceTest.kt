@@ -54,6 +54,42 @@ class MarkerTileSeamDeviceTest {
     }
 
     @Test
+    fun distinctRectanglesWithMatchingLowBitsAreAllRendered() {
+        val manager = MarkerManager.defaultManager<Unit>(minMarkerCount = 1)
+        val icon = ImageIcon(
+            image = android.graphics.drawable.ColorDrawable(android.graphics.Color.RED),
+            iconSize = androidx.compose.ui.unit.Dp(16f),
+        )
+        val tilePixels = com.mapconductor.core.ResourceProvider.dpToPx(512.0).toInt()
+        val positions = listOf(100 to 100, 200 to 100, 100 to 356)
+        for ((index, point) in positions.withIndex()) {
+            val worldX = 8.0 + point.first.toDouble() / tilePixels
+            val worldY = 6.0 + point.second.toDouble() / tilePixels
+            val latitude = Math.toDegrees(Math.atan(Math.sinh(Math.PI * (1.0 - 2.0 * worldY / 16.0))))
+            manager.registerEntity(
+                MarkerEntity(
+                    marker = null,
+                    state = MarkerState(
+                        position = GeoPoint.fromLatLong(latitude, worldX * 360.0 / 16.0 - 180.0),
+                        id = "rectangle-$index",
+                        icon = icon,
+                    ),
+                    visible = true,
+                    isRendered = true,
+                    tiling = true,
+                ),
+            )
+        }
+        val renderer = MarkerTileRenderer(manager, tileSize = 512, cacheSizeBytes = 1)
+        val bytes = renderer.renderTile(TileRequest(x = 8, y = 6, z = 4))!!
+        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        for ((x, y) in positions) {
+            assertEquals("marker at $x,$y", android.graphics.Color.RED, bitmap.getPixel(x, y))
+        }
+        bitmap.recycle()
+    }
+
+    @Test
     fun adjacentTilesAgreeAtEveryVerticalSeam() {
         val renderer =
             MarkerTileRenderer(
