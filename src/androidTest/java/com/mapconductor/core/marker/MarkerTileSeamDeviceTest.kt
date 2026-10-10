@@ -31,6 +31,7 @@ class MarkerTileSeamDeviceTest {
     private fun manager(): MarkerManager<Unit> {
         val manager = MarkerManager.defaultManager<Unit>(minMarkerCount = 1)
         var seed = 12345uL
+
         fun next(): Double {
             seed = seed * 6364136223846793005uL + 1442695040888963407uL
             return (seed shr 11).toDouble() / (1uL shl 53).toDouble()
@@ -56,11 +57,17 @@ class MarkerTileSeamDeviceTest {
     @Test
     fun distinctRectanglesWithMatchingLowBitsAreAllRendered() {
         val manager = MarkerManager.defaultManager<Unit>(minMarkerCount = 1)
-        val icon = ImageIcon(
-            image = android.graphics.drawable.ColorDrawable(android.graphics.Color.RED),
-            iconSize = androidx.compose.ui.unit.Dp(16f),
-        )
-        val tilePixels = com.mapconductor.core.ResourceProvider.dpToPx(512.0).toInt()
+        val icon =
+            ImageIcon(
+                image = android.graphics.drawable.ColorDrawable(android.graphics.Color.RED),
+                iconSize =
+                    androidx.compose.ui.unit
+                        .Dp(16f),
+            )
+        val tilePixels =
+            com.mapconductor.core.ResourceProvider
+                .dpToPx(512.0)
+                .toInt()
         val positions = listOf(100 to 100, 200 to 100, 100 to 356)
         for ((index, point) in positions.withIndex()) {
             val worldX = 8.0 + point.first.toDouble() / tilePixels
@@ -69,11 +76,12 @@ class MarkerTileSeamDeviceTest {
             manager.registerEntity(
                 MarkerEntity(
                     marker = null,
-                    state = MarkerState(
-                        position = GeoPoint.fromLatLong(latitude, worldX * 360.0 / 16.0 - 180.0),
-                        id = "rectangle-$index",
-                        icon = icon,
-                    ),
+                    state =
+                        MarkerState(
+                            position = GeoPoint.fromLatLong(latitude, worldX * 360.0 / 16.0 - 180.0),
+                            id = "rectangle-$index",
+                            icon = icon,
+                        ),
                     visible = true,
                     isRendered = true,
                     tiling = true,
@@ -106,10 +114,11 @@ class MarkerTileSeamDeviceTest {
         for (z in intArrayOf(12, 13, 14, 15, 16, 17)) {
             val n = 1 shl z
             val centerX = ((139.75 + 180.0) / 360.0 * n).toInt()
-            val centerY = run {
-                val latRad = Math.toRadians(35.69)
-                ((1.0 - Math.log(Math.tan(latRad) + 1.0 / Math.cos(latRad)) / Math.PI) / 2.0 * n).toInt()
-            }
+            val centerY =
+                run {
+                    val latRad = Math.toRadians(35.69)
+                    ((1.0 - Math.log(Math.tan(latRad) + 1.0 / Math.cos(latRad)) / Math.PI) / 2.0 * n).toInt()
+                }
             for (dx in -3..2) {
                 for (dy in -2..2) {
                     val at = renderer.renderTile(TileRequest(x = centerX + dx, y = centerY + dy, z = z))
@@ -127,22 +136,34 @@ class MarkerTileSeamDeviceTest {
                     for (y in 0 until tile.height) {
                         val a = (tile.getPixel(tile.width - 1, y) ushr 24) > 0x20
                         val b = (eastTile.getPixel(0, y) ushr 24) > 0x20
-                        if (a != b) { run += 1; if (run > worst) worst = run } else run = 0
+                        if (a != b) {
+                            run += 1
+                            if (run > worst) worst = run
+                        } else {
+                            run = 0
+                        }
                     }
                     if (worst > 16) {
                         bad += 1
-                        Log.i(TAG, "SEAM broken(vertical) z=$z x=${centerX + dx}/${centerX + dx + 1} y=${centerY + dy} worstRun=$worst")
+                        Log
+                            .i(TAG, "SEAM broken(vertical) z=$z x=${centerX + dx}/${centerX + dx + 1} y=${centerY + dy} worstRun=$worst")
                     }
                     worst = 0
                     run = 0
                     for (x in 0 until tile.width) {
                         val a = (tile.getPixel(x, tile.height - 1) ushr 24) > 0x20
                         val b = (southTile.getPixel(x, 0) ushr 24) > 0x20
-                        if (a != b) { run += 1; if (run > worst) worst = run } else run = 0
+                        if (a != b) {
+                            run += 1
+                            if (run > worst) worst = run
+                        } else {
+                            run = 0
+                        }
                     }
                     if (worst > 16) {
                         bad += 1
-                        Log.i(TAG, "SEAM broken(horizontal) z=$z x=${centerX + dx} y=${centerY + dy}/${centerY + dy + 1} worstRun=$worst")
+                        Log
+                            .i(TAG, "SEAM broken(horizontal) z=$z x=${centerX + dx} y=${centerY + dy}/${centerY + dy + 1} worstRun=$worst")
                     }
                 }
             }

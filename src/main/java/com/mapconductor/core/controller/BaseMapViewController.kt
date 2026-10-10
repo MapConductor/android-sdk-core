@@ -13,6 +13,7 @@ import com.mapconductor.core.groundimage.GroundImageState
 import com.mapconductor.core.groundimage.OnGroundImageEventHandler
 import com.mapconductor.core.map.CameraRestriction
 import com.mapconductor.core.map.MapCameraPosition
+import com.mapconductor.core.map.MapDiagnostics
 import com.mapconductor.core.map.MapViewHolderInterface
 import com.mapconductor.core.marker.MarkerAnimationOverlayHost
 import com.mapconductor.core.marker.MarkerCapableInterface
@@ -25,6 +26,7 @@ import com.mapconductor.core.polyline.OnPolylineEventHandler
 import com.mapconductor.core.polyline.PolylineCapableInterface
 import com.mapconductor.core.polyline.PolylineState
 import com.mapconductor.core.raster.RasterLayerCapableInterface
+import com.mapconductor.core.raster.RasterLayerController
 import com.mapconductor.core.raster.RasterLayerState
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
@@ -375,6 +377,105 @@ abstract class BaseMapViewController :
     }
 
     override fun hasRasterLayer(state: RasterLayerState): Boolean = hasOverlay(OverlayKind.RasterLayer, state.id)
+
+    /**
+     * Adds or replaces a raster layer that is **not** part of the content
+     * block.
+     *
+     * `compositionRasterLayers` replaces the whole set with what the
+     * composition declared, so anything mounted from outside it would be
+     * swept away on the next recomposition. [RasterLayerController.upsert]
+     * keeps its ids out of that sweep, and this is how the two callers that
+     * need it get there: marker tiling, and a [MapViewStyle] on a backend
+     * that cannot draw a vector style and has to be handed tiles rendered
+     * from one.
+     *
+     * Provider-agnostic on purpose. The raster controller is already
+     * registered as an overlay controller by every provider, so this needs
+     * nothing per provider -- which is the difference between a seam that
+     * works on eleven backends and one that is wired on three.
+     */
+    open fun mountRasterLayer(state: RasterLayerState) {
+        val controllers = rasterLayerControllers()
+        if (controllers.isEmpty()) {
+            noRasterMount(state.id)
+            return
+        }
+        mainCoroutine.launch { controllers.forEach { it.upsert(state) } }
+    }
+
+    /** Takes off what [mountRasterLayer] put on. A layer that is not there is not an error. */
+    open fun unmountRasterLayer(id: String) {
+        val controllers = rasterLayerControllers()
+        if (controllers.isEmpty()) return
+        mainCoroutine.launch { controllers.forEach { it.removeById(id) } }
+    }
+
+    /**
+     * Says so when a provider has nowhere to mount one.
+     *
+     * Most providers reach their tiles through a [RasterLayerController]
+     * registered as an overlay controller, and get [mountRasterLayer] for
+     * free. TomTom and Longdo compose rasters into their own style instead
+     * and have no such controller, so they override the pair. A provider
+     * that does neither would otherwise show an empty map and say nothing,
+     * which is the failure this whole design is built against.
+     */
+    private fun noRasterMount(id: String) {
+        MapDiagnostics.sink.log(
+            "raster layer $id was not mounted: this provider registers no RasterLayerController " +
+                "and does not override mountRasterLayer",
+        )
+    }
+
+    private fun rasterLayerControllers(): List<RasterLayerController<*>> =
+        overlayControllersOf(OverlayKind.RasterLayer).filterIsInstance<RasterLayerController<*>>()
+
+    private val styleLoadedListeners = CopyOnWriteArrayList<() -> Unit>()
+
+    /**
+     * Runs [block] every time this map finishes loading a style document,
+     * and once now if it already has one.
+     *
+     * Everything a [MapViewStyle] put on a live renderer -- paint
+     * properties, a layer it added -- is gone when that renderer loads a
+     * document again, for any reason: the app switching basemap, a design
+     * change, the provider rebuilding its view. This is how it goes back on,
+     * and it is a registry rather than one listener because both the
+     * mutation store and the style installation need to hear it.
+     *
+     * A provider that has no such thing (Google Maps, MapKit, HERE...) never
+     * calls [notifyStyleLoaded], and a style installed on it is one that was
+     * rasterised into tiles -- which survives a basemap change by itself.
+     *
+     * @return the ticket to stop listening.
+     */
+    fun addStyleLoadedListener(block: () -> Unit): () -> Unit {
+        styleLoadedListeners.add(block)
+        if (styleLoaded) block()
+        return { styleLoadedListeners.remove(block) }
+    }
+
+    /**
+     * Called by the provider once the map has a style up **and** the
+     * overlays are back on it.
+     *
+     * Not when the load starts, and not before the provider has put its own
+     * layers back: a listener that patches a style mid-rebuild patches
+     * something that is about to be replaced.
+     */
+    protected fun notifyStyleLoaded() {
+        styleLoaded = true
+        styleLoadedListeners.forEach { it() }
+    }
+
+    /**
+     * Whether a style document is up now.
+     *
+     * Sticky, like [mapInitialized] and for the same reason: a provider can
+     * finish loading before anything has asked to be told about it.
+     */
+    private var styleLoaded = false
 
     fun setMapInitializedListener(listener: OnMapInitializedHandler?) {
         this.mapInitializedCallback = listener

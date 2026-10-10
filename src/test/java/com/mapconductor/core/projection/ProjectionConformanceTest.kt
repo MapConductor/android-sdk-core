@@ -1,10 +1,10 @@
 package com.mapconductor.core.projection
 
 import com.mapconductor.core.features.GeoPoint
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Web Mercator の適合テスト。
@@ -80,8 +80,10 @@ class ProjectionConformanceTest {
     @Test
     fun `正本があれば完全一致する`() {
         val expected =
-            javaClass.classLoader?.getResourceAsStream("projection-expected.txt")
-                ?.bufferedReader()?.readText() ?: return
+            javaClass.classLoader
+                ?.getResourceAsStream("projection-expected.txt")
+                ?.bufferedReader()
+                ?.readText() ?: return
         assertEquals(expected, runVectors())
     }
 }

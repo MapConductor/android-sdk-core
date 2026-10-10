@@ -22,6 +22,7 @@ class MarkerTileRenderBenchmark {
     private fun manager(): MarkerManager<Unit> {
         val manager = MarkerManager.defaultManager<Unit>(minMarkerCount = 1)
         var seed = 12345uL
+
         fun next(): Double {
             seed = seed * 6364136223846793005uL + 1442695040888963407uL
             return (seed shr 11).toDouble() / (1uL shl 53).toDouble()
@@ -52,10 +53,11 @@ class MarkerTileRenderBenchmark {
         // The tile column/row central Tokyo lands on at this zoom.
         val n = 1 shl z
         val centerX = ((139.75 + 180.0) / 360.0 * n).toInt()
-        val centerY = run {
-            val latRad = Math.toRadians(35.69)
-            ((1.0 - Math.log(Math.tan(latRad) + 1.0 / Math.cos(latRad)) / Math.PI) / 2.0 * n).toInt()
-        }
+        val centerY =
+            run {
+                val latRad = Math.toRadians(35.69)
+                ((1.0 - Math.log(Math.tan(latRad) + 1.0 / Math.cos(latRad)) / Math.PI) / 2.0 * n).toInt()
+            }
         var totalMs = 0L
         var tiles = 0
         for (dx in -1..1) {

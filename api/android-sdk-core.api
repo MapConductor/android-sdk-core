@@ -297,6 +297,10 @@ public abstract class com.mapconductor.core.controller.BaseMapViewController imp
   public java.lang.Object compositionRasterLayers(java.util.List<com.mapconductor.core.raster.RasterLayerState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public java.lang.Object updateRasterLayer(com.mapconductor.core.raster.RasterLayerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public boolean hasRasterLayer(com.mapconductor.core.raster.RasterLayerState);
+  public void mountRasterLayer(com.mapconductor.core.raster.RasterLayerState);
+  public void unmountRasterLayer(java.lang.String);
+  public final kotlin.jvm.functions.Function0<kotlin.Unit> addStyleLoadedListener(kotlin.jvm.functions.Function0<kotlin.Unit>);
+  protected final void notifyStyleLoaded();
   public final void setMapInitializedListener(kotlin.jvm.functions.Function0<kotlin.Unit>);
   protected final void notifyMapInitialized();
   protected final java.lang.Object notifyMapCameraPosition(com.mapconductor.core.map.MapCameraPosition, kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -772,6 +776,9 @@ final class com.mapconductor.core.groundimage.GroundImageTileProvider$WebMercato
   public final double lonToPixelX(double, double);
   public final double latToPixelY(double, double);
 }
+public final class com.mapconductor.core.map.ApplyStyleMutationsKt {
+  public static final java.util.List<com.mapconductor.core.map.StyleMutation> applyStyleMutations(com.mapconductor.core.map.StyleMutationTarget, java.util.List<? extends com.mapconductor.core.map.StyleMutation>);
+}
 public final class com.mapconductor.core.map.AttributionRule implements java.io.Serializable {
   public com.mapconductor.core.map.AttributionRule(java.lang.String, java.lang.Integer, java.lang.Integer, com.mapconductor.core.features.GeoRectBounds);
   public com.mapconductor.core.map.AttributionRule(java.lang.String, java.lang.Integer, java.lang.Integer, com.mapconductor.core.features.GeoRectBounds, int, kotlin.jvm.internal.DefaultConstructorMarker);
@@ -1074,6 +1081,31 @@ public final class com.mapconductor.core.map.MapServiceRegistry$DefaultImpls {
 public final class com.mapconductor.core.map.MapServiceRegistryKt {
   public static final androidx.compose.runtime.ProvidableCompositionLocal<com.mapconductor.core.map.MapServiceRegistry> getLocalMapServiceRegistry();
 }
+public interface com.mapconductor.core.map.MapStyleHost {
+  public abstract com.mapconductor.core.map.MapServiceRegistry getServiceRegistry();
+  public abstract com.mapconductor.core.tileserver.LocalTileServer getTileServer();
+  public default java.lang.String getVectorStyleUrl();
+  public abstract com.mapconductor.core.map.MapStyleInstallation onStyleLoaded(kotlin.jvm.functions.Function0<kotlin.Unit>);
+  public abstract void upsertRaster(com.mapconductor.core.raster.RasterLayerState);
+  public abstract void removeRaster(java.lang.String);
+  public abstract void report(java.util.List<java.lang.String>);
+}
+public final class com.mapconductor.core.map.MapStyleHost$DefaultImpls {
+  public static java.lang.String getVectorStyleUrl(com.mapconductor.core.map.MapStyleHost);
+}
+public interface com.mapconductor.core.map.MapStyleInstallation {
+  public static final com.mapconductor.core.map.MapStyleInstallation$Companion Companion;
+  public static final com.mapconductor.core.map.MapStyleInstallation NONE;
+  public abstract void dispose();
+  public default boolean update(com.mapconductor.core.map.MapViewStyle);
+  public static com.mapconductor.core.map.MapStyleInstallation of(kotlin.jvm.functions.Function0<kotlin.Unit>);
+}
+public final class com.mapconductor.core.map.MapStyleInstallation$Companion {
+  public final com.mapconductor.core.map.MapStyleInstallation of(kotlin.jvm.functions.Function0<kotlin.Unit>);
+}
+public final class com.mapconductor.core.map.MapStyleInstallation$DefaultImpls {
+  public static boolean update(com.mapconductor.core.map.MapStyleInstallation, com.mapconductor.core.map.MapViewStyle);
+}
 public final class com.mapconductor.core.map.MapUISettings {
   public static final com.mapconductor.core.map.MapUISettings$Companion Companion;
   public com.mapconductor.core.map.MapUISettings(boolean, boolean, boolean, boolean, com.mapconductor.core.map.MapPaddings);
@@ -1150,6 +1182,27 @@ public interface com.mapconductor.core.map.MapViewStateInterface<ActualMapDesign
 }
 public final class com.mapconductor.core.map.MapViewStateInterface$DefaultImpls {
 }
+public interface com.mapconductor.core.map.MapViewStyle {
+  public abstract java.lang.String getKey();
+  public abstract com.mapconductor.core.map.MapStyleInstallation install(com.mapconductor.core.map.MapStyleHost);
+}
+public final class com.mapconductor.core.map.MapViewStyleEffectKt {
+  public static final void MapViewStyleEffect(com.mapconductor.core.map.MapViewStateInterface<?>, com.mapconductor.core.map.MapViewStyle, com.mapconductor.core.controller.BaseMapViewController, kotlin.jvm.functions.Function1<? super java.util.List<java.lang.String>, kotlin.Unit>, androidx.compose.runtime.Composer, int, int);
+}
+public final class com.mapconductor.core.map.MapViewStyleHost implements com.mapconductor.core.map.MapStyleHost {
+  public com.mapconductor.core.map.MapViewStyleHost(com.mapconductor.core.map.MapServiceRegistry, com.mapconductor.core.controller.BaseMapViewController);
+  public com.mapconductor.core.map.MapServiceRegistry getServiceRegistry();
+  public final void apply(com.mapconductor.core.map.MapViewStyle, kotlin.jvm.functions.Function1<? super java.util.List<java.lang.String>, kotlin.Unit>);
+  public final void dispose();
+  public com.mapconductor.core.tileserver.LocalTileServer getTileServer();
+  public java.lang.String getVectorStyleUrl();
+  public com.mapconductor.core.map.MapStyleInstallation onStyleLoaded(kotlin.jvm.functions.Function0<kotlin.Unit>);
+  public void upsertRaster(com.mapconductor.core.raster.RasterLayerState);
+  public void removeRaster(java.lang.String);
+  public void report(java.util.List<java.lang.String>);
+}
+public final class com.mapconductor.core.map.MapViewStyleHostKt {
+}
 public final class com.mapconductor.core.map.MutableMapServiceRegistry implements com.mapconductor.core.map.MapServiceRegistry {
   public com.mapconductor.core.map.MutableMapServiceRegistry();
   public final void clear();
@@ -1175,19 +1228,162 @@ public abstract class com.mapconductor.core.map.StaticHolder<ValueType> {
   public final void remove(java.lang.String);
   public final void clearAll();
 }
+public abstract class com.mapconductor.core.map.StyleMutation {
+  public static final com.mapconductor.core.map.StyleMutation$Companion Companion;
+  public abstract java.lang.String getLayerId();
+  public abstract java.lang.String getTarget();
+  public java.lang.String getPropertyName();
+  public abstract com.mapconductor.core.map.StyleMutation reversed();
+  public static final java.util.List<com.mapconductor.core.map.StyleMutation> parseList(java.lang.String);
+  public static final java.lang.String jsonTextOf(java.lang.Object);
+  public com.mapconductor.core.map.StyleMutation(kotlin.jvm.internal.DefaultConstructorMarker);
+}
+public final class com.mapconductor.core.map.StyleMutation$AddLayer extends com.mapconductor.core.map.StyleMutation {
+  public java.lang.String getLayerId();
+  public final java.lang.String getLayer();
+  public final java.lang.String getBeforeId();
+  public java.lang.String getTarget();
+  public com.mapconductor.core.map.StyleMutation$RemoveLayer reversed();
+  public final java.lang.String component1();
+  public final java.lang.String component2();
+  public final java.lang.String component3();
+  public final com.mapconductor.core.map.StyleMutation$AddLayer copy(java.lang.String, java.lang.String, java.lang.String);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public com.mapconductor.core.map.StyleMutation reversed();
+}
+public final class com.mapconductor.core.map.StyleMutation$Companion {
+  public final java.util.List<com.mapconductor.core.map.StyleMutation> parseList(java.lang.String);
+  public final java.lang.String jsonTextOf(java.lang.Object);
+}
+public final class com.mapconductor.core.map.StyleMutation$RemoveLayer extends com.mapconductor.core.map.StyleMutation {
+  public java.lang.String getLayerId();
+  public java.lang.String getTarget();
+  public com.mapconductor.core.map.StyleMutation reversed();
+  public final java.lang.String component1();
+  public final com.mapconductor.core.map.StyleMutation$RemoveLayer copy(java.lang.String);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
+public final class com.mapconductor.core.map.StyleMutation$SetFilter extends com.mapconductor.core.map.StyleMutation {
+  public java.lang.String getLayerId();
+  public final java.lang.String getValue();
+  public final java.lang.String getPrevious();
+  public java.lang.String getTarget();
+  public java.lang.String getPropertyName();
+  public com.mapconductor.core.map.StyleMutation$SetFilter reversed();
+  public final java.lang.String component1();
+  public final java.lang.String component2();
+  public final java.lang.String component3();
+  public final com.mapconductor.core.map.StyleMutation$SetFilter copy(java.lang.String, java.lang.String, java.lang.String);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public com.mapconductor.core.map.StyleMutation reversed();
+}
+public final class com.mapconductor.core.map.StyleMutation$SetLayout extends com.mapconductor.core.map.StyleMutation {
+  public java.lang.String getLayerId();
+  public final java.lang.String getKey();
+  public final java.lang.String getValue();
+  public final java.lang.String getPrevious();
+  public java.lang.String getTarget();
+  public java.lang.String getPropertyName();
+  public com.mapconductor.core.map.StyleMutation$SetLayout reversed();
+  public final java.lang.String component1();
+  public final java.lang.String component2();
+  public final java.lang.String component3();
+  public final java.lang.String component4();
+  public final com.mapconductor.core.map.StyleMutation$SetLayout copy(java.lang.String, java.lang.String, java.lang.String, java.lang.String);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public com.mapconductor.core.map.StyleMutation reversed();
+}
+public final class com.mapconductor.core.map.StyleMutation$SetPaint extends com.mapconductor.core.map.StyleMutation {
+  public java.lang.String getLayerId();
+  public final java.lang.String getKey();
+  public final java.lang.String getValue();
+  public final java.lang.String getPrevious();
+  public java.lang.String getTarget();
+  public java.lang.String getPropertyName();
+  public com.mapconductor.core.map.StyleMutation$SetPaint reversed();
+  public final java.lang.String component1();
+  public final java.lang.String component2();
+  public final java.lang.String component3();
+  public final java.lang.String component4();
+  public final com.mapconductor.core.map.StyleMutation$SetPaint copy(java.lang.String, java.lang.String, java.lang.String, java.lang.String);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public com.mapconductor.core.map.StyleMutation reversed();
+}
+public final class com.mapconductor.core.map.StyleMutation$SetZoomRange extends com.mapconductor.core.map.StyleMutation {
+  public java.lang.String getLayerId();
+  public final java.lang.Double getMinZoom();
+  public final java.lang.Double getMaxZoom();
+  public final java.lang.Double getPreviousMinZoom();
+  public final java.lang.Double getPreviousMaxZoom();
+  public java.lang.String getTarget();
+  public java.lang.String getPropertyName();
+  public com.mapconductor.core.map.StyleMutation$SetZoomRange reversed();
+  public final java.lang.String component1();
+  public final java.lang.Double component2();
+  public final java.lang.Double component3();
+  public final java.lang.Double component4();
+  public final java.lang.Double component5();
+  public final com.mapconductor.core.map.StyleMutation$SetZoomRange copy(java.lang.String, java.lang.Double, java.lang.Double, java.lang.Double, java.lang.Double);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public com.mapconductor.core.map.StyleMutation reversed();
+}
+public final class com.mapconductor.core.map.StyleMutationStore implements com.mapconductor.core.map.VectorStyleMutationSupport {
+  public com.mapconductor.core.map.StyleMutationStore(kotlin.jvm.functions.Function1<? super java.util.List<? extends com.mapconductor.core.map.StyleMutation>, ? extends java.util.List<? extends com.mapconductor.core.map.StyleMutation>>);
+  public java.util.List<com.mapconductor.core.map.StyleMutation> apply(java.util.List<? extends com.mapconductor.core.map.StyleMutation>);
+  public void clear();
+  public final void onStyleLoaded();
+  public final java.util.List<com.mapconductor.core.map.StyleMutation> getApplied();
+}
+public interface com.mapconductor.core.map.StyleMutationTarget {
+  public default boolean isReady();
+  public abstract boolean hasLayer(java.lang.String);
+  public abstract void setPaint(java.lang.String, java.lang.String, java.lang.String);
+  public abstract void setLayout(java.lang.String, java.lang.String, java.lang.String);
+  public abstract void setFilter(java.lang.String, java.lang.String);
+  public abstract void setZoomRange(java.lang.String, float, float);
+  public abstract void addLayer(java.lang.String, java.lang.String, java.lang.String);
+  public abstract void removeLayer(java.lang.String);
+}
+public final class com.mapconductor.core.map.StyleMutationTarget$DefaultImpls {
+  public static boolean isReady(com.mapconductor.core.map.StyleMutationTarget);
+}
 public final class com.mapconductor.core.map.VectorStyleAsDesign<Design extends com.mapconductor.core.map.MapDesignTypeInterface<?>> implements com.mapconductor.core.map.VectorStyleSupport {
   public static final long CLEAR_GRACE_MS;
-  public com.mapconductor.core.map.VectorStyleAsDesign(com.mapconductor.core.map.MapViewStateInterface<Design>, kotlin.jvm.functions.Function2<? super java.lang.String, ? super java.util.List<com.mapconductor.core.map.AttributionRule>, ? extends Design>);
+  public com.mapconductor.core.map.VectorStyleAsDesign(com.mapconductor.core.map.MapViewStateInterface<Design>, kotlin.jvm.functions.Function1<? super Design, java.lang.String>, kotlin.jvm.functions.Function2<? super java.lang.String, ? super java.util.List<com.mapconductor.core.map.AttributionRule>, ? extends Design>);
+  public com.mapconductor.core.map.VectorStyleAsDesign(com.mapconductor.core.map.MapViewStateInterface, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public void showStyle(java.lang.String, java.util.List<com.mapconductor.core.map.AttributionRule>);
   public void clearStyle();
+  public java.lang.String getCurrentStyleUrl();
 }
 final class com.mapconductor.core.map.VectorStyleAsDesign$Companion {
+}
+public interface com.mapconductor.core.map.VectorStyleMutationSupport {
+  public abstract java.util.List<com.mapconductor.core.map.StyleMutation> apply(java.util.List<? extends com.mapconductor.core.map.StyleMutation>);
+  public abstract void clear();
+}
+public final class com.mapconductor.core.map.VectorStyleMutationSupportKey implements com.mapconductor.core.map.MapServiceKey<com.mapconductor.core.map.VectorStyleMutationSupport> {
+  public static final com.mapconductor.core.map.VectorStyleMutationSupportKey INSTANCE;
+  public com.mapconductor.core.map.MapCapability getCapability();
 }
 public interface com.mapconductor.core.map.VectorStyleSupport {
   public abstract void showStyle(java.lang.String, java.util.List<com.mapconductor.core.map.AttributionRule>);
   public abstract void clearStyle();
+  public default java.lang.String getCurrentStyleUrl();
 }
 public final class com.mapconductor.core.map.VectorStyleSupport$DefaultImpls {
+  public static java.lang.String getCurrentStyleUrl(com.mapconductor.core.map.VectorStyleSupport);
 }
 public final class com.mapconductor.core.map.VectorStyleSupportKey implements com.mapconductor.core.map.MapServiceKey<com.mapconductor.core.map.VectorStyleSupport> {
   public static final com.mapconductor.core.map.VectorStyleSupportKey INSTANCE;
