@@ -1,5 +1,6 @@
 package com.mapconductor.core.marker
 
+import androidx.compose.ui.geometry.Offset
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -93,5 +94,49 @@ class MarkerHitTestTest {
         assertTrue(centered(0.0, -24.0))
         assertTrue(centered(0.0, 24.0))
         assertFalse(centered(0.0, 24.0 + tolerance + 0.5))
+    }
+}
+
+/**
+ * [MarkerHitPick.pickIndex] の選び方。ios-sdk の `MarkerHitTestTests`、react-sdk の
+ * `MarkerHitPick.test.mjs` と同じ観点を見る。
+ */
+@OptIn(com.mapconductor.core.InternalMapConductorApi::class)
+class MarkerHitTestPickTest {
+    private val tolerance = 14.0
+
+    private fun rect(
+        x: Float,
+        y: Float,
+        width: Double = 48.0,
+        height: Double = 48.0,
+        anchorX: Double = 0.5,
+    ) = MarkerHitPick.ScreenRect(Offset(x, y), width, height, anchorX, 1.0)
+
+    @Test
+    fun iconUnderTheFingerBeatsANearerTip() {
+        // labelled: 先端 (0, 100)、ラベルを右へ伸ばして幅 200（矩形 x -24..176, y 52..100）。
+        // nearTip:  先端 (150, 70) でタップ点にずっと近いが、矩形 (126..174, 22..70) はタップ点に届かない。
+        // タップ (150, 80) は labelled のラベルの上なので、先端の近さに関係なく labelled が選ばれる。
+        val labelled = rect(0f, 100f, width = 200.0, anchorX = 0.12)
+        val nearTip = rect(150f, 70f)
+        assertTrue(MarkerHitPick.pickIndex(Offset(150f, 80f), listOf(nearTip, labelled), tolerance) == 1)
+    }
+
+    @Test
+    fun frontmostWinsWhenTwoIconsOverlap() {
+        val back = rect(100f, 100f)
+        val front = rect(100f, 120f)
+        assertTrue(MarkerHitPick.pickIndex(Offset(100f, 90f), listOf(back, front), tolerance) == 1)
+    }
+
+    @Test
+    fun toleranceOnlyWhenNothingIsUnderTheFinger() {
+        val far = rect(100f, 100f)
+        val near = rect(140f, 100f)
+        // どちらの矩形にも入らないが、許容範囲には両方入る点。アンカーの近い方。
+        val touch = Offset(170f, 105f)
+        assertTrue(MarkerHitPick.pickIndex(touch, listOf(far, near), 40.0) == 1)
+        assertTrue(MarkerHitPick.pickIndex(Offset(400f, 400f), listOf(far, near), tolerance) == null)
     }
 }

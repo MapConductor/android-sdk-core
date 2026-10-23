@@ -1,5 +1,6 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
@@ -110,16 +111,12 @@ class StrategyMarkerController<ActualMarker>(
 
     override fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = strategy.markerManager.getEntity(id)
 
+    @OptIn(InternalMapConductorApi::class)
     override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
-        val nearest = strategy.markerManager.findNearest(position) ?: return null
-        val touchScreen = renderer.holder.toScreenOffset(position) ?: return null
-        val markerScreen = renderer.holder.toScreenOffset(nearest.state.position) ?: return null
-
-        return if (MarkerHitTest.hitsIcon(touchScreen, markerScreen, nearest.state)) {
-            nearest
-        } else {
-            null
-        }
+        val holder = renderer.holder
+        val touchScreen = holder.toScreenOffset(position) ?: return null
+        val bounds = MarkerHitPick.searchBounds(position, touchScreen, holder::toScreenOffset) ?: return null
+        return MarkerHitPick.pick(touchScreen, strategy.markerManager.findMarkersInBounds(bounds), holder::toScreenOffset)
     }
 
     override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {

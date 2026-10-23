@@ -1,5 +1,6 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.controller.SlottedOverlayController
@@ -336,9 +337,11 @@ abstract class AbstractMarkerController<ActualMarker>(
      *
      * ## 判定は画面座標で行う
      *
-     * 最近傍のマーカーを 1 つだけ取り出し、タップ点とマーカーの**アイコン矩形**を
-     * 画面座標で突き合わせる（[MarkerHitTest]）。地理距離ではなくアイコンの大きさを
-     * 見るので、幅広ラベルやクラスタのように大きいアイコンでも端が反応する。
+     * タップ点の周り（[MarkerHitPick.SEARCH_RADIUS_DP]）のマーカーを候補にし、各候補の
+     * **アイコン矩形**（ラベル込み）を画面座標で突き合わせる（[MarkerHitPick.pick]）。
+     * 指の下にアイコンかラベルが描かれているマーカーが、先端の近い別のマーカーより優先する。
+     * 以前は先端が最寄りの 1 つだけを見ていたので、隣のピンの頭や横に置いたラベルを
+     * タップすると外れていた。
      *
      * 投影できない（[com.mapconductor.core.map.MapViewHolderInterface.toScreenOffset] が
      * null）ときは「当たらなかった」として null。画面外のマーカーは当たらないのが正しい。
@@ -349,16 +352,12 @@ abstract class AbstractMarkerController<ActualMarker>(
      * `clickable = false` かつ `draggable = true` のマーカーがドラッグできなくなる。
      * クリックの可否は配送側（[dispatchClick] / [clickableOnly]）で判断する。
      */
+    @OptIn(InternalMapConductorApi::class)
     override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
-        val nearest = markerManager.findNearest(position) ?: return null
-        val touchScreen = renderer.holder.toScreenOffset(position) ?: return null
-        val markerScreen = renderer.holder.toScreenOffset(nearest.state.position) ?: return null
-
-        return if (MarkerHitTest.hitsIcon(touchScreen, markerScreen, nearest.state)) {
-            nearest
-        } else {
-            null
-        }
+        val holder = renderer.holder
+        val touchScreen = holder.toScreenOffset(position) ?: return null
+        val bounds = MarkerHitPick.searchBounds(position, touchScreen, holder::toScreenOffset) ?: return null
+        return MarkerHitPick.pick(touchScreen, markerManager.findMarkersInBounds(bounds), holder::toScreenOffset)
     }
 
     override val kind: OverlayKind = OverlayKind.Marker
