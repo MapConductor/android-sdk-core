@@ -169,22 +169,25 @@ abstract class MapViewState<ActualMapDesignType>(
         cameraPosition: MapCameraPosition,
         durationMillis: Long?,
     ) {
+        // 明示されたプロパティは 0 でもそのまま使い、未指定のものだけ現在のカメラから
+        // 引き継ぐ。`MapCameraPosition(position = ...)` なら位置だけが動く。
+        val resolved = cameraPosition.resolvedOnto(_cameraPosition)
         val ctrl = attachedMapController
         if (ctrl == null) {
             // まだ地図が無い。接続時に attachController がこの位置へ移動する。
-            _cameraPosition = cameraPosition
+            _cameraPosition = resolved
             return
         }
         if (optimisticCameraUpdate) {
-            _cameraPosition = cameraPosition
+            _cameraPosition = resolved
         }
         // 引数は既に MapCameraPosition なので、プロバイダごとの
         // `MapCameraPosition.Companion.from` は恒等変換になる（どの実装も
         // `is MapCameraPosition -> position` で素通しする）。ここでは呼ばない。
         if (durationMillis == null || durationMillis == 0L) {
-            ctrl.moveCamera(cameraPosition)
+            ctrl.moveCamera(resolved)
         } else {
-            ctrl.animateCamera(cameraPosition, durationMillis)
+            ctrl.animateCamera(resolved, durationMillis)
         }
     }
 

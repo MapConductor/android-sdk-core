@@ -852,14 +852,18 @@ public final class com.mapconductor.core.map.LocalMapOverlayRegistryKt {
 }
 public final class com.mapconductor.core.map.MapCameraPosition implements com.mapconductor.core.map.MapCameraPositionInterface {
   public static final com.mapconductor.core.map.MapCameraPosition$Companion Companion;
-  public com.mapconductor.core.map.MapCameraPosition(com.mapconductor.core.features.GeoPointInterface, double, double, double, com.mapconductor.core.map.MapPaddingsInterface, com.mapconductor.core.map.VisibleRegion);
-  public com.mapconductor.core.map.MapCameraPosition(com.mapconductor.core.features.GeoPointInterface, double, double, double, com.mapconductor.core.map.MapPaddingsInterface, com.mapconductor.core.map.VisibleRegion, int, kotlin.jvm.internal.DefaultConstructorMarker);
-  public double getZoom();
-  public double getBearing();
-  public double getTilt();
+  public com.mapconductor.core.map.MapCameraPosition(com.mapconductor.core.features.GeoPointInterface, java.lang.Double, java.lang.Double, java.lang.Double, com.mapconductor.core.map.MapPaddingsInterface, com.mapconductor.core.map.VisibleRegion);
+  public com.mapconductor.core.map.MapCameraPosition(com.mapconductor.core.features.GeoPointInterface, java.lang.Double, java.lang.Double, java.lang.Double, com.mapconductor.core.map.MapPaddingsInterface, com.mapconductor.core.map.VisibleRegion, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public com.mapconductor.core.map.MapPaddingsInterface getPaddings();
   public com.mapconductor.core.map.VisibleRegion getVisibleRegion();
   public com.mapconductor.core.features.GeoPoint getPosition();
+  public double getZoom();
+  public double getBearing();
+  public double getTilt();
+  public final boolean isZoomSpecified();
+  public final boolean isBearingSpecified();
+  public final boolean isTiltSpecified();
+  public final com.mapconductor.core.map.MapCameraPosition resolvedOnto(com.mapconductor.core.map.MapCameraPositionInterface);
   public final boolean equals(com.mapconductor.core.map.MapCameraPositionInterface);
   public final com.mapconductor.core.map.MapCameraPosition copy(com.mapconductor.core.features.GeoPointInterface, java.lang.Double, java.lang.Double, java.lang.Double, com.mapconductor.core.map.MapPaddingsInterface, com.mapconductor.core.map.VisibleRegion);
   public int hashCode();
