@@ -1412,6 +1412,8 @@ public final class com.mapconductor.core.map.VisibleRegionBuilderKt {
   public static final androidx.compose.ui.geometry.Size viewportSizePx(com.mapconductor.core.map.MapViewHolderInterface<?, ?>);
 }
 public abstract class com.mapconductor.core.marker.AbstractDefaultIcon extends com.mapconductor.core.marker.AbstractMarkerIcon {
+  public static final com.mapconductor.core.marker.AbstractDefaultIcon$Companion Companion;
+  public static final java.lang.String DEFAULT_LABEL_POSITION;
   public com.mapconductor.core.marker.AbstractDefaultIcon(com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProperties);
   protected final com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProperties getBaseProperties();
   public final long getStrokeColor-0d7_KjU();
@@ -1422,17 +1424,18 @@ public abstract class com.mapconductor.core.marker.AbstractDefaultIcon extends c
   public final long getLabelTextSize-XSAIIZE();
   public final android.graphics.Typeface getLabelTypeFace();
   public final long getLabelStrokeColor-0d7_KjU();
+  public final java.lang.String getLabelPosition();
   public final float getIconSize-D9Ej5fM();
+  public final boolean getDebug();
   public final long getAnchor-F1C5BW0();
   public final long getInfoAnchor-F1C5BW0();
-  public final boolean getDebug();
   protected abstract void drawMarkerFill(android.graphics.Canvas, android.graphics.Path, float, float);
   protected abstract java.lang.Object getUniqueProperties();
   public com.mapconductor.core.marker.BitmapIcon toBitmapIcon();
-  protected final void drawMarker(android.graphics.Canvas, float, float, float);
+  protected final void drawMarker(android.graphics.Canvas, float, float, float, float);
   protected final android.graphics.Path createMarkerPath(float, float, float);
   protected final android.graphics.Paint createStrokePaint(float);
-  protected final void drawLabel-oYZNtH4(android.graphics.Canvas, float, float, long, float);
+  protected final void drawLabel-INMd_9Y(android.graphics.Canvas, float, long, float, float);
   protected final float convertTextUnitToPx-eAf_CNQ(long, float);
   public boolean equals(java.lang.Object);
   public int hashCode();
@@ -1450,6 +1453,7 @@ public final class com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProp
   public final long getInfoAnchor-F1C5BW0();
   public final float getIconSize-D9Ej5fM();
   public final boolean getDebug();
+  public final java.lang.String getLabelPosition();
   public final long component1-0d7_KjU();
   public final float component2-D9Ej5fM();
   public final float component3();
@@ -1461,10 +1465,33 @@ public final class com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProp
   public final long component9-F1C5BW0();
   public final float component10-D9Ej5fM();
   public final boolean component11();
-  public final com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProperties copy-CIYJXf0(long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, long, float, boolean);
+  public final java.lang.String component12();
+  public final com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProperties copy-eLRmdhM(long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, long, float, boolean, java.lang.String);
   public java.lang.String toString();
   public int hashCode();
   public boolean equals(java.lang.Object);
+}
+public final class com.mapconductor.core.marker.AbstractDefaultIcon$Companion {
+}
+final class com.mapconductor.core.marker.AbstractDefaultIcon$IconLayout {
+  public final int getMarkerSize();
+  public final int getBitmapWidth();
+  public final int getBitmapHeight();
+  public final float getMarkerOffsetX();
+  public final float getMarkerOffsetY();
+  public final float getLabelCenterX();
+  public final float getLabelCenterY();
+}
+final class com.mapconductor.core.marker.AbstractDefaultIcon$MarkerPathMetrics {
+  public final float getMarkerScale();
+  public final float getOffsetX();
+  public final float getOffsetY();
+}
+final class com.mapconductor.core.marker.AbstractDefaultIcon$PinBounds {
+  public final float getLeft();
+  public final float getRight();
+  public final float getTop();
+  public final float getBottom();
 }
 public abstract class com.mapconductor.core.marker.AbstractMarkerController<ActualMarker> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.marker.MarkerState, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, com.mapconductor.core.marker.MarkerEventHostInterface<ActualMarker> {
   public com.mapconductor.core.marker.AbstractMarkerController(com.mapconductor.core.marker.MarkerManager<ActualMarker>, com.mapconductor.core.marker.MarkerOverlayRendererInterface<ActualMarker>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
@@ -1579,33 +1606,33 @@ public final class com.mapconductor.core.marker.ClickableMarkerKt {
   public static final <ActualMarker> com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> clickableOnly(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
 }
 public final class com.mapconductor.core.marker.ColorDefaultIcon extends com.mapconductor.core.marker.AbstractDefaultIcon {
-  public com.mapconductor.core.marker.ColorDefaultIcon(long, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, long, float, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.marker.ColorDefaultIcon(long, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, java.lang.String, long, float, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
   protected void drawMarkerFill(android.graphics.Canvas, android.graphics.Path, float, float);
   protected java.lang.Object getUniqueProperties();
-  public final com.mapconductor.core.marker.ColorDefaultIcon copy-ArqVBMg(long, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, float, boolean);
+  public final com.mapconductor.core.marker.ColorDefaultIcon copy-iu843mM(long, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, java.lang.String, float, boolean);
   public final com.mapconductor.core.marker.ColorDefaultIcon copy-3ABfNKs(float, float);
   public com.mapconductor.core.marker.ColorDefaultIcon(long, com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProperties, kotlin.jvm.internal.DefaultConstructorMarker);
-  public com.mapconductor.core.marker.ColorDefaultIcon(long, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, long, float, boolean, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.marker.ColorDefaultIcon(long, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, java.lang.String, long, float, boolean, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 public final class com.mapconductor.core.marker.ColorDefaultIconKt {
 }
 public final class com.mapconductor.core.marker.DrawableDefaultIcon extends com.mapconductor.core.marker.AbstractDefaultIcon {
   public com.mapconductor.core.marker.DrawableDefaultIcon(android.graphics.drawable.Drawable, com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProperties);
-  public com.mapconductor.core.marker.DrawableDefaultIcon(android.graphics.drawable.Drawable, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, long, float, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.marker.DrawableDefaultIcon(android.graphics.drawable.Drawable, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, java.lang.String, long, float, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
   protected void drawMarkerFill(android.graphics.Canvas, android.graphics.Path, float, float);
   protected java.lang.Object getUniqueProperties();
-  public final com.mapconductor.core.marker.DrawableDefaultIcon copy-NoBYCTc(android.graphics.drawable.Drawable, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, float, boolean);
+  public final com.mapconductor.core.marker.DrawableDefaultIcon copy-cvAzyPI(android.graphics.drawable.Drawable, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, java.lang.String, float, boolean);
   public final com.mapconductor.core.marker.DrawableDefaultIcon copy-3ABfNKs(float, float);
-  public com.mapconductor.core.marker.DrawableDefaultIcon(android.graphics.drawable.Drawable, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, long, float, boolean, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.marker.DrawableDefaultIcon(android.graphics.drawable.Drawable, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, java.lang.String, long, float, boolean, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 public final class com.mapconductor.core.marker.ImageDefaultIcon extends com.mapconductor.core.marker.AbstractDefaultIcon {
   public com.mapconductor.core.marker.ImageDefaultIcon(android.graphics.Bitmap, com.mapconductor.core.marker.AbstractDefaultIcon$BaseIconProperties);
-  public com.mapconductor.core.marker.ImageDefaultIcon(android.graphics.Bitmap, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, long, float, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.marker.ImageDefaultIcon(android.graphics.Bitmap, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, java.lang.String, long, float, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
   protected void drawMarkerFill(android.graphics.Canvas, android.graphics.Path, float, float);
   protected java.lang.Object getUniqueProperties();
-  public final com.mapconductor.core.marker.ImageDefaultIcon copy-NoBYCTc(android.graphics.Bitmap, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, float, boolean);
+  public final com.mapconductor.core.marker.ImageDefaultIcon copy-cvAzyPI(android.graphics.Bitmap, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, java.lang.String, float, boolean);
   public final com.mapconductor.core.marker.ImageDefaultIcon copy-3ABfNKs(float, float);
-  public com.mapconductor.core.marker.ImageDefaultIcon(android.graphics.Bitmap, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, long, float, boolean, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.marker.ImageDefaultIcon(android.graphics.Bitmap, long, float, float, java.lang.String, androidx.compose.ui.graphics.Color, long, android.graphics.Typeface, long, java.lang.String, long, float, boolean, kotlin.jvm.internal.DefaultConstructorMarker);
 }
 public final class com.mapconductor.core.marker.ImageIcon extends com.mapconductor.core.marker.AndroidDrawableIcon {
   public com.mapconductor.core.marker.ImageIcon(android.graphics.drawable.Drawable, float, float, long, long, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
