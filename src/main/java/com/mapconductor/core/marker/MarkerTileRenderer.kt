@@ -487,56 +487,26 @@ class MarkerTileRenderer<ActualMarker>(
             // The last of each group wins, which is what painter's order would
             // have left visible.
 
-            // Grouped by sorting, not by hashing.
-            //
-            // A HashMap keyed by the group boxes a Long and an Int per marker,
-            // and on a tile holding the whole dataset that is hundreds of
-            // thousands of objects — enough that the tile after it failed to
-            // allocate its bitmap and the process aborted inside
-            // Canvas::create_canvas. Sorting an array of (group, index) pairs
-            // needs two primitive arrays and answers the same question: the
-            // winner of a group is the last index in its run.
-            val order = LongArray(prepared.size)
-            var pairs = 0
+            // Sort the complete group keys separately from marker indices.
+            // Packing an index under a 64-bit placement discards its upper bits
+            // (the x coordinate and part of y), merging unrelated rectangles.
+            // Each tile would then keep a different marker at its boundary.
+            val sortedGroups = groups.copyOf()
+            java.util.Arrays.sort(sortedGroups)
+            val lastInGroup = IntArray(sortedGroups.size) { -1 }
+            val mixedIcons = BooleanArray(sortedGroups.size)
             for (index in prepared.indices) {
-                if (icons[index] == null) continue
-                // [INDEX_BITS] of index under the group, so sorting orders by
-                // group first and by index within it.
-                order[pairs++] = (groups[index] shl INDEX_BITS) or index.toLong()
-            }
-            java.util.Arrays.sort(order, 0, pairs)
-
-            val draw = BooleanArray(prepared.size)
-            var runStart = 0
-            while (runStart < pairs) {
-                val group = order[runStart] ushr INDEX_BITS
-                var runEnd = runStart + 1
-                while (runEnd < pairs && (order[runEnd] ushr INDEX_BITS) == group) runEnd++
-
-                if (declutter) {
-                    // One survivor per cell, whatever it draws.
-                    draw[(order[runEnd - 1] and INDEX_MASK).toInt()] = true
-                } else {
-                    // Same rectangle, but a different icon may be transparent
-                    // where the one above it is not — so a group holding more
-                    // than one icon keeps all of them.
-                    val first = icons[(order[runStart] and INDEX_MASK).toInt()]
-                    var mixed = false
-                    for (at in runStart + 1 until runEnd) {
-                        if (icons[(order[at] and INDEX_MASK).toInt()] !== first) {
-                            mixed = true
-                            break
-                        }
-                    }
-                    if (mixed) {
-                        for (at in runStart until runEnd) {
-                            draw[(order[at] and INDEX_MASK).toInt()] = true
-                        }
-                    } else {
-                        draw[(order[runEnd - 1] and INDEX_MASK).toInt()] = true
-                    }
+                val groupIndex = java.util.Arrays.binarySearch(sortedGroups, groups[index])
+                val previous = lastInGroup[groupIndex]
+                if (previous >= 0 && icons[previous] !== icons[index]) {
+                    mixedIcons[groupIndex] = true
                 }
-                runStart = runEnd
+                lastInGroup[groupIndex] = index
+            }
+            val draw = BooleanArray(prepared.size)
+            for (index in prepared.indices) {
+                val groupIndex = java.util.Arrays.binarySearch(sortedGroups, groups[index])
+                draw[index] = lastInGroup[groupIndex] == index || (!declutter && mixedIcons[groupIndex])
             }
 
             for (index in prepared.indices) {
@@ -694,19 +664,6 @@ class MarkerTileRenderer<ActualMarker>(
     }
 
     private companion object {
-        /**
-         * How the declutter pass packs a cell and a marker index into one Long:
-         * [INDEX_BITS] of index under 40 bits of cell key, which is exactly 64.
-         *
-         * The previous key was `(cx shl 32) xor cy`, and shifting that left by
-         * the index width threw away all but the low 8 bits of `cx`. At the
-         * default 14 px cell a tile spans about 100 columns and nothing showed;
-         * at a 1 px cell on a 1344 px tile, columns 0 and 256 shared a key and
-         * markers 256 px apart were decluttered into one another. Twenty bits a
-         * side leaves room for every cell a tile can hold.
-         */
-        private const val INDEX_BITS = 24
-        private const val INDEX_MASK = (1L shl INDEX_BITS) - 1
         private const val CELL_BITS = 20
         private const val CELL_ORIGIN = 1L shl (CELL_BITS - 1)
 

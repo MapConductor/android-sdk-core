@@ -1,19 +1,19 @@
 package com.mapconductor.core.tileserver
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import kotlin.math.abs
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color
 
 /**
  * On-device checks for the Rust PNG encoder.
@@ -25,7 +25,6 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class TilePngEncoderTest {
-
     /**
      * The whole point of putting the library in the core: it has to load in an
      * ordinary consumer process, with no help from the caller.
@@ -90,11 +89,12 @@ class TilePngEncoderTest {
                 // Fully transparent pixels carry no recoverable colour: both
                 // encoders are free to write anything under alpha 0.
                 if (Color.alpha(b) == 0) continue
-                val step = maxOf(
-                    abs(Color.red(a) - Color.red(b)),
-                    abs(Color.green(a) - Color.green(b)),
-                    abs(Color.blue(a) - Color.blue(b)),
-                )
+                val step =
+                    maxOf(
+                        abs(Color.red(a) - Color.red(b)),
+                        abs(Color.green(a) - Color.green(b)),
+                        abs(Color.blue(a) - Color.blue(b)),
+                    )
                 assertTrue("colour at ($x,$y) differs by $step", step <= 1)
                 worstColourStep = maxOf(worstColourStep, step)
             }
@@ -191,12 +191,13 @@ class TilePngEncoderTest {
         for (index in pixels.indices) {
             state = state * 1_664_525 + 1_013_904_223
             val bits = state ushr 8
-            pixels[index] = Color.argb(
-                128 + (bits and 0x7F),
-                (bits ushr 7) and 0xFF,
-                (bits ushr 15) and 0xFF,
-                (bits ushr 23) and 0xFF,
-            )
+            pixels[index] =
+                Color.argb(
+                    128 + (bits and 0x7F),
+                    (bits ushr 7) and 0xFF,
+                    (bits ushr 15) and 0xFF,
+                    (bits ushr 23) and 0xFF,
+                )
         }
         bitmap.setPixels(pixels, 0, TILE, 0, 0, TILE, TILE)
         return bitmap

@@ -42,6 +42,22 @@ interface VectorStyleSupport {
      * has since chosen another one, in which case that choice is left alone.
      */
     fun clearStyle()
+
+    /**
+     * Where the style the map is drawing came from, when that is knowable.
+     *
+     * This is what lets a rule set adjust *whatever is showing* rather than a
+     * style the app had to name: the document has to be read before a rule
+     * can be matched against its layers, and only the provider knows where
+     * it came from.
+     *
+     * Null when it is not a URL anything can fetch -- a provider's own named
+     * design (`mapbox://styles/mapbox/standard`), a style that needs a key
+     * this does not have. A caller that wanted it says so and leaves the map
+     * alone rather than showing something unstyled.
+     */
+    val currentStyleUrl: String?
+        get() = null
 }
 
 /**
@@ -73,6 +89,7 @@ object VectorStyleSupportKey : MapServiceKey<VectorStyleSupport>
  */
 class VectorStyleAsDesign<Design : MapDesignTypeInterface<*>>(
     private val state: MapViewStateInterface<Design>,
+    private val urlOf: ((Design) -> String?)? = null,
     private val designFor: (styleUrl: String, attributionRules: List<AttributionRule>) -> Design,
 ) : VectorStyleSupport {
     private val main = Handler(Looper.getMainLooper())
@@ -121,6 +138,27 @@ class VectorStyleAsDesign<Design : MapDesignTypeInterface<*>>(
         pendingClear = clear
         main.postDelayed(clear, CLEAR_GRACE_MS)
     }
+
+    /**
+     * Where the design **the app chose** points, when it points anywhere
+     * fetchable.
+     *
+     * Deliberately not the URL this capability installed. That one is the
+     * document the style module served a moment ago, and it is unregistered
+     * from the tile server the instant the style comes off -- so answering
+     * with it turns "adjust whatever is showing" into a 404 against our own
+     * corpse. When one of ours is up, the honest answer is the design it
+     * replaced.
+     *
+     * Null unless the provider supplied [urlOf], and null from that for a
+     * design that is not a plain style document -- a provider's own named
+     * basemap, or one that needs a key this does not have.
+     */
+    override val currentStyleUrl: String?
+        get() {
+            val design = if (installed != null) previous else state.mapDesignType
+            return design?.let { urlOf?.invoke(it) }
+        }
 
     private companion object {
         /** Longer than a frame, shorter than anyone notices. */

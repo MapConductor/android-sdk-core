@@ -21,6 +21,22 @@ import com.mapconductor.core.map.MapServiceKey
 interface RasterTilePreference {
     /** この SDK に渡してほしいタイルの一辺（dp）。 */
     val preferredTileSize: Int
+
+    /**
+     * この SDK がラスタータイルを **物理ピクセル** でレイアウトするなら true。
+     *
+     * 地図 SDK には 2 つの流儀がある。宣言された一辺を dp として敷くものと、
+     * 物理ピクセルとして敷くもの。後者に density 2 の端末で「512」と宣言すると
+     * 256 dp しか覆わず、1 段深いズームを要求してスタイルをそこで読む —
+     * ラベルは半分、道路は倍の密度になる（web の HERE で実測）。供給側は
+     * この流儀を知りようがないので、プロバイダが言う。
+     *
+     * true のとき、供給側は [preferredTileSize] × density を宣言し、描画は
+     * 同じピクセル数で行い、スタイルには [preferredTileSize] dp として
+     * 読ませる。既定は false。react-sdk / ios-sdk の同名フィールドに対応。
+     */
+    val layoutInDevicePixels: Boolean
+        get() = false
 }
 
 /**

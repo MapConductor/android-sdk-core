@@ -32,6 +32,7 @@ class MarkerTileSeamTest {
 
     private fun markers(count: Int): List<MarkerEntityInterface<Int>> {
         var seed = 12345uL
+
         fun next(): Double {
             seed = seed * 6364136223846793005uL + 1442695040888963407uL
             return (seed shr 11).toDouble() / (1uL shl 53).toDouble()
@@ -55,7 +56,9 @@ class MarkerTileSeamTest {
         z: Int,
     ): GeoRectBounds {
         val n = Math.pow(2.0, z.toDouble())
+
         fun lon(tx: Double) = tx / n * 360.0 - 180.0
+
         fun lat(ty: Double) = Math.atan(Math.sinh(Math.PI * (1.0 - 2.0 * (ty / n)))) * 180.0 / Math.PI
         return GeoRectBounds(
             southWest = GeoPoint.fromLatLong(lat((y + 1).toDouble()), lon(x.toDouble())),

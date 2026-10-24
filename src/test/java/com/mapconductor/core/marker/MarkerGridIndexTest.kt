@@ -140,6 +140,7 @@ class MarkerGridIndexTest {
         // gives level 16, an even level, so the cell has a whole-character name
         // of 9 characters and can be compared as a string.
         assertEquals(16L, MarkerGrid.levelForSeparation(0.005)!!.toLong())
+
         fun cellOf(entity: MarkerEntityInterface<Int>): String =
             MarkerGrid.geocell(
                 entity.state.position.latitude,

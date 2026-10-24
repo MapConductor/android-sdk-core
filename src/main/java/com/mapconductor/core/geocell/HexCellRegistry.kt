@@ -1,6 +1,5 @@
 package com.mapconductor.core.geocell
 
-import com.mapconductor.core.projection.ProjectedPoint
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.marker.MarkerEntityInterface
