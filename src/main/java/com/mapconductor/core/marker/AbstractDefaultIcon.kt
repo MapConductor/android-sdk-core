@@ -204,11 +204,12 @@ abstract class AbstractDefaultIcon(
             }
         val cy =
             if (h != 0) {
-                // 横に置くときは、縦はピンの上端・頭の中心・先端に揃える。
+                // 横に置くときは、縦はピンの上端・上端と先端の中間・先端に揃える。
+                // center を頭の中心にすると、ピン全体の中央より上に見える。
                 when {
                     v < 0 -> pin.top + labelHeight / 2f
                     v > 0 -> pin.bottom - labelHeight / 2f
-                    else -> headCenterY
+                    else -> (pin.top + pin.bottom) / 2f
                 }
             } else {
                 // 中央列の top / bottom はピンと重ならないよう上下の外側に置く。
@@ -535,7 +536,7 @@ abstract class AbstractDefaultIcon(
          * `labelPosition` は CSS の `background-position` と同じ書き方で、横
          * （left / center / right）と縦（top / center / bottom）のキーワードを空白区切りで
          * 並べる。順序は問わず、片方だけなら残りは center。
-         * - left / right はピンの外側に置き、縦はピンの上端・頭の中心・先端に揃える。
+         * - left / right はピンの外側に置き、縦はピンの上端・上端と先端の中間・先端に揃える。
          * - center 列の top / bottom はピンの上・下の外側に置く。
          */
         const val DEFAULT_LABEL_POSITION: String = "center center"
