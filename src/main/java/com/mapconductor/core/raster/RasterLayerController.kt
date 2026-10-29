@@ -242,6 +242,37 @@ abstract class RasterLayerController<ActualLayer : Any>(
         }
     }
 
+    /**
+     * Re-adds every registered layer after the style was replaced, which drops
+     * the sources and layers the SDK added.
+     *
+     * It runs under the same lock as add/update/upsert/clear, so it reads the
+     * manager only after any change in progress has registered its entity. Read
+     * outside the lock, a change between renderer.onChange() and registerEntity()
+     * would be re-applied with its old source or opacity (react-sdk hit this:
+     * MapConductor/js-sdk-core#15).
+     *
+     * Entities are not registered again: the providers that call this build
+     * their handles from the layer id, so the registered ones stay valid on the
+     * new style.
+     */
+    open suspend fun reapplyStyle() {
+        withContext(renderer.coroutine.coroutineContext) {
+            semaphore.withPermit {
+                val states = rasterLayerManager.allEntities().map { it.state }
+                if (states.isEmpty()) return@withPermit
+                renderer.onAdd(
+                    states.map { state ->
+                        object : RasterLayerOverlayRendererInterface.AddParamsInterface {
+                            override val state: RasterLayerState = state
+                        }
+                    },
+                )
+                renderer.onPostProcess()
+            }
+        }
+    }
+
     override fun find(position: GeoPointInterface): RasterLayerEntityInterface<ActualLayer>? = null
 
     override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {

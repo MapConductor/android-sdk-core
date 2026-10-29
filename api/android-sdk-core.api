@@ -2611,6 +2611,7 @@ public abstract class com.mapconductor.core.raster.RasterLayerController<ActualL
   public final java.lang.Object upsert(com.mapconductor.core.raster.RasterLayerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public final java.lang.Object removeById(java.lang.String, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public java.lang.Object reapplyStyle(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public com.mapconductor.core.raster.RasterLayerEntityInterface<ActualLayer> find(com.mapconductor.core.features.GeoPointInterface);
   public java.lang.Object onCameraChanged(com.mapconductor.core.map.MapCameraPosition, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void destroy();
