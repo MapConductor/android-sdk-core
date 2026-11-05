@@ -445,36 +445,6 @@ public final class com.mapconductor.core.geocell.HexCell {
   public int hashCode();
   public boolean equals(java.lang.Object);
 }
-public final class com.mapconductor.core.geocell.HexCellRegistry<ActualMarker> {
-  public com.mapconductor.core.geocell.HexCellRegistry(com.mapconductor.core.geocell.HexGeocellInterface, double);
-  public final com.mapconductor.core.geocell.HexCell getCell(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
-  public final com.mapconductor.core.geocell.HexCell setPoint(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
-  public final boolean contains(java.lang.String);
-  public final boolean removePoint(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
-  public final void clear();
-  public final com.mapconductor.core.geocell.HexCell findNearest(com.mapconductor.core.features.GeoPointInterface);
-  public final com.mapconductor.core.geocell.HexCellWithDistance findNearestWithDistance(com.mapconductor.core.features.GeoPointInterface);
-  public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> findNearestKWithDistance(com.mapconductor.core.features.GeoPointInterface, int);
-  public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> findWithinRadiusWithDistance(com.mapconductor.core.features.GeoPointInterface, double);
-  public final java.util.List<com.mapconductor.core.geocell.HexCell> findWithinRadius(com.mapconductor.core.features.GeoPointInterface, double);
-  public final java.util.List<com.mapconductor.core.geocell.HexCell> all();
-  public final java.util.Set<java.lang.String> getEntryIDsByHexCell(com.mapconductor.core.geocell.HexCell);
-  public final double metersPerPixel(com.mapconductor.core.features.GeoPointInterface, double, double, int);
-  public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> findWithinPixelRadius(com.mapconductor.core.features.GeoPointInterface, double, double, int);
-  public final java.util.List<com.mapconductor.core.geocell.HexCell> findByIdPrefix(java.lang.String);
-  public final com.mapconductor.core.geocell.RegistryStats getStats();
-}
-public final class com.mapconductor.core.geocell.HexCellWithDistance {
-  public com.mapconductor.core.geocell.HexCellWithDistance(com.mapconductor.core.geocell.HexCell, double);
-  public final com.mapconductor.core.geocell.HexCell getCell();
-  public final double getDistanceMeters();
-  public final com.mapconductor.core.geocell.HexCell component1();
-  public final double component2();
-  public final com.mapconductor.core.geocell.HexCellWithDistance copy(com.mapconductor.core.geocell.HexCell, double);
-  public java.lang.String toString();
-  public int hashCode();
-  public boolean equals(java.lang.Object);
-}
 public final class com.mapconductor.core.geocell.HexCoord {
   public com.mapconductor.core.geocell.HexCoord(int, int, int);
   public com.mapconductor.core.geocell.HexCoord(int, int, int, int, kotlin.jvm.internal.DefaultConstructorMarker);
@@ -530,49 +500,6 @@ public final class com.mapconductor.core.geocell.IdentifiedHexCell {
   public final java.lang.String component1();
   public final com.mapconductor.core.geocell.HexCell component2();
   public final com.mapconductor.core.geocell.IdentifiedHexCell copy(java.lang.String, com.mapconductor.core.geocell.HexCell);
-  public java.lang.String toString();
-  public int hashCode();
-  public boolean equals(java.lang.Object);
-}
-public final class com.mapconductor.core.geocell.KDTree {
-  public com.mapconductor.core.geocell.KDTree(java.util.List<com.mapconductor.core.geocell.HexCell>);
-  public final com.mapconductor.core.geocell.HexCell nearest(com.mapconductor.core.projection.ProjectedPoint);
-  public final com.mapconductor.core.geocell.HexCellWithDistance nearestWithDistance(com.mapconductor.core.projection.ProjectedPoint);
-  public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> nearestKWithDistance(com.mapconductor.core.projection.ProjectedPoint, int);
-  public final java.util.List<com.mapconductor.core.geocell.HexCellWithDistance> withinRadiusWithDistance(com.mapconductor.core.projection.ProjectedPoint, double);
-  public final java.util.List<com.mapconductor.core.geocell.HexCell> withinRadius(com.mapconductor.core.projection.ProjectedPoint, double);
-  public final com.mapconductor.core.geocell.KDTreeStats getStats();
-}
-final class com.mapconductor.core.geocell.KDTree$Node {
-  public final com.mapconductor.core.geocell.HexCell getCell();
-  public final com.mapconductor.core.geocell.KDTree$Node getLeft();
-  public final com.mapconductor.core.geocell.KDTree$Node getRight();
-  public final int getAxis();
-}
-public final class com.mapconductor.core.geocell.KDTreeStats {
-  public com.mapconductor.core.geocell.KDTreeStats(int, int, boolean);
-  public final int getNodeCount();
-  public final int getMaxDepth();
-  public final boolean isEmpty();
-  public final int component1();
-  public final int component2();
-  public final boolean component3();
-  public final com.mapconductor.core.geocell.KDTreeStats copy(int, int, boolean);
-  public java.lang.String toString();
-  public int hashCode();
-  public boolean equals(java.lang.Object);
-}
-public final class com.mapconductor.core.geocell.RegistryStats {
-  public com.mapconductor.core.geocell.RegistryStats(int, int, boolean, boolean);
-  public final int getTotalCells();
-  public final int getTotalEntries();
-  public final boolean getKdTreeBuilt();
-  public final boolean getNeedsRebuild();
-  public final int component1();
-  public final int component2();
-  public final boolean component3();
-  public final boolean component4();
-  public final com.mapconductor.core.geocell.RegistryStats copy(int, int, boolean, boolean);
   public java.lang.String toString();
   public int hashCode();
   public boolean equals(java.lang.Object);
@@ -1795,7 +1722,6 @@ public class com.mapconductor.core.marker.MarkerManager<ActualMarker> {
   public com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> removeEntity(java.lang.String);
   public double metersPerPixel(com.mapconductor.core.features.GeoPointInterface, double, double, int);
   public com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> findNearest(com.mapconductor.core.features.GeoPointInterface);
-  public java.util.List<com.mapconductor.core.geocell.HexCell> findByIdPrefix(java.lang.String);
   public void registerEntity(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
   public void updateEntity(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
   public java.util.List<com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>> allEntities();
