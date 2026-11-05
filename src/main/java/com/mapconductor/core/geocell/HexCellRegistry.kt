@@ -63,11 +63,12 @@ class HexCellRegistry<ActualMarker>(
             // 位置が変わらない更新は珍しくない — アイコンやフラグの差し替え（
             // `MarkerManager.updateEntity` は毎回 setPoint を呼ぶ）や、
             // [com.mapconductor.core.marker.MarkerViewportSwitch] のタイル⇔ネイティブ切り替えが該当する。
-            if (previousCellId == cellId && allCells.containsKey(cellId)) {
+            val sameCell = if (previousCellId == cellId) allCells[cellId] else null
+            if (sameCell != null) {
                 entryIDsByCell.compute(cellId) { _, existingSet ->
                     (existingSet ?: mutableSetOf()).apply { add(entityId) }
                 }
-                return cell
+                return sameCell
             }
 
             var cellsChanged = false
@@ -80,8 +81,9 @@ class HexCellRegistry<ActualMarker>(
                 }
             }
 
-            // Add to new cell
-            if (allCells.put(cellId, cell) == null) cellsChanged = true
+            // Add to new cell. 既にあるセルは置き換えない（木が持っているものと揃える）
+            val existing = allCells.putIfAbsent(cellId, cell)
+            if (existing == null) cellsChanged = true
             allEntries[entityId] = cellId
 
             // Add entity to cell's entry list
@@ -90,7 +92,7 @@ class HexCellRegistry<ActualMarker>(
             }
 
             if (cellsChanged) markDirty()
-            return cell
+            return existing ?: cell
         }
 
     /**

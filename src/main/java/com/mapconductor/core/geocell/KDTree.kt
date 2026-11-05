@@ -12,7 +12,14 @@ import kotlin.math.sqrt
 class KDTree(
     points: List<HexCell>,
 ) {
-    private val root = if (points.isNotEmpty()) build(points, 0) else null
+    // 呼び出し元のリストは並べ替えない
+    private val root =
+        if (points.isNotEmpty()) {
+            val items = points.toTypedArray()
+            build(items, 0, items.size, 0)
+        } else {
+            null
+        }
 
     private class Node(
         val cell: HexCell,
@@ -23,24 +30,27 @@ class KDTree(
 
     /**
      * Build the K-D tree recursively
+     *
+     * `items` の from から to の手前までの中で中央値だけを選び（quickselect）、左右を同じ配列のまま
+     * 再帰する。階層ごとにソートしてリストを作ると、数万件で数百ミリ秒かかり、
+     * マーカーを足し引きした直後の空間検索がその間止まる。
      */
     private fun build(
-        items: List<HexCell>,
+        items: Array<HexCell>,
+        from: Int,
+        to: Int,
         depth: Int,
     ): Node? {
-        if (items.isEmpty()) return null
+        if (from >= to) return null
 
         val axis = depth % 2
-        val sorted =
-            items.sortedBy {
-                if (axis == 0) it.centerXY.x else it.centerXY.y
-            }
-        val mid = sorted.size / 2
+        val mid = from + (to - from) / 2
+        selectNth(items, from, to - 1, mid, axis)
 
         return Node(
-            cell = sorted[mid],
-            left = build(sorted.subList(0, mid), depth + 1),
-            right = build(sorted.subList(mid + 1, sorted.size), depth + 1),
+            cell = items[mid],
+            left = build(items, from, mid, depth + 1),
+            right = build(items, mid + 1, to, depth + 1),
             axis = axis,
         )
     }
@@ -326,3 +336,44 @@ data class KDTreeStats(
     val maxDepth: Int,
     val isEmpty: Boolean,
 )
+
+private fun axisValue(
+    cell: HexCell,
+    axis: Int,
+): Double = if (axis == 0) cell.centerXY.x else cell.centerXY.y
+
+/**
+ * `items` の left から right まで（両端を含む）を、k 番目の要素が軸の値で k 番目になるよう並べ替える
+ * （左は以下、右は以上）。Wirth の quickselect。
+ *
+ * 六角セルの中心は列ごとに同じ x を持つので、等しい値が大量に並ぶ。
+ * 左右から寄せる分割にしてあるのはそのため（片側に寄せる分割だと O(n²) になる）。
+ */
+private fun selectNth(
+    items: Array<HexCell>,
+    left: Int,
+    right: Int,
+    k: Int,
+    axis: Int,
+) {
+    var lo = left
+    var hi = right
+    while (lo < hi) {
+        val pivot = axisValue(items[k], axis)
+        var i = lo
+        var j = hi
+        do {
+            while (axisValue(items[i], axis) < pivot) i++
+            while (pivot < axisValue(items[j], axis)) j--
+            if (i <= j) {
+                val tmp = items[i]
+                items[i] = items[j]
+                items[j] = tmp
+                i++
+                j--
+            }
+        } while (i <= j)
+        if (j < k) lo = i
+        if (k < i) hi = j
+    }
+}
