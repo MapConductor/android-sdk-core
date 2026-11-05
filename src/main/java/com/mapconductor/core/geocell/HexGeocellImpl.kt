@@ -53,11 +53,6 @@ data class HexCell(
     fun idPrefix(levels: Int): String = id.split("_").take(levels + 1).joinToString("_")
 }
 
-data class HexCellWithDistance(
-    val cell: HexCell,
-    val distanceMeters: Double,
-)
-
 /**
  * Hexagonal geocell system for spatial indexing
  *

@@ -8,12 +8,12 @@ import java.util.Arrays
 /**
  * A hierarchical lat/lng grid over the markers, held as one sorted primitive array.
  *
- * Replaces the hex-cell registry and its kd-tree on the paths that run per
- * tile. That index was built at a fixed zoom of 20, which puts a cell at about
- * 12 cm — street trees are metres apart, so every marker landed in its own cell
- * and the index grouped nothing. It cost a HexCell object and a String id per
- * marker, a pair of concurrent maps and a kd-tree node each; on Tokyo's 144,183
- * street trees, building it aborted the process with a native out-of-memory.
+ * It replaced a hex-cell registry and its kd-tree, since removed. That index
+ * was built at a fixed zoom of 20, which puts a cell at about 12 cm — street
+ * trees are metres apart, so every marker landed in its own cell and the index
+ * grouped nothing. It cost a HexCell object and a String id per marker, a pair
+ * of concurrent maps and a kd-tree node each; on Tokyo's 144,183 street trees,
+ * building it aborted the process with a native out-of-memory.
  *
  * Here each marker is one Long: its cell key above its position in a snapshot.
  * Building the index is an arithmetic pass and a primitive sort, measured at
