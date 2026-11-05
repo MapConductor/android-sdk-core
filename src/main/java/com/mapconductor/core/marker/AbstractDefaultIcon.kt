@@ -11,9 +11,6 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.withTranslation
 import com.mapconductor.core.BitmapIconCache
 import com.mapconductor.core.ResourceProvider
-import kotlin.math.ceil
-import kotlin.math.max
-import kotlin.math.min
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
@@ -43,6 +40,7 @@ abstract class AbstractDefaultIcon(
         val iconSize: Dp,
         val debug: Boolean,
         val labelPosition: String = DEFAULT_LABEL_POSITION,
+        val labelWritingMode: String = DEFAULT_LABEL_WRITING_MODE,
     )
 
     // 共通プロパティの委譲
@@ -55,6 +53,13 @@ abstract class AbstractDefaultIcon(
     val labelTypeFace: Typeface by baseProperties::labelTypeFace
     val labelStrokeColor: Color by baseProperties::labelStrokeColor
     val labelPosition: String by baseProperties::labelPosition
+
+    /**
+     * ラベルの書字方向。CSS の `writing-mode` と同じ書き方で、`horizontal-tb`（既定）か
+     * `vertical-rl` / `vertical-lr`（縦書き）。縦書きは 1 文字ぶんの幅で縦に並ぶので、
+     * 横に詰まって並ぶ点にも名前を付けやすい。
+     */
+    val labelWritingMode: String by baseProperties::labelWritingMode
     final override val iconSize: Dp by baseProperties::iconSize
     final override val debug: Boolean by baseProperties::debug
 
@@ -104,9 +109,85 @@ abstract class AbstractDefaultIcon(
         val markerOffsetY: Float,
         val labelCenterX: Float,
         val labelCenterY: Float,
+        val label: LabelTypesetter.Metrics?,
     )
 
     private val layout: IconLayout by lazy { computeLayout() }
+
+    init {
+        // ラベル付きは、はみ出し量を作った時点で記録する（[LabelledIconExtent]）。
+        // JVM の単体テストでは Paint が空実装なので、測れなければ記録しない。
+        if (baseProperties.label != null) {
+            runCatching { layout }.getOrNull()?.let { layout ->
+                LabelledIconExtent.note(
+                    width = layout.bitmapWidth.toFloat(),
+                    height = layout.bitmapHeight.toFloat(),
+                    anchorX = (layout.markerOffsetX + layout.markerSize / 2f) / layout.bitmapWidth,
+                    anchorY = (layout.markerOffsetY + layout.markerSize) / layout.bitmapHeight,
+                )
+            }
+        }
+    }
+
+    /**
+     * ラベルを除いたピン。タイル描画が使う。
+     *
+     * 色や大きさが同じなら、ラベルの違うアイコンの間で 1 枚を共有する（[BitmapIconCache] の
+     * キーにラベルを含めない）。街路樹のように「樹種 × 向き」でラベルを付け替えても、
+     * 焼き込む画像は本体の種類だけで済む。
+     */
+    internal val tileBody: BitmapIcon
+        get() {
+            if (label == null) return toBitmapIcon()
+            val bodyProperties =
+                baseProperties.copy(
+                    label = null,
+                    labelPosition = DEFAULT_LABEL_POSITION,
+                    labelWritingMode = DEFAULT_LABEL_WRITING_MODE,
+                )
+            val id = "default_icon_body_${bodyProperties.hashCode() * 31 + getUniqueProperties().hashCode()}".hashCode()
+            BitmapIconCache.get(id)?.let { return it }
+            val markerSize = layout.markerSize
+            val bitmap = createBitmap(markerSize, markerSize)
+            ResourceProvider.getBitmapDensity().let { density ->
+                bitmap.density = (density * android.util.DisplayMetrics.DENSITY_DEFAULT).toInt()
+            }
+            drawMarker(
+                canvas = Canvas(bitmap),
+                canvasSize = markerSize.toFloat(),
+                iconScale = scale,
+            )
+            val result =
+                BitmapIcon(
+                    bitmap = bitmap,
+                    anchor = Offset(0.5f, 1f),
+                    size = Size(markerSize.toFloat(), markerSize.toFloat()),
+                )
+            BitmapIconCache.put(id, result)
+            return result
+        }
+
+    internal val tileLabel: MarkerTileLabel?
+        get() {
+            val text = label ?: return null
+            val layout = layout
+            val metrics = layout.label ?: return null
+            val anchorX = layout.markerOffsetX + layout.markerSize / 2f
+            val anchorY = layout.markerOffsetY + layout.markerSize
+            return MarkerTileLabel(
+                text = text,
+                textSizePx = convertTextUnitToPx(labelTextSize, 1f),
+                typeface = labelTypeFace,
+                textColor = (labelTextColor ?: Color.Black).toArgb(),
+                strokeColor = labelStrokeColor.toArgb(),
+                outlinePx = labelOutlineStrokeWidth(scale),
+                centerOffsetX = layout.labelCenterX - anchorX,
+                centerOffsetY = layout.labelCenterY - anchorY,
+                width = metrics.width,
+                height = metrics.height,
+                vertical = LabelTypesetter.isVertical(labelWritingMode),
+            )
+        }
 
     /**
      * サブクラスでマーカーのフィル描画を実装する
@@ -178,74 +259,42 @@ abstract class AbstractDefaultIcon(
         val size = markerSize.toFloat()
         // 円形部分の中心
         val headCenterY = size * 0.35f
-        val padding = size * 0.1f // 左右に5%ずつの余白
-
-        val labelText = label
-        if (labelText == null) {
-            return IconLayout(markerSize, markerSize, markerSize, 0f, 0f, size / 2f, headCenterY)
-        }
-
-        val textPaint = createLabelPaint(labelTextSize)
-        val textWidth = textPaint.measureText(labelText)
-        val metrics = textPaint.fontMetrics
-        val outline = labelOutlineStrokeWidth(scale)
-        val labelWidth = textWidth + outline * 2f
-        val labelHeight = metrics.descent - metrics.ascent + outline * 2f
-        val (h, v) = parseLabelPosition(labelPosition)
         val pin = markerPinBounds(size, scale)
-        val gap = max(outline, size * 0.05f)
-
-        // マーカー本体の左上を原点とした座標でラベルの中心を決める。
-        val cx =
-            when {
-                h < 0 -> pin.left - gap - labelWidth / 2f
-                h > 0 -> pin.right + gap + labelWidth / 2f
-                else -> size / 2f
+        val outline = labelOutlineStrokeWidth(scale)
+        val metrics =
+            label?.let { text ->
+                LabelTypesetter.measure(
+                    text = text,
+                    textSizePx = convertTextUnitToPx(labelTextSize, 1f),
+                    typeface = labelTypeFace,
+                    outlinePx = outline,
+                    vertical = LabelTypesetter.isVertical(labelWritingMode),
+                )
             }
-        val cy =
-            if (h != 0) {
-                // 横に置くときは、縦はピンの上端・上端と先端の中間・先端に揃える。
-                // center を頭の中心にすると、ピン全体の中央より上に見える。
-                when {
-                    v < 0 -> pin.top + labelHeight / 2f
-                    v > 0 -> pin.bottom - labelHeight / 2f
-                    else -> (pin.top + pin.bottom) / 2f
-                }
-            } else {
-                // 中央列の top / bottom はピンと重ならないよう上下の外側に置く。
-                when {
-                    v < 0 -> pin.top - gap - labelHeight / 2f
-                    v > 0 -> pin.bottom + gap + labelHeight / 2f
-                    else -> headCenterY
-                }
-            }
-
-        val bitmapWidth: Int
-        val markerOffsetX: Float
-        if (h == 0) {
-            // 中央なら従来どおり（出力を変えない）。
-            bitmapWidth = max(size, textWidth + padding).toInt()
-            markerOffsetX = (bitmapWidth - markerSize) / 2f
-        } else {
-            val minX = min(0f, cx - labelWidth / 2f - padding / 2f)
-            val maxX = max(size, cx + labelWidth / 2f + padding / 2f)
-            bitmapWidth = ceil(maxX - minX).toInt()
-            markerOffsetX = -minX
-        }
-
-        val minY = min(0f, cy - labelHeight / 2f)
-        val maxY = max(size, cy + labelHeight / 2f)
-        val markerOffsetY = ceil(-minY)
-        val bitmapHeight = (markerOffsetY + ceil(maxY)).toInt()
-
+        val result =
+            IconLabelLayout.compute(
+                markerSize = markerSize,
+                bodyLeft = pin.left,
+                bodyRight = pin.right,
+                bodyTop = pin.top,
+                bodyBottom = pin.bottom,
+                centerY = headCenterY,
+                // 横に置くときの縦の中央は、ピンの上端と先端の中間。頭の中心にすると、
+                // ピン全体の中央より上に見える。
+                sideCenterY = (pin.top + pin.bottom) / 2f,
+                label = metrics,
+                outlinePx = outline,
+                labelPosition = labelPosition,
+            )
         return IconLayout(
             markerSize = markerSize,
-            bitmapWidth = bitmapWidth,
-            bitmapHeight = bitmapHeight,
-            markerOffsetX = markerOffsetX,
-            markerOffsetY = markerOffsetY,
-            labelCenterX = markerOffsetX + cx,
-            labelCenterY = markerOffsetY + cy,
+            bitmapWidth = result.bitmapWidth,
+            bitmapHeight = result.bitmapHeight,
+            markerOffsetX = result.markerOffsetX,
+            markerOffsetY = result.markerOffsetY,
+            labelCenterX = result.labelCenterX,
+            labelCenterY = result.labelCenterY,
+            label = metrics,
         )
     }
 
@@ -443,23 +492,8 @@ abstract class AbstractDefaultIcon(
             strokeCap = Paint.Cap.ROUND // 追加（尖り部のにじみ軽減）
         }
 
-    private fun createLabelPaint(textSize: TextUnit): Paint =
-        Paint().apply {
-            color = labelTextColor?.toArgb() ?: Color.Black.toArgb()
-            // 基本テキストサイズを計算（スケーリング適用）
-            this.textSize = convertTextUnitToPx(textSize, 1f)
-            textAlign = Paint.Align.CENTER
-            typeface = labelTypeFace
-            isAntiAlias = true
-            isSubpixelText = true
-        }
-
     // アウトライン幅（アイコンスケールを考慮したストローク幅、最小2px）
-    private fun labelOutlineStrokeWidth(iconScale: Float): Float =
-        max(
-            ResourceProvider.dpToPxForBitmap(1f * iconScale).toFloat(),
-            2f,
-        )
+    private fun labelOutlineStrokeWidth(iconScale: Float): Float = LabelTypesetter.outlinePx(iconScale)
 
     /**
      * ラベルテキストの描画。(centerX, centerY) は [computeLayout] が決めたラベルの中心で、
@@ -473,23 +507,19 @@ abstract class AbstractDefaultIcon(
         centerY: Float,
     ) {
         label?.let { labelText ->
-            val textPaint = createLabelPaint(textSize)
-
-            val metrics = textPaint.fontMetrics
-            val textHeight = metrics.descent - metrics.ascent
-            val baselineOffset = textHeight / 2f - metrics.descent
-
-            val outlinePaint =
-                Paint(textPaint).apply {
-                    style = Paint.Style.STROKE
-                    strokeWidth = labelOutlineStrokeWidth(iconScale)
-                    color = labelStrokeColor.toArgb()
-                    strokeJoin = Paint.Join.ROUND
-                    strokeCap = Paint.Cap.ROUND
-                }
-
-            canvas.drawText(labelText, centerX, centerY + baselineOffset, outlinePaint)
-            canvas.drawText(labelText, centerX, centerY + baselineOffset, textPaint)
+            LabelTypesetter.draw(
+                canvas = canvas,
+                text = labelText,
+                centerX = centerX,
+                centerY = centerY,
+                textSizePx = convertTextUnitToPx(textSize, 1f),
+                typeface = labelTypeFace,
+                textColor = (labelTextColor ?: Color.Black).toArgb(),
+                strokeColor = labelStrokeColor.toArgb(),
+                outlinePx = labelOutlineStrokeWidth(iconScale),
+                vertical = LabelTypesetter.isVertical(labelWritingMode),
+                alignToPixel = false,
+            )
         }
     }
 
@@ -540,6 +570,9 @@ abstract class AbstractDefaultIcon(
          * - center 列の top / bottom はピンの上・下の外側に置く。
          */
         const val DEFAULT_LABEL_POSITION: String = "center center"
+
+        /** ラベルの既定の書字方向。横書き。書き方は [labelWritingMode] を参照。 */
+        const val DEFAULT_LABEL_WRITING_MODE: String = LabelTypesetter.HORIZONTAL
 
         /** `labelPosition` を横・縦それぞれ -1 / 0 / 1 に読み替える。読めない値は中央扱い。 */
         internal fun parseLabelPosition(position: String): Pair<Int, Int> {

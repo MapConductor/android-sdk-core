@@ -91,6 +91,20 @@ class OverlayCollector<T : ComponentState>(
 
     override val flow = MutableStateFlow<MutableMap<String, T>>(mutableMapOf())
 
+    /**
+     * Who is currently reporting mutations, kept here rather than read back out
+     * of [flow].
+     *
+     * Membership reaches [flow] through a debounce, so a state added and
+     * removed inside the same window is not in the map when the removal
+     * arrives — clearing by id there found nothing and left it reporting for
+     * the rest of the collector's life.
+     */
+    private val listening = ConcurrentHashMap<String, T>()
+
+    /** Ids this collector started listening to because they appeared in [flow], not through [add]. */
+    private val listenedFromFlow = ConcurrentHashMap.newKeySet<String>()
+
     init {
         scope.launch {
             addSharedFlow.debounceBatch(5.milliseconds, 100).collect { states ->
@@ -111,6 +125,35 @@ class OverlayCollector<T : ComponentState>(
                 flow.value = newMap
             }
         }
+
+        // [flow] is writable from outside, and the compose `Markers(list)` writes
+        // its whole list straight into it rather than calling [add] 144k times.
+        // Those states were never listened to, so an in-place change to one of
+        // them -- an icon swapped to relabel a street tree -- reached nobody, and
+        // the tiles kept drawing the old icon. Listen to whatever arrives this
+        // way too. Runs per membership change, not per mutation.
+        scope.launch {
+            flow.collect { states -> listenToWrittenStates(states) }
+        }
+    }
+
+    private fun listenToWrittenStates(states: Map<String, T>) {
+        for ((id, state) in states) {
+            if (listening[id] !== state) {
+                listen(state)
+                listenedFromFlow.add(id)
+            }
+        }
+        // Only stop what this path started: a state added through [add] may not
+        // have reached [flow] yet (membership is debounced).
+        val iterator = listenedFromFlow.iterator()
+        while (iterator.hasNext()) {
+            val id = iterator.next()
+            if (id !in states) {
+                unlisten(id)
+                iterator.remove()
+            }
+        }
     }
 
     override suspend fun add(state: T) {
@@ -123,16 +166,6 @@ class OverlayCollector<T : ComponentState>(
         removeSharedFlow.tryEmit(id)
     }
 
-    /**
-     * Who is currently reporting mutations, kept here rather than read back out
-     * of [flow].
-     *
-     * Membership reaches [flow] through a debounce, so a state added and
-     * removed inside the same window is not in the map when the removal
-     * arrives — clearing by id there found nothing and left it reporting for
-     * the rest of the collector's life.
-     */
-    private val listening = ConcurrentHashMap<String, T>()
 
     private fun listen(state: T) {
         val previous = listening.put(state.id, state)

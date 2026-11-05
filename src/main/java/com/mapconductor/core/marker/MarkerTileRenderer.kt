@@ -186,6 +186,51 @@ class MarkerTileRenderer<ActualMarker>(
             )
         }
 
+    /**
+     * ズームごとの、アイコンに掛かった倍率の最大（`iconScaleCallback` × [extraIconScale]）。
+     * [LabelledIconExtent] の px（アイコンのビットマップの px）をタイルの px へ直すのに使う。
+     */
+    private val maxScaleByZoom = HashMap<Int, Double>()
+
+    /**
+     * 倍率をまだ見ていないズームで `iconScaleCallback` に渡す見本。どこかのズームで描いた
+     * マーカーを 1 つ覚えておく。一斉に描き直すとき、そのズームの最初のタイルたちは
+     * 倍率を誰も記録していないので、これが無いと育っていない値で探すことになる。
+     */
+    private var sampleState: MarkerState? = null
+
+    /**
+     * 探す範囲に使う、はみ出し量（px）。
+     *
+     * [observedHalfExtentPx] は「これまでに描いたタイルで見た最大」なので、ラベルを付けた
+     * 直後に全タイルが一斉に描き直されると、まだ育っていない値で探すタイルが出る。
+     * そのタイルに自分のマーカーが無ければ空として返し、2 回目の探索もしないので、
+     * 隣から**はみ出してくるラベルが境目で切れる**。ラベル付きのアイコンは作った時点で
+     * はみ出し量を [LabelledIconExtent] に記録しているので、それも使う。
+     * 全マーカーを数え直す方法は、14.4 万本で 1 回あたり秒単位になるので採らない（ios-sdk で実測）。
+     */
+    private fun queryHalfExtentPx(zoom: Int): Double {
+        val scale: Double? =
+            synchronized(maxScaleByZoom) {
+                maxScaleByZoom[zoom] ?: sampleState?.let { sample ->
+                    (iconScaleCallback?.invoke(sample, zoom) ?: 1.0).coerceAtLeast(0.0) * extraIconScale
+                }
+            }
+        if (scale == null) return observedHalfExtentPx
+        return max(observedHalfExtentPx, LabelledIconExtent.maxPx * scale)
+    }
+
+    private fun noteScale(
+        scale: Double,
+        zoom: Int,
+        state: MarkerState,
+    ) {
+        synchronized(maxScaleByZoom) {
+            if (scale > (maxScaleByZoom[zoom] ?: 0.0)) maxScaleByZoom[zoom] = scale
+            if (sampleState == null) sampleState = state
+        }
+    }
+
     override fun renderTile(request: TileRequest): ByteArray? {
         val zoomInt = request.z
         val worldTileCount = 1 shl zoomInt
@@ -231,6 +276,9 @@ class MarkerTileRenderer<ActualMarker>(
             val drawW: Float,
             val drawH: Float,
             val anchor: Offset,
+            /** 本体とは別に、本体をすべて描いたあとで描く文字。 */
+            val label: MarkerTileLabel?,
+            val scale: Float,
         )
 
         fun prepareMarkers(entities: List<MarkerEntityInterface<ActualMarker>>): Pair<List<PreparedMarker>, Double> {
@@ -238,7 +286,11 @@ class MarkerTileRenderer<ActualMarker>(
             val prepared = ArrayList<PreparedMarker>(entities.size)
             for (entity in entities) {
                 val stateIcon = entity.state.icon
-                val icon = stateIcon?.toBitmapIcon() ?: defaultIcon.toBitmapIcon()
+                // 本体とラベルを分けて渡せるアイコンは、ラベルを焼き込んだ画像を作らせない。
+                // 本体だけを焼き込み、文字はタイルに直接描く（[MarkerTileLabel]）。
+                val parts = stateIcon?.tileParts()
+                val icon = parts?.first ?: stateIcon?.toBitmapIcon() ?: defaultIcon.toBitmapIcon()
+                val label = parts?.second
                 val pos = entity.state.position
                 val tilePoint = geoToTilePoint(pos.longitude, pos.latitude, zoomInt)
                 val centerNorm =
@@ -252,6 +304,7 @@ class MarkerTileRenderer<ActualMarker>(
                 // icon.size already includes MarkerIconInterface.scale (baked into the
                 // bitmap by toBitmapIcon), so it must not be applied again here.
                 val scale = (callbackScale * extraIconScale).coerceAtLeast(0.0)
+                noteScale(scale, zoomInt, entity.state)
                 val drawW = (icon.size.width.toDouble() * scale).coerceAtLeast(1.0)
                 val drawH = (icon.size.height.toDouble() * scale).coerceAtLeast(1.0)
                 val anchorX = icon.anchor.x.toDouble()
@@ -261,12 +314,19 @@ class MarkerTileRenderer<ActualMarker>(
                         kotlin.math.abs(drawW * anchorX),
                         kotlin.math.abs(drawW * (1.0 - anchorX)),
                     )
-                val halfExtentY =
+                var halfExtentY =
                     max(
                         kotlin.math.abs(drawH * anchorY),
                         kotlin.math.abs(drawH * (1.0 - anchorY)),
                     )
-                maxHalfExtentPx = max(maxHalfExtentPx, max(halfExtentX, halfExtentY))
+                var halfExtent = max(halfExtentX, halfExtentY)
+                if (label != null) {
+                    // ラベルもはみ出しに数える。境界をまたぐ文字を隣のタイルも描くため。
+                    halfExtentY = (kotlin.math.abs(label.centerOffsetY) + label.height / 2f) * scale
+                    val labelX = (kotlin.math.abs(label.centerOffsetX) + label.width / 2f) * scale
+                    halfExtent = maxOf(halfExtent, labelX, halfExtentY)
+                }
+                maxHalfExtentPx = max(maxHalfExtentPx, halfExtent)
                 prepared.add(
                     PreparedMarker(
                         bitmap = icon.bitmap,
@@ -274,6 +334,8 @@ class MarkerTileRenderer<ActualMarker>(
                         drawW = drawW.toFloat(),
                         drawH = drawH.toFloat(),
                         anchor = icon.anchor,
+                        label = label,
+                        scale = scale.toFloat(),
                     ),
                 )
             }
@@ -341,7 +403,7 @@ class MarkerTileRenderer<ActualMarker>(
         // every tile measured, so the "conservative first pass" never paid off
         // and query+prepare simply ran twice for every tile. Widening it as
         // soon as one tile knows better costs one extra pass in total.
-        val assumedHalfExtentPx = observedHalfExtentPx
+        val assumedHalfExtentPx = queryHalfExtentPx(zoomInt)
 
         var entities = queryByHalfExtentPx(assumedHalfExtentPx)
 
@@ -495,18 +557,44 @@ class MarkerTileRenderer<ActualMarker>(
             java.util.Arrays.sort(sortedGroups)
             val lastInGroup = IntArray(sortedGroups.size) { -1 }
             val mixedIcons = BooleanArray(sortedGroups.size)
+            // ラベル付きを先に残す。ラベルは利用者が「この点の名前を見せたい」と選んだもので、
+            // 同じマス目の点のどれかと入れ替えてよいものではない。ラベル付きどうしは世界座標
+            // （worldY 優先、次に worldX）で決める。列挙順はタイルごとに違うので、順番で決めると
+            // 隣のタイルと別の勝者を選び、境界でラベルが割れる。
+            val labelledWinner = IntArray(sortedGroups.size) { -1 }
+
+            fun worldKey(index: Int): Double {
+                val m = prepared[index]
+                return (m.centerNorm.y + tileY) * tilePx * 1_048_576.0 + (m.centerNorm.x + tileX) * tilePx
+            }
             for (index in prepared.indices) {
                 val groupIndex = java.util.Arrays.binarySearch(sortedGroups, groups[index])
                 val previous = lastInGroup[groupIndex]
-                if (previous >= 0 && icons[previous] !== icons[index]) {
+                if (previous >= 0 &&
+                    (
+                        icons[previous] !== icons[index] ||
+                            prepared[previous].label != null ||
+                            prepared[index].label != null
+                    )
+                ) {
+                    // 本体が同じでも文字が違えば重ねたまま描く（間引きなしのとき）。
                     mixedIcons[groupIndex] = true
                 }
                 lastInGroup[groupIndex] = index
+                if (prepared[index].label != null) {
+                    val winner = labelledWinner[groupIndex]
+                    if (winner < 0 || worldKey(index) > worldKey(winner)) labelledWinner[groupIndex] = index
+                }
             }
             val draw = BooleanArray(prepared.size)
             for (index in prepared.indices) {
                 val groupIndex = java.util.Arrays.binarySearch(sortedGroups, groups[index])
-                draw[index] = lastInGroup[groupIndex] == index || (!declutter && mixedIcons[groupIndex])
+                draw[index] =
+                    if (declutter && labelledWinner[groupIndex] >= 0) {
+                        labelledWinner[groupIndex] == index
+                    } else {
+                        lastInGroup[groupIndex] == index || (!declutter && mixedIcons[groupIndex])
+                    }
             }
 
             for (index in prepared.indices) {
@@ -522,6 +610,19 @@ class MarkerTileRenderer<ActualMarker>(
                 val height = (packed and 0xFFFF).toInt()
                 dstRect.set(left, top, left + width, top + height)
                 canvas.drawBitmap(icon, null, dstRect, bmpPaint)
+            }
+
+            // 文字は本体をすべて描いたあと。ほかの点の下に字が隠れない。
+            for (index in prepared.indices) {
+                if (!draw[index]) continue
+                val m = prepared[index]
+                val label = m.label ?: continue
+                label.draw(
+                    canvas = canvas,
+                    anchorX = (m.centerNorm.x * tilePx + paddingPx).toFloat(),
+                    anchorY = (m.centerNorm.y * tilePx + paddingPx).toFloat(),
+                    scale = m.scale,
+                )
             }
         }
 
