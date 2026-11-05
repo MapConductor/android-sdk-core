@@ -66,7 +66,7 @@ open class MarkerManager<ActualMarker>(
         if (!usable("removeEntity")) return null
         val removed = entities.remove(id)
         if (removed != null) {
-            gridIndex.invalidate()
+            gridIndex.remove(removed)
         }
         return removed
     }
@@ -108,18 +108,24 @@ open class MarkerManager<ActualMarker>(
     open fun registerEntity(entity: MarkerEntityInterface<ActualMarker>) {
         if (!usable("registerEntity")) return
         semaphore.write {
-            entities[entity.state.id] = entity
-            gridIndex.invalidate()
+            file(entities.put(entity.state.id, entity), entity)
         }
     }
 
     open fun updateEntity(entity: MarkerEntityInterface<ActualMarker>) {
         if (!usable("updateEntity")) return
         semaphore.write {
-            entities[entity.state.id] = entity
             // A marker that moved changes which cell it belongs to.
-            gridIndex.invalidate()
+            file(entities.put(entity.state.id, entity), entity)
         }
+    }
+
+    /** Tells the index that [entity] took the place of [previous], if there was one. */
+    private fun file(
+        previous: MarkerEntityInterface<ActualMarker>?,
+        entity: MarkerEntityInterface<ActualMarker>,
+    ) {
+        if (previous == null) gridIndex.add(entity) else gridIndex.replace(previous, entity)
     }
 
     open fun allEntities(): List<MarkerEntityInterface<ActualMarker>> {
