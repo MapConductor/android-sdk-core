@@ -33,15 +33,48 @@ import java.util.Arrays
  * snapshot when it rebuilds, so nothing here duplicates the map the manager
  * already keeps — an id-to-slot map of its own cost several megabytes at this
  * size, for information that already existed.
+ *
+ * ## Changes are applied, not rebuilt
+ *
+ * The first version threw the index away on every change, so a query after
+ * any change paid the full build. An app that swaps a few hundred markers on
+ * every pan paid it on every tap and every tile: on a Pixel 5a, 83 ms at
+ * 60,000 markers and 182 ms at 144,000, up to 780 ms, after 300 swaps.
+ *
+ * Now a marker that arrives takes the next slot and its entry waits in
+ * [pending]; the next query sorts only those and merges them into [packed] in
+ * one linear pass. A marker that leaves only empties its slot — queries skip
+ * empty slots, and the next merge drops their entries. Only when half the slots
+ * are empty, or the index lost track of a marker, does it rebuild from the
+ * manager's collection.
+ *
+ * Finding a leaving marker's entry needs no map either. Its entry is in the run
+ * of the cell its position falls in, found by binary search and matched by
+ * identity. The exception is a marker whose position was changed in place
+ * after it was filed — a drag does that — and for that one the slots are
+ * scanned, which is still far less than a rebuild.
  */
 @InternalMapConductorApi
 internal class MarkerGridIndex<ActualMarker>(
     private val source: () -> Collection<MarkerEntityInterface<ActualMarker>>,
 ) {
+    /** Slot -> marker. A marker that left leaves a null. */
+    @Volatile
     private var snapshot: Array<MarkerEntityInterface<ActualMarker>?> = emptyArray()
 
-    /** Sorted `(mortonKey shl INDEX_BITS) or position-in-snapshot`. */
+    /** Sorted `(mortonKey shl INDEX_BITS) or slot`. */
+    @Volatile
     private var packed = LongArray(0)
+
+    /** Entries for markers that arrived since the last merge, unsorted. */
+    private var pending = LongArray(0)
+    private var pendingCount = 0
+
+    /** Slots handed out, live or empty. */
+    private var slotCount = 0
+
+    /** Slots emptied by markers that left. */
+    private var emptySlots = 0
 
     @Volatile
     private var dirty = true
@@ -51,11 +84,102 @@ internal class MarkerGridIndex<ActualMarker>(
         get() = !dirty
 
     /** Roughly what the index costs: two longs a marker, key and reference. */
-    fun estimatedBytes(): Long = packed.size * 8L + snapshot.size * 8L
+    fun estimatedBytes(): Long = packed.size * 8L + snapshot.size * 8L + pending.size * 8L
 
     /** Marks the index stale. The rebuild happens on the next query. */
+    @Synchronized
     fun invalidate() {
         dirty = true
+    }
+
+    /** Files a marker that was not in the index. */
+    @Synchronized
+    fun add(entity: MarkerEntityInterface<ActualMarker>) {
+        // Until the first build, or while a rebuild is due, the rebuild reads the
+        // manager's collection and will see this marker there.
+        if (dirty) return
+        if (slotCount == MAX_SLOTS) {
+            dirty = true
+            return
+        }
+        if (slotCount == snapshot.size) snapshot = snapshot.copyOf(maxOf(16, slotCount * 2))
+        val slot = slotCount++
+        snapshot[slot] = entity
+        if (pendingCount == pending.size) pending = pending.copyOf(maxOf(16, pendingCount * 2))
+        pending[pendingCount++] = (MarkerGrid.mortonKeyFor(entity.state.position) shl INDEX_BITS) or slot.toLong()
+    }
+
+    /** Forgets a marker. */
+    @Synchronized
+    fun remove(entity: MarkerEntityInterface<ActualMarker>) {
+        if (dirty) return
+        val slot = locate(entity)
+        if (slot < 0) {
+            // Not where it should be: the index lost track of it somewhere, so
+            // stop trusting it rather than return a marker that has gone.
+            dirty = true
+            return
+        }
+        snapshot[slot] = null
+        emptySlots++
+    }
+
+    /**
+     * [previous] is replaced by [entity] under the same id — the same object
+     * after a change, or a new one.
+     *
+     * Most updates leave the marker in its cell: an icon or a flag changed. Then
+     * only the reference in its slot is swapped, and nothing waits for a merge.
+     */
+    @Synchronized
+    fun replace(
+        previous: MarkerEntityInterface<ActualMarker>,
+        entity: MarkerEntityInterface<ActualMarker>,
+    ) {
+        if (dirty) return
+        val slot = locateInCell(previous, MarkerGrid.mortonKeyFor(entity.state.position))
+        if (slot >= 0) {
+            snapshot[slot] = entity
+            return
+        }
+        remove(previous)
+        add(entity)
+    }
+
+    /** The slot holding [entity], or -1. */
+    private fun locate(entity: MarkerEntityInterface<ActualMarker>): Int {
+        val slot = locateInCell(entity, MarkerGrid.mortonKeyFor(entity.state.position))
+        if (slot >= 0) return slot
+        // Its position changed in place since it was filed, so its entry is in
+        // some other cell's run. Scan the slots.
+        val slots = snapshot
+        for (at in 0 until slotCount) {
+            if (slots[at] === entity) return at
+        }
+        return -1
+    }
+
+    /** The slot holding [entity] if it was filed under bottom-level [key], or -1. */
+    private fun locateInCell(
+        entity: MarkerEntityInterface<ActualMarker>,
+        key: Long,
+    ): Int {
+        val slots = snapshot
+        for (at in 0 until pendingCount) {
+            val entry = pending[at]
+            if (entry ushr INDEX_BITS != key) continue
+            val slot = (entry and INDEX_MASK).toInt()
+            if (slots[slot] === entity) return slot
+        }
+        val entries = packed
+        val limit = (key + 1) shl INDEX_BITS
+        var at = lowerBound(entries, key shl INDEX_BITS)
+        while (at < entries.size && entries[at] < limit) {
+            val slot = (entries[at] and INDEX_MASK).toInt()
+            if (slots[slot] === entity) return slot
+            at++
+        }
+        return -1
     }
 
     /** Markers whose position falls inside [bounds]. */
@@ -144,21 +268,32 @@ internal class MarkerGridIndex<ActualMarker>(
         if ((latTo - latFrom + 1) * columnCount > MAX_CELLS_PER_THINNED_QUERY) return null
 
         rebuildIfNeeded()
+        val entries = packed
+        val slots = snapshot
         val shift = INDEX_BITS + 2 * (MarkerGrid.GRID_DEPTH - level)
         val found = ArrayList<MarkerEntityInterface<ActualMarker>>()
         for (latCell in latFrom..latTo) {
             for (step in 0 until columnCount) {
                 val key = MarkerGrid.morton(latCell, MarkerGrid.wrap(firstColumn + step, level), level)
-                val at = lowerBound(key shl shift)
-                if (at >= packed.size) continue
+                val at = lowerBound(entries, key shl shift)
+                if (at >= entries.size) continue
                 val limit = (key + 1) shl shift
-                if (packed[at] >= limit) continue
-                // The run's last entry. No containment test anywhere: that is
-                // the whole point, and it is also why this is cheaper than the
-                // version that scanned every border cell.
+                if (entries[at] >= limit) continue
+                // The run's last live entry. No containment test anywhere: that
+                // is the whole point, and it is also why this is cheaper than
+                // the version that scanned every border cell. A marker that
+                // left empties its slot without moving the entries, so step
+                // back over those.
                 var last = at
-                while (last + 1 < packed.size && packed[last + 1] < limit) last++
-                snapshot[(packed[last] and INDEX_MASK).toInt()]?.let { found.add(it) }
+                while (last + 1 < entries.size && entries[last + 1] < limit) last++
+                while (last >= at) {
+                    val entity = slots[(entries[last] and INDEX_MASK).toInt()]
+                    if (entity != null) {
+                        found.add(entity)
+                        break
+                    }
+                    last--
+                }
             }
         }
         return found
@@ -260,18 +395,28 @@ internal class MarkerGridIndex<ActualMarker>(
         level: Int,
         body: (MarkerEntityInterface<ActualMarker>) -> Unit,
     ) {
+        val entries = packed
+        val slots = snapshot
         val shift = INDEX_BITS + 2 * (MarkerGrid.GRID_DEPTH - level)
-        var at = lowerBound(key shl shift)
+        var at = lowerBound(entries, key shl shift)
         val limit = (key + 1) shl shift
-        while (at < packed.size && packed[at] < limit) {
-            snapshot[(packed[at] and INDEX_MASK).toInt()]?.let(body)
+        while (at < entries.size && entries[at] < limit) {
+            slots[(entries[at] and INDEX_MASK).toInt()]?.let(body)
             at++
         }
     }
 
     @Synchronized
     private fun rebuildIfNeeded() {
-        if (!dirty) return
+        if (!dirty && emptySlots > REBUILD_MIN_SLOTS && emptySlots * 2 > slotCount) dirty = true
+        if (dirty) {
+            rebuild()
+            return
+        }
+        if (pendingCount > 0) merge()
+    }
+
+    private fun rebuild() {
         val entities = source()
         val taken = arrayOfNulls<MarkerEntityInterface<ActualMarker>>(entities.size)
         val keys = LongArray(entities.size)
@@ -286,15 +431,44 @@ internal class MarkerGridIndex<ActualMarker>(
         Arrays.sort(keys, 0, at)
         snapshot = taken
         packed = if (at == keys.size) keys else keys.copyOf(at)
+        slotCount = at
+        emptySlots = 0
+        pending = LongArray(0)
+        pendingCount = 0
         dirty = false
     }
 
-    private fun lowerBound(target: Long): Int {
+    /**
+     * Folds the markers that arrived into [packed]: sort those alone, then one
+     * pass over both sorted runs. Entries whose slot was emptied are dropped on
+     * the way, from either side.
+     */
+    private fun merge() {
+        Arrays.sort(pending, 0, pendingCount)
+        val slots = snapshot
+        val old = packed
+        val merged = LongArray(old.size + pendingCount)
+        var size = 0
+        var i = 0
+        var j = 0
+        while (i < old.size || j < pendingCount) {
+            val takeOld = j >= pendingCount || (i < old.size && old[i] < pending[j])
+            val entry = if (takeOld) old[i++] else pending[j++]
+            if (slots[(entry and INDEX_MASK).toInt()] != null) merged[size++] = entry
+        }
+        packed = if (size == merged.size) merged else merged.copyOf(size)
+        pendingCount = 0
+    }
+
+    private fun lowerBound(
+        entries: LongArray,
+        target: Long,
+    ): Int {
         var low = 0
-        var high = packed.size
+        var high = entries.size
         while (low < high) {
             val mid = (low + high) ushr 1
-            if (packed[mid] < target) low = mid + 1 else high = mid
+            if (entries[mid] < target) low = mid + 1 else high = mid
         }
         return low
     }
@@ -327,5 +501,15 @@ internal class MarkerGridIndex<ActualMarker>(
         // 24 bits of position, enough for 16.7M markers, under the cell key.
         private const val INDEX_BITS = 24
         private const val INDEX_MASK = (1L shl INDEX_BITS) - 1
+
+        /** Slots the index can hand out before it has to rebuild to renumber them. */
+        private const val MAX_SLOTS = 1 shl INDEX_BITS
+
+        /**
+         * Below this many empty slots a rebuild is never worth it. Above it, the
+         * index rebuilds once half its slots are empty: the dead entries cost a
+         * skip on every query, and the snapshot holds a slot for each.
+         */
+        private const val REBUILD_MIN_SLOTS = 4096
     }
 }

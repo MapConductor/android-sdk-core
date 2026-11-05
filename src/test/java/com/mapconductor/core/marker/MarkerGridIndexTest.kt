@@ -250,6 +250,180 @@ class MarkerGridIndexTest {
         assertEquals(2, index.inBounds(box).size)
     }
 
+    /**
+     * Changes are applied to the built index, not rebuilt from the collection.
+     *
+     * The index is queried first so every change lands on a built index, and
+     * the collection counts how often it is read: a rebuild reads it, applying
+     * a change does not. After every kind of change the answers still have to
+     * be a scan's — a slot left pointing at a marker that went, or an entry
+     * left in the cell a marker moved out of, does not fail loudly; it returns
+     * a marker that is not there.
+     */
+    @Test
+    fun changesAreAppliedWithoutARebuild() {
+        val markers = scatter(5000, 35.68, 139.76, 0.6).toMutableList()
+        var reads = 0
+        val index =
+            MarkerGridIndex {
+                reads++
+                markers
+            }
+        val boxes =
+            listOf(
+                bounds(35.6812, 139.7612, 35.6814, 139.7614),
+                bounds(35.68, 139.76, 35.69, 139.77),
+                bounds(35.6, 139.6, 35.8, 139.9),
+                bounds(35.0, 139.0, 36.5, 140.5),
+            )
+        val probes =
+            listOf(
+                GeoPoint.fromLatLong(35.68, 139.76),
+                GeoPoint.fromLatLong(35.5, 139.6),
+                GeoPoint.fromLatLong(35.9, 140.0),
+            )
+
+        fun assertMatchesScan(label: String) {
+            // By identity: a replaced marker has the same id as the one it replaced.
+            val live = markers.toSet()
+            for ((at, box) in boxes.withIndex()) {
+                val expected = ids(markers.filter { box.contains(it.state.position) })
+                val found = index.inBounds(box)
+                assertEquals("$label, box $at", expected, ids(found))
+                assertEquals("$label, box $at: a marker twice", expected.size, found.size)
+                assertTrue("$label, box $at: a replaced object", found.all { it in live })
+            }
+            for (point in probes + markers.take(20).map { it.state.position as GeoPoint }) {
+                val best = markers.minOf { squared(it, point) }
+                assertEquals("$label, nearest", best, squared(index.nearest(point)!!, point), 0.0)
+            }
+            val box = bounds(35.60, 139.68, 35.76, 139.84)
+            val kept = index.inBoundsThinned(box, 0.005)!!
+            assertTrue("$label: thinning returned a marker that left", kept.all { it in live })
+
+            fun cellOf(entity: MarkerEntityInterface<Int>): String =
+                MarkerGrid.geocell(entity.state.position.latitude, entity.state.position.longitude, characters = 9)
+            val inside = markers.filter { box.contains(it.state.position) }.map(::cellOf).toSet()
+            assertTrue("$label: a populated cell went unrepresented", kept.map(::cellOf).toSet().containsAll(inside))
+        }
+
+        assertMatchesScan("built")
+        assertEquals(1, reads)
+
+        var seed = 99L
+
+        fun next(): Double {
+            seed = seed * 6364136223846793005L + 1442695040888963407L
+            return (seed ushr 11).toDouble() / (1L shl 53).toDouble()
+        }
+
+        fun anywhere() = GeoPoint.fromLatLong(35.38 + next() * 0.6, 139.46 + next() * 0.6)
+        var nextId = 10_000
+        repeat(5) { round ->
+            repeat(200) {
+                when ((next() * 5).toInt()) {
+                    // A new marker.
+                    0 -> {
+                        val position = anywhere()
+                        val added = entity(nextId++, position.latitude, position.longitude)
+                        markers.add(added)
+                        index.add(added)
+                    }
+                    // A marker leaves.
+                    1 -> {
+                        val gone = markers.removeAt((next() * markers.size).toInt())
+                        index.remove(gone)
+                    }
+                    // Replaced by a new object in the same place: an icon change.
+                    2 -> {
+                        val at = (next() * markers.size).toInt()
+                        val old = markers[at]
+                        val replacement =
+                            entity(old.state.id.toInt(), old.state.position.latitude, old.state.position.longitude)
+                        markers[at] = replacement
+                        index.replace(old, replacement)
+                    }
+                    // Replaced by a new object somewhere else.
+                    3 -> {
+                        val at = (next() * markers.size).toInt()
+                        val old = markers[at]
+                        val position = anywhere()
+                        val moved = entity(old.state.id.toInt(), position.latitude, position.longitude)
+                        markers[at] = moved
+                        index.replace(old, moved)
+                    }
+                    // Moved in place, as a drag does, then reported.
+                    else -> {
+                        val dragged = markers[(next() * markers.size).toInt()]
+                        dragged.state.position = anywhere()
+                        index.replace(dragged, dragged)
+                    }
+                }
+            }
+            assertMatchesScan("round $round")
+        }
+        assertEquals("a change was applied by rebuilding", 1, reads)
+    }
+
+    /**
+     * A cell whose representative left is still represented.
+     *
+     * The thinned query takes the last entry of a cell's run. A marker that
+     * leaves empties its slot but keeps its entry until the next merge, and
+     * with nothing added since, there is no merge: the query has to step back
+     * past it to the one before, or the cell drops out of the map.
+     */
+    @Test
+    fun thinnedQuerySkipsAMarkerThatLeft() {
+        val first = entity(0, 35.68, 139.76)
+        val second = entity(1, 35.68, 139.76)
+        val markers = mutableListOf(first, second)
+        val index = MarkerGridIndex { markers }
+        val box = bounds(35.67, 139.75, 35.69, 139.77)
+        assertEquals(listOf(second), index.inBoundsThinned(box, 0.01))
+
+        markers.remove(second)
+        index.remove(second)
+        assertEquals(listOf(first), index.inBoundsThinned(box, 0.01))
+    }
+
+    /** A marker the index cannot find makes it rebuild rather than trust itself. */
+    @Test
+    fun removingAnUnknownMarkerRebuilds() {
+        val markers = scatter(1000, 35.68, 139.76, 0.6).toMutableList()
+        var reads = 0
+        val index =
+            MarkerGridIndex {
+                reads++
+                markers
+            }
+        val box = bounds(35.0, 139.0, 36.5, 140.5)
+        assertEquals(markers.size, index.inBounds(box).size)
+
+        index.remove(entity(99_999, 35.68, 139.76))
+        assertFalse(index.isBuilt)
+        assertEquals(markers.size, index.inBounds(box).size)
+        assertEquals(2, reads)
+    }
+
+    /** Once half the slots are empty, a rebuild compacts them. */
+    @Test
+    fun manyRemovalsCompactByRebuilding() {
+        val markers = scatter(20_000, 35.68, 139.76, 0.6).toMutableList()
+        var reads = 0
+        val index =
+            MarkerGridIndex {
+                reads++
+                markers
+            }
+        val box = bounds(35.0, 139.0, 36.5, 140.5)
+        index.inBounds(box)
+
+        repeat(12_000) { index.remove(markers.removeAt(markers.size - 1)) }
+        assertEquals(ids(markers), ids(index.inBounds(box)))
+        assertEquals(2, reads)
+    }
+
     private fun squared(
         entity: MarkerEntityInterface<Int>,
         point: GeoPoint,
