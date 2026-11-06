@@ -56,9 +56,28 @@ class MarkerTileRenderer<ActualMarker>(
     val extraIconScale: Double = 1.0,
     /** See [MarkerTilingOptions.declutterPx]. Zero draws every marker. */
     private val declutterPx: Int = 0,
+    /**
+     * カメラのズームを四捨五入したズーム。null なら頼まれたタイルのズームのまま描く。
+     *
+     * 地図 SDK がどのズームのタイルを出すかは SDK ごとに違う。MapLibre 系・Mapbox・HERE・
+     * ArcGIS はカメラのズームを四捨五入したズームのタイルを出すが、Google Maps と
+     * OpenMobileMaps は切り捨てたズームのタイルを出す。ズーム 17.75 なら前者は z18 を
+     * 0.84 倍、後者は z17 を 1.68 倍に伸ばして出すので、同じ大きさで描いたマーカーと
+     * ラベルが 2 倍違って見える（Pixel 5a で実測）。
+     *
+     * これを渡すと、ほかのズームのタイルを頼まれても、四捨五入したズームのタイルと同じ
+     * 大きさに見えるように描く。切り捨てる SDK で z17 を頼まれたときカメラが 17.75 なら、
+     * z18 で描く大きさの半分で描く。値が変わったらタイルの描き直しが要る
+     * （内側の描き置きはここで捨てるが、地図 SDK の側のキャッシュは呼び出し側が捨てる）。
+     */
+    private val displayTileZoom: (() -> Int?)? = null,
 ) : TileProviderInterface {
     @Volatile
     private var cacheVersion: Int = 0
+
+    /** 前のタイルを描いたときの [displayTileZoom]。変わったら描き置きを捨てる。 */
+    @Volatile
+    private var lastDisplayZoom: Int? = null
 
     private val tileCache: LruCache<Long, ByteArray> =
         object : LruCache<Long, ByteArray>(cacheSizeBytes) {
@@ -209,7 +228,10 @@ class MarkerTileRenderer<ActualMarker>(
      * はみ出し量を [LabelledIconExtent] に記録しているので、それも使う。
      * 全マーカーを数え直す方法は、14.4 万本で 1 回あたり秒単位になるので採らない（ios-sdk で実測）。
      */
-    private fun queryHalfExtentPx(zoom: Int): Double {
+    private fun queryHalfExtentPx(
+        zoom: Int,
+        contentScale: Double,
+    ): Double {
         val scale: Double? =
             synchronized(maxScaleByZoom) {
                 maxScaleByZoom[zoom] ?: sampleState?.let { sample ->
@@ -217,7 +239,7 @@ class MarkerTileRenderer<ActualMarker>(
                 }
             }
         if (scale == null) return observedHalfExtentPx
-        return max(observedHalfExtentPx, LabelledIconExtent.maxPx * scale)
+        return max(observedHalfExtentPx, LabelledIconExtent.maxPx * scale * contentScale)
     }
 
     private fun noteScale(
@@ -237,6 +259,19 @@ class MarkerTileRenderer<ActualMarker>(
         if (request.y !in 0 until worldTileCount) return null
         val normalizedX = normalizeTileX(request.x, worldTileCount)
         val tileYInt = request.y
+
+        // [displayTileZoom] のズームのタイルと同じ大きさに見せる。地図はこのタイルを
+        // 2^(カメラ - zoomInt) 倍で出すので、中身を 2^(zoomInt - displayZoom) 倍で描けば、
+        // 見た目は 2^(カメラ - displayZoom) 倍になり、四捨五入する SDK と揃う。
+        // アイコンの倍率もそのズームで問い合わせる。
+        val displayZoom = displayTileZoom?.invoke()
+        if (displayZoom != lastDisplayZoom) {
+            lastDisplayZoom = displayZoom
+            invalidate()
+        }
+        val scaleZoom = displayZoom ?: zoomInt
+        val contentScale = 2.0.pow(zoomInt - scaleZoom)
+        val declutterCellPx = declutterPx * contentScale
 
         val cacheVersionSnapshot = cacheVersion
         val cacheKey =
@@ -299,12 +334,13 @@ class MarkerTileRenderer<ActualMarker>(
                         y = tilePoint.y - tileY,
                     )
                 val callbackScale =
-                    (iconScaleCallback?.invoke(entity.state, zoomInt) ?: 1.0)
+                    (iconScaleCallback?.invoke(entity.state, scaleZoom) ?: 1.0)
                         .coerceAtLeast(0.0)
                 // icon.size already includes MarkerIconInterface.scale (baked into the
                 // bitmap by toBitmapIcon), so it must not be applied again here.
-                val scale = (callbackScale * extraIconScale).coerceAtLeast(0.0)
-                noteScale(scale, zoomInt, entity.state)
+                val zoomScale = (callbackScale * extraIconScale).coerceAtLeast(0.0)
+                noteScale(zoomScale, scaleZoom, entity.state)
+                val scale = zoomScale * contentScale
                 val drawW = (icon.size.width.toDouble() * scale).coerceAtLeast(1.0)
                 val drawH = (icon.size.height.toDouble() * scale).coerceAtLeast(1.0)
                 val anchorX = icon.anchor.x.toDouble()
@@ -353,7 +389,7 @@ class MarkerTileRenderer<ActualMarker>(
             // a marker and the two would not be the same one, which is an icon
             // cut at the seam. Growing by the cell as well means every cell that
             // reaches this tile is here in full, so both tiles see all of it.
-            val padNorm = ((halfExtentPx + declutterPx) / tilePx).coerceAtLeast(0.0)
+            val padNorm = ((halfExtentPx + declutterCellPx) / tilePx).coerceAtLeast(0.0)
             val latPad = span.latitude * padNorm
             val lonPad = span.longitude * padNorm
             val extended = bounds.expandedByDegrees(latPad, lonPad)
@@ -383,7 +419,7 @@ class MarkerTileRenderer<ActualMarker>(
             // would ask for a coarser cell here than there.
             val separationDegrees =
                 if (declutterPx > 0) {
-                    max(span.latitude, span.longitude) * declutterPx / tilePx
+                    max(span.latitude, span.longitude) * declutterCellPx / tilePx
                 } else {
                     0.0
                 }
@@ -403,7 +439,7 @@ class MarkerTileRenderer<ActualMarker>(
         // every tile measured, so the "conservative first pass" never paid off
         // and query+prepare simply ran twice for every tile. Widening it as
         // soon as one tile knows better costs one extra pass in total.
-        val assumedHalfExtentPx = queryHalfExtentPx(zoomInt)
+        val assumedHalfExtentPx = queryHalfExtentPx(scaleZoom, contentScale)
 
         var entities = queryByHalfExtentPx(assumedHalfExtentPx)
 
@@ -480,7 +516,7 @@ class MarkerTileRenderer<ActualMarker>(
             val groups = LongArray(prepared.size)
             val icons = arrayOfNulls<Bitmap>(prepared.size)
             val declutter = declutterPx > 0
-            val cell = declutterPx.coerceAtLeast(1).toDouble()
+            val cell = declutterCellPx.coerceAtLeast(contentScale)
             // The cell the tile's own corner falls in. Subtracting it keeps the
             // group numbers inside the 20 bits [cellKeyOf] packs them into,
             // without moving the grid: two tiles still agree about which markers
