@@ -56,17 +56,11 @@ class MarkerState(
 
     private val currentIcon = mutations.notifying<MarkerIconInterface?>(icon)
 
-    /**
-     * URL の画像が届くたびに増える。[icon] を読んだコンポジションは、これも読んでいるので
-     * 描き直される（アイコン自体は同じインスタンスのまま見た目だけ変わるため）。
-     */
-    private val iconImageArrivals = mutableIntStateOf(0)
+    /** [iconRevision] の中身。URL の画像が届くたびに増える。 */
+    internal val iconRevisionState = mutableIntStateOf(0)
 
     var icon: MarkerIconInterface?
-        get() {
-            iconImageArrivals.intValue
-            return currentIcon.value
-        }
+        get() = currentIcon.value
         set(value) {
             val changed = currentIcon.value != value
             currentIcon.value = value
@@ -99,7 +93,7 @@ class MarkerState(
         val image = icon as? ImageIcon ?: return
         image.whenImageLoaded {
             if (currentIcon.value === image) {
-                iconImageArrivals.intValue++
+                iconRevisionState.intValue++
                 mutations.notifyMutated()
             }
         }

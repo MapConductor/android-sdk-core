@@ -7,6 +7,7 @@ import com.mapconductor.core.features.GeoRectBounds
 import com.mapconductor.core.groundimage.GroundImageState
 import com.mapconductor.core.marker.ImageIcon
 import com.mapconductor.core.marker.MarkerState
+import com.mapconductor.core.marker.iconRevision
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -159,6 +160,8 @@ class RemoteImageDeviceTest {
 
         assertEquals(1, keptWrites.get())
         assertEquals(0, replacedWrites.get())
+        assertEquals(1, kept.iconRevision)
+        assertEquals(0, replaced.iconRevision)
         assertNotEquals(before, kept.fingerPrint())
     }
 
