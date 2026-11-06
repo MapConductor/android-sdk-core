@@ -92,7 +92,7 @@ class RemoteImageDeviceTest {
     }
 
     @Test
-    fun aFailureIsRememberedForAWhile() {
+    fun aFailedUrlStaysFailed() {
         failing = true
         var first: Bitmap? = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
         RemoteImageLoader.load("https://example.test/missing.png") { first = it }

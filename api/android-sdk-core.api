@@ -662,8 +662,6 @@ public final class com.mapconductor.core.groundimage.GroundImageState implements
   public final void setImageUrl(java.lang.String);
   public final float getOpacity();
   public final void setOpacity(float);
-  public com.mapconductor.core.groundimage.GroundImageState(com.mapconductor.core.features.GeoRectBounds, java.lang.String, float, int, boolean, java.lang.String, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit>);
-  public com.mapconductor.core.groundimage.GroundImageState(com.mapconductor.core.features.GeoRectBounds, java.lang.String, float, int, boolean, java.lang.String, java.io.Serializable, kotlin.jvm.functions.Function1, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final int getTileSize();
   public final void setTileSize(int);
   public final boolean getClickable();
@@ -672,6 +670,8 @@ public final class com.mapconductor.core.groundimage.GroundImageState implements
   public final void setExtra(java.io.Serializable);
   public final kotlin.jvm.functions.Function1<com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit> getOnClick();
   public final void setOnClick(kotlin.jvm.functions.Function1<? super com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit>);
+  public com.mapconductor.core.groundimage.GroundImageState(com.mapconductor.core.features.GeoRectBounds, java.lang.String, float, int, boolean, java.lang.String, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit>);
+  public com.mapconductor.core.groundimage.GroundImageState(com.mapconductor.core.features.GeoRectBounds, java.lang.String, float, int, boolean, java.lang.String, java.io.Serializable, kotlin.jvm.functions.Function1, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final com.mapconductor.core.groundimage.GroundImageFingerPrint fingerPrint();
   public final com.mapconductor.core.groundimage.GroundImageState copy(com.mapconductor.core.features.GeoRectBounds, android.graphics.drawable.Drawable, float, int, boolean, java.lang.String, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.groundimage.GroundImageEvent, kotlin.Unit>);
   public boolean equals(java.lang.Object);

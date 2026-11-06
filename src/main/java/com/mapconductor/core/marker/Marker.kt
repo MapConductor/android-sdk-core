@@ -1,6 +1,7 @@
 package com.mapconductor.core.marker
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -54,8 +55,18 @@ class MarkerState(
     override val mutations = StateMutationSignal()
 
     private val currentIcon = mutations.notifying<MarkerIconInterface?>(icon)
+
+    /**
+     * URL の画像が届くたびに増える。[icon] を読んだコンポジションは、これも読んでいるので
+     * 描き直される（アイコン自体は同じインスタンスのまま見た目だけ変わるため）。
+     */
+    private val iconImageArrivals = mutableIntStateOf(0)
+
     var icon: MarkerIconInterface?
-        get() = currentIcon.value
+        get() {
+            iconImageArrivals.intValue
+            return currentIcon.value
+        }
         set(value) {
             val changed = currentIcon.value != value
             currentIcon.value = value
@@ -87,7 +98,10 @@ class MarkerState(
     private fun redrawWhenImageLoaded(icon: MarkerIconInterface?) {
         val image = icon as? ImageIcon ?: return
         image.whenImageLoaded {
-            if (currentIcon.value === image) mutations.notifyMutated()
+            if (currentIcon.value === image) {
+                iconImageArrivals.intValue++
+                mutations.notifyMutated()
+            }
         }
     }
 

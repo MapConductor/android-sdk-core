@@ -22,8 +22,8 @@ import kotlinx.coroutines.launch
  * - 同じ URL は同時に一度だけ取りに行き、待っている全員に同じ [Bitmap] を渡す。
  *   14 万本のマーカーが 1 つのアイコンを共有していても、通信は 1 回で済む。
  * - 読んだ画像は大きさの合計で [MAX_CACHE_BYTES] まで覚えておく。
- * - 失敗は [RETRY_AFTER_MS] のあいだ覚えておき、その間の要求にはすぐ null を返す。
- *   ログは URL ごとに一度だけ出す。
+ * - 失敗した URL はアプリが終わるまで失敗のままにし、その後の要求にはすぐ null を返す。
+ *   ログは URL ごとに一度だけ出す。react-sdk / ios-sdk と同じ。
  * - 読めるのは http / https / file / data。http(s) にはアプリの `android.permission.INTERNET` が要る。
  *
  * 読み込みの完了は、呼び出し元とは別のスレッドから通知する。
@@ -32,7 +32,6 @@ import kotlinx.coroutines.launch
 internal object RemoteImageLoader {
     private const val TAG = "MapConductor"
     private const val MAX_CACHE_BYTES = 32 * 1024 * 1024
-    private const val RETRY_AFTER_MS = 30_000L
     private const val MAX_REDIRECTS = 10
 
     /** URL からバイト列を取る。テストで差し替える。 */
@@ -53,8 +52,7 @@ internal object RemoteImageLoader {
             ): Int = value.allocationByteCount
         }
     private val waiting = HashMap<String, MutableList<(Bitmap?) -> Unit>>()
-    private val failedAt = HashMap<String, Long>()
-    private val reported = HashSet<String>()
+    private val failed = HashSet<String>()
 
     /** 読み終えるまでの代わりに使う、1 px の透明な画像。 */
     val transparentPixel: Bitmap by lazy {
@@ -67,7 +65,7 @@ internal object RemoteImageLoader {
     /**
      * [url] の画像を読み、終わったら [onDone] を一度だけ呼ぶ（失敗は null）。
      *
-     * 覚えている画像や、最近失敗した URL なら、その場で呼ぶ。
+     * 覚えている画像や、失敗した URL なら、その場で呼ぶ。
      */
     fun load(
         url: String,
@@ -76,10 +74,9 @@ internal object RemoteImageLoader {
         val settled: Bitmap?
         synchronized(lock) {
             val hit = cache.get(url)
-            val failed = failedAt[url]
             when {
                 hit != null -> settled = hit
-                failed != null && System.currentTimeMillis() - failed < RETRY_AFTER_MS -> settled = null
+                url in failed -> settled = null
                 else -> {
                     val listeners = waiting[url]
                     if (listeners != null) {
@@ -106,12 +103,8 @@ internal object RemoteImageLoader {
                 synchronized(lock) {
                     if (bitmap != null) {
                         cache.put(url, bitmap)
-                        failedAt.remove(url)
-                    } else {
-                        failedAt[url] = System.currentTimeMillis()
-                        if (reported.add(url)) {
-                            Log.w(TAG, "Failed to load image: $url", result.exceptionOrNull())
-                        }
+                    } else if (failed.add(url)) {
+                        Log.w(TAG, "Failed to load image: $url", result.exceptionOrNull())
                     }
                     waiting.remove(url).orEmpty()
                 }
@@ -123,8 +116,7 @@ internal object RemoteImageLoader {
     internal fun resetForTest() {
         synchronized(lock) {
             cache.evictAll()
-            failedAt.clear()
-            reported.clear()
+            failed.clear()
         }
         fetch = ::defaultFetch
         dispatcher = Dispatchers.IO
