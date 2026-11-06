@@ -1864,8 +1864,8 @@ public interface com.mapconductor.core.marker.MarkerTileRasterLayerCallback {
   public abstract java.lang.Object onRasterLayerUpdate(com.mapconductor.core.raster.RasterLayerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
 }
 public final class com.mapconductor.core.marker.MarkerTileRenderer<ActualMarker> implements com.mapconductor.core.tileserver.TileProviderInterface {
-  public com.mapconductor.core.marker.MarkerTileRenderer(com.mapconductor.core.marker.MarkerManager<ActualMarker>, int, int, boolean, kotlin.jvm.functions.Function2<? super com.mapconductor.core.marker.MarkerState, ? super java.lang.Integer, java.lang.Double>, double, int);
-  public com.mapconductor.core.marker.MarkerTileRenderer(com.mapconductor.core.marker.MarkerManager, int, int, boolean, kotlin.jvm.functions.Function2, double, int, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public com.mapconductor.core.marker.MarkerTileRenderer(com.mapconductor.core.marker.MarkerManager<ActualMarker>, int, int, boolean, kotlin.jvm.functions.Function2<? super com.mapconductor.core.marker.MarkerState, ? super java.lang.Integer, java.lang.Double>, double, int, kotlin.jvm.functions.Function0<java.lang.Integer>);
+  public com.mapconductor.core.marker.MarkerTileRenderer(com.mapconductor.core.marker.MarkerManager, int, int, boolean, kotlin.jvm.functions.Function2, double, int, kotlin.jvm.functions.Function0, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final com.mapconductor.core.marker.MarkerManager<ActualMarker> getMarkerManager();
   public final int getTileSize();
   public final double getExtraIconScale();
