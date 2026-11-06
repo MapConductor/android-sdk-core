@@ -53,7 +53,14 @@ class MarkerState(
      */
     override val mutations = StateMutationSignal()
 
-    var icon by mutations.notifying<MarkerIconInterface?>(icon)
+    private val currentIcon = mutations.notifying<MarkerIconInterface?>(icon)
+    var icon: MarkerIconInterface?
+        get() = currentIcon.value
+        set(value) {
+            val changed = currentIcon.value != value
+            currentIcon.value = value
+            if (changed) redrawWhenImageLoaded(value)
+        }
     var clickable by mutations.notifying(clickable)
     var draggable by mutations.notifying(draggable)
     var onClick by mutations.notifying(onClick)
@@ -65,6 +72,24 @@ class MarkerState(
     var zIndex by mutations.notifying<Int?>(zIndex)
 
     private var internalAnimation by mutations.notifying<MarkerAnimation?>(animation)
+
+    init {
+        redrawWhenImageLoaded(icon)
+    }
+
+    /**
+     * URL の画像がまだ届いていないアイコンなら、届いたときに描き直させる。
+     *
+     * アイコンの見た目（hashCode）は画像が届いた時点で変わるが、[icon] 自体は書き換わらない
+     * ので、ここで知らせる。そのときもまだ同じアイコンを付けていれば、だけ。
+     * 読み込みのスレッドから呼ばれるが、[StateMutationSignal.notifyMutated] はどのスレッドからでもよい。
+     */
+    private fun redrawWhenImageLoaded(icon: MarkerIconInterface?) {
+        val image = icon as? ImageIcon ?: return
+        image.whenImageLoaded {
+            if (currentIcon.value === image) mutations.notifyMutated()
+        }
+    }
 
     fun animate(animation: MarkerAnimation?) {
         internalAnimation = animation

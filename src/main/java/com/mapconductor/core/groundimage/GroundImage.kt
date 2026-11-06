@@ -3,12 +3,21 @@ package com.mapconductor.core.groundimage
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.mapconductor.core.ComponentState
+import com.mapconductor.core.RemoteImageLoader
 import com.mapconductor.core.StateMutationSignal
+import com.mapconductor.core.UrlImageDrawable
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
 import java.io.Serializable
 import android.graphics.drawable.Drawable
 
+/**
+ * 地図に貼る画像。
+ *
+ * 画像は `Drawable` で渡すか、[imageUrl]（http / https / file / data）で渡す。URL のときは
+ * SDK が読み、読み終えるまでは透明、読み終えたら [image] がその画像に替わって描き直される。
+ * http(s) にはアプリの `android.permission.INTERNET` が要る。react-sdk の `imageUrl` と同じ。
+ */
 class GroundImageState(
     bounds: GeoRectBounds,
     image: Drawable,
@@ -29,8 +38,37 @@ class GroundImageState(
 
 //    var bounds by StateFlowDelegate(bounds)
     var bounds by mutations.notifying(bounds)
-    var image by mutations.notifying(image)
+    private val currentImage = mutations.notifying(image)
+    private val currentImageUrl = mutations.notifying<String?>(null)
+
+    /** 描く画像。書き換えると [imageUrl] は null になる。 */
+    var image: Drawable
+        get() = currentImage.value
+        set(value) {
+            currentImageUrl.value = null
+            currentImage.value = value
+        }
+
+    /**
+     * 画像の URL。`Drawable` で作ったか、[image] を書き換えたなら null。
+     *
+     * 書き換えると、読み終えるまで [image] は透明になり、読み終えたらその画像になる。
+     * 読めなかったときは透明のまま。読み終える前にまた書き換えたら、古い方の結果は捨てる。
+     */
+    var imageUrl: String?
+        get() = currentImageUrl.value
+        set(value) {
+            currentImageUrl.value = value
+            if (value == null) return
+            currentImage.value = UrlImageDrawable(value, null)
+            RemoteImageLoader.load(value) { bitmap ->
+                if (bitmap != null && currentImageUrl.value == value) {
+                    currentImage.value = UrlImageDrawable(value, bitmap)
+                }
+            }
+        }
     var opacity by mutations.notifying(opacity)
+
     var tileSize by mutations.notifying(tileSize)
 
     /**
@@ -44,6 +82,29 @@ class GroundImageState(
     var clickable by mutations.notifying(clickable)
     var extra by mutations.notifying(extra)
     var onClick by mutations.notifying(onClick)
+
+    /** [imageUrl] の画像を貼る。読み終えるまでは透明。ほかの引数は `Drawable` を渡すコンストラクタと同じ。 */
+    constructor(
+        bounds: GeoRectBounds,
+        imageUrl: String,
+        opacity: Float = 1.0f,
+        tileSize: Int = GroundImageTileProvider.DEFAULT_TILE_SIZE,
+        clickable: Boolean = true,
+        id: String? = null,
+        extra: Serializable? = null,
+        onClick: OnGroundImageEventHandler? = null,
+    ) : this(
+        bounds = bounds,
+        image = UrlImageDrawable(imageUrl, null),
+        opacity = opacity,
+        tileSize = tileSize,
+        clickable = clickable,
+        id = id,
+        extra = extra,
+        onClick = onClick,
+    ) {
+        this.imageUrl = imageUrl
+    }
 
     fun fingerPrint(): GroundImageFingerPrint =
         GroundImageFingerPrint(
@@ -82,8 +143,22 @@ class GroundImageState(
         id: String? = this.id,
         extra: Serializable? = this.extra,
         onClick: OnGroundImageEventHandler? = this.onClick,
-    ): GroundImageState =
-        GroundImageState(
+    ): GroundImageState {
+        // 画像を差し替えないなら URL ごと引き継ぐ（読み込み中でも、届いたら写る）。
+        val url = imageUrl
+        if (url != null && image === this.image) {
+            return GroundImageState(
+                bounds = bounds,
+                imageUrl = url,
+                opacity = opacity,
+                tileSize = tileSize,
+                clickable = clickable,
+                id = id,
+                extra = extra,
+                onClick = onClick,
+            )
+        }
+        return GroundImageState(
             bounds = bounds,
             image = image,
             opacity = opacity,
@@ -93,6 +168,7 @@ class GroundImageState(
             extra = extra,
             onClick = onClick,
         )
+    }
 
     override fun equals(other: Any?): Boolean = (other as? GroundImageState)?.hashCode() == this.hashCode()
 

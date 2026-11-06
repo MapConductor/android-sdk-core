@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.createBitmap
 import com.mapconductor.core.BitmapIconCache
+import com.mapconductor.core.RemoteImageDrawable
 import com.mapconductor.core.ResourceProvider
 import com.mapconductor.settings.Settings
 import android.graphics.Canvas
@@ -38,6 +39,14 @@ import android.graphics.drawable.GradientDrawable
  *
  * タイル描画は本体の画像と文字を別々に使うので、ラベル付きのアイコンをいくつ作っても、
  * 本体の画像は元の画像と大きさごとに 1 枚で済む。
+ *
+ * ## URL の画像
+ *
+ * `ImageIcon(imageUrl = "https://…")` は画像を SDK が読む。読み終えるまでは同じ大きさの
+ * 透明な画像（ラベルは描く）で、届いたらそのアイコンを使っているマーカーが描き直される。
+ * 同じ URL は一度しか取りに行かない。http / https / file / data を読め、http(s) には
+ * アプリの `android.permission.INTERNET` が要る。読めなかったときは透明のまま。
+ * react-sdk / ios-sdk の `ImageIcon` の `imageUrl` と同じ。
  */
 class ImageIcon(
     image: Drawable,
@@ -56,8 +65,53 @@ class ImageIcon(
 ) : AndroidDrawableIcon(
         drawable = image,
     ) {
+    /**
+     * [imageUrl]（http / https / file / data）の画像を使う。読み終えるまでは透明。
+     * ほかの引数は `Drawable` を渡すコンストラクタと同じ。
+     */
+    constructor(
+        imageUrl: String,
+        iconSize: Dp = Settings.Default.iconSize,
+        scale: Float = 1.0f,
+        anchor: Offset = Offset(0.5f, 0.5f),
+        infoAnchor: Offset = Offset(0.5f, 0.5f),
+        debug: Boolean = false,
+        label: String? = null,
+        labelTextColor: Color? = Color.Black,
+        labelTextSize: TextUnit = 18.sp,
+        labelTypeFace: Typeface = Typeface.DEFAULT,
+        labelStrokeColor: Color = Color.White,
+        labelPosition: String = AbstractDefaultIcon.DEFAULT_LABEL_POSITION,
+        labelWritingMode: String = AbstractDefaultIcon.DEFAULT_LABEL_WRITING_MODE,
+    ) : this(
+        image = RemoteImageDrawable(imageUrl),
+        iconSize = iconSize,
+        scale = scale,
+        anchor = anchor,
+        infoAnchor = infoAnchor,
+        debug = debug,
+        label = label,
+        labelTextColor = labelTextColor,
+        labelTextSize = labelTextSize,
+        labelTypeFace = labelTypeFace,
+        labelStrokeColor = labelStrokeColor,
+        labelPosition = labelPosition,
+        labelWritingMode = labelWritingMode,
+    )
+
     private val requestedAnchor = anchor
     private val requestedInfoAnchor = infoAnchor
+
+    /** URL で作ったアイコンならその URL。`Drawable` で作ったなら null。 */
+    val imageUrl: String?
+        get() = (drawable as? RemoteImageDrawable)?.url
+
+    /**
+     * URL の画像がまだ届いていなければ、届いたとき（失敗も含む）に [listener] を一度だけ呼ぶ。
+     * 待つ必要が無ければ呼ばずに false を返す。[MarkerState] が描き直しに使う。
+     */
+    internal fun whenImageLoaded(listener: () -> Unit): Boolean =
+        (drawable as? RemoteImageDrawable)?.whenLoaded(listener) ?: false
 
     private class Layout(
         val canvasSize: Int,
@@ -143,6 +197,8 @@ class ImageIcon(
 
     private fun getDrawableIdentity(): Int =
         when (drawable) {
+            // URL と、画像が届いたかどうか。届いた時点で変わり、マーカーが描き直される。
+            is RemoteImageDrawable -> drawable.identity()
             is BitmapDrawable -> {
                 val bmp = drawable.bitmap
                 if (bmp == null || bmp.isRecycled) {

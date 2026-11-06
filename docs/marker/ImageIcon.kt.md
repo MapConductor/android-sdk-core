@@ -23,12 +23,37 @@ class ImageIcon(
 ) : AndroidDrawableIcon
 ```
 
+An `ImageIcon` can also load its image from a URL:
+
+```kotlin
+ImageIcon(
+    imageUrl: String,
+    iconSize: Dp = Settings.Default.iconSize,
+    scale: Float = 1.0f,
+    anchor: Offset = Offset(0.5f, 0.5f),
+    infoAnchor: Offset = Offset(0.5f, 0.5f),
+    debug: Boolean = false,
+    // label parameters are the same as for the Drawable constructor
+)
+```
+
+The SDK downloads the image (http, https, file or data URLs; http(s) needs the app's
+`android.permission.INTERNET`). Until the image arrives the icon is transparent at its final size
+and anchor (a label is still drawn), and every marker using it is redrawn once it arrives. Each URL
+is fetched once, however many icons or markers use it. If the image cannot be loaded the icon stays
+transparent and a warning is logged once. `imageUrl` returns the URL, or `null` for an icon built
+from a `Drawable`; `copy()` keeps the URL.
+
 ## Parameters
 
 - `image`
     - Type: `Drawable`
     - Default: (none)
     - Description: The Android `Drawable` to be used as the icon.
+- `imageUrl`
+    - Type: `String`
+    - Default: (none)
+    - Description: The URL of the image to load instead of `image`. See above.
 - `iconSize`
     - Type: `Dp`
     - Default: `Settings.Default.iconSize`
@@ -90,7 +115,13 @@ val customIcon = ImageIcon(
     anchor = Offset(0.5f, 1.0f) // Anchor at the bottom-center
 )
 
-// 3. Use the icons when creating Markers for the map
+// 3. Load the image from a URL. The marker shows once the image has arrived.
+val remoteIcon = ImageIcon(
+    imageUrl = "https://example.com/marker.png",
+    anchor = Offset(0.5f, 1.0f)
+)
+
+// 4. Use the icons when creating Markers for the map
 val marker1 = Marker(
     position = LatLng(34.0522, -118.2437),
     icon = defaultIcon,
