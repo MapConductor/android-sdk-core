@@ -2352,6 +2352,7 @@ public final class com.mapconductor.core.polygon.PolygonTiler {
   public final boolean isTiled(java.lang.String);
   public final void update(com.mapconductor.core.polygon.PolygonState);
   public final java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public final void dispose();
   public com.mapconductor.core.polygon.PolygonTiler();
 }
 public final class com.mapconductor.core.polygon.PolygonTilerKt {

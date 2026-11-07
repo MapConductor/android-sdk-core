@@ -213,7 +213,9 @@ abstract class PolygonController<ActualPolygon>(
             .find(position)
 
     override fun destroy() {
-        // No native resources to clean up for polygons
+        // The tile server outlives the map; without this its route keeps every
+        // tiled polygon (and the renderer's copies of them) alive.
+        tiler?.dispose()
     }
 
     override fun has(id: String): Boolean = polygonManager.hasEntity(id)

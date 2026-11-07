@@ -83,6 +83,16 @@ class PolygonTiler(
         tileSet.update(state)
     }
 
+    /**
+     * Releases the tiles when the map goes away. Unlike [clear], it does not
+     * call [onTemplate]: there is no map left to remove the layer from.
+     */
+    fun dispose() {
+        tileSet.dispose()
+        tiled = emptySet()
+        states = emptyList()
+    }
+
     suspend fun clear() {
         tileSet.dispose()
         tiled = emptySet()
