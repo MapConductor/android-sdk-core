@@ -31,6 +31,17 @@ fun unionHoleRings(holes: List<List<GeoPointInterface>>): List<List<GeoPointInte
 
         val rings = holes.mapNotNull { toRing(it, origin) }
         if (rings.size <= 1) return holes
+        // Holes that neither cross, touch nor contain one another are already
+        // their own union. Checking that is linear; the union is quadratic in
+        // the hole edges, which a street-network parcel with 80 holes and
+        // 8,000 hole vertices turns into seconds.
+        // The union's other promise still holds: holes come back clockwise.
+        // Only those wound the other way are copied, so holes that already
+        // were come back as the same list.
+        if (rings.size == holes.size && holesAreDisjoint(rings)) {
+            if (rings.none { signedArea(it) > 0.0 }) return holes
+            return holes.mapIndexed { i, hole -> if (signedArea(rings[i]) > 0.0) hole.asReversed() else hole }
+        }
 
         val merged = unionRings(rings)
         if (merged.isEmpty()) return holes
@@ -211,6 +222,102 @@ private fun nextEdge(
         }
     }
     return best
+}
+
+/**
+ * True when no two rings cross, touch or nest. Edges are binned into a uniform
+ * grid and only pairs sharing a cell are tested, so the cost grows with the
+ * edge count rather than its square. Same as js-sdk-core's `holesAreDisjoint`.
+ */
+private fun holesAreDisjoint(rings: List<List<Vec>>): Boolean {
+    val boxes = rings.map(::ringBox)
+    // A ring inside another: one of its vertices is inside it.
+    for (i in rings.indices) {
+        val p = rings[i][0]
+        for (j in rings.indices) {
+            if (i == j) continue
+            val b = boxes[j]
+            if (p.x >= b[0] && p.x <= b[2] && p.y >= b[1] && p.y <= b[3] && pointInRing(p, rings[j])) {
+                return false
+            }
+        }
+    }
+
+    val edges = ArrayList<Edge>()
+    val edgeRing = ArrayList<Int>()
+    for ((r, ring) in rings.withIndex()) {
+        for (i in ring.indices) {
+            edges.add(Edge(ring[i], ring[(i + 1) % ring.size]))
+            edgeRing.add(r)
+        }
+    }
+    var minX = Double.POSITIVE_INFINITY
+    var minY = Double.POSITIVE_INFINITY
+    var maxX = Double.NEGATIVE_INFINITY
+    var maxY = Double.NEGATIVE_INFINITY
+    for (b in boxes) {
+        minX = minOf(minX, b[0])
+        minY = minOf(minY, b[1])
+        maxX = maxOf(maxX, b[2])
+        maxY = maxOf(maxY, b[3])
+    }
+    val side =
+        kotlin.math
+            .ceil(kotlin.math.sqrt(edges.size.toDouble()))
+            .toInt()
+            .coerceIn(1, 1024)
+    // Padded by EPS so an edge lying on a cell border is in both cells.
+    val cellW = ((maxX - minX) / side).takeIf { it != 0.0 } ?: 1.0
+    val cellH = ((maxY - minY) / side).takeIf { it != 0.0 } ?: 1.0
+
+    fun cellOf(
+        v: Double,
+        min: Double,
+        size: Double,
+    ): Int =
+        kotlin.math
+            .floor((v - min) / size)
+            .toInt()
+            .coerceIn(0, side - 1)
+    val cells = HashMap<Int, MutableList<Int>>()
+    for ((e, edge) in edges.withIndex()) {
+        val a = edge.a
+        val b = edge.b
+        val x0 = cellOf(minOf(a.x, b.x) - EPS, minX, cellW)
+        val x1 = cellOf(maxOf(a.x, b.x) + EPS, minX, cellW)
+        val y0 = cellOf(minOf(a.y, b.y) - EPS, minY, cellH)
+        val y1 = cellOf(maxOf(a.y, b.y) + EPS, minY, cellH)
+        for (cx in x0..x1) {
+            for (cy in y0..y1) {
+                cells.getOrPut(cx * side + cy) { ArrayList(4) }.add(e)
+            }
+        }
+    }
+    for (bucket in cells.values) {
+        for (i in bucket.indices) {
+            for (j in i + 1 until bucket.size) {
+                val p = bucket[i]
+                val q = bucket[j]
+                if (edgeRing[p] != edgeRing[q] && intersectionPoints(edges[p], edges[q]).isNotEmpty()) return false
+            }
+        }
+    }
+    return true
+}
+
+/** minX, minY, maxX, maxY. */
+private fun ringBox(ring: List<Vec>): DoubleArray {
+    var minX = Double.POSITIVE_INFINITY
+    var minY = Double.POSITIVE_INFINITY
+    var maxX = Double.NEGATIVE_INFINITY
+    var maxY = Double.NEGATIVE_INFINITY
+    for (p in ring) {
+        minX = minOf(minX, p.x)
+        maxX = maxOf(maxX, p.x)
+        minY = minOf(minY, p.y)
+        maxY = maxOf(maxY, p.y)
+    }
+    return doubleArrayOf(minX, minY, maxX, maxY)
 }
 
 /** 線分 `other` が線分 `seg` と出会う点（交差・T 字接触・共線重複の端点）。 */
