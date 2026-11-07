@@ -264,11 +264,16 @@ abstract class BaseMapViewController :
             .filterIsInstance<SlottedOverlayController<*, *>>()
             .filter { it.kind == kind }
 
-    /** [kind] のいずれかのコントローラがこの id を持っているか。`hasXxx` の既定実装。 */
+    /**
+     * [kind] のいずれかのコントローラがこの id を持っているか。`hasXxx` の既定実装。
+     *
+     * 一覧を作らずに直接なめる。composition のたびに全オーバーレイについて呼ばれる
+     * （`onAdded` の判定）ので、1 回ごとに 2 本のリストを作ると 10 万件で数百 ms になる。
+     */
     protected fun hasOverlay(
         kind: OverlayKind,
         id: String,
-    ): Boolean = overlayControllersOf(kind).any { it.has(id) }
+    ): Boolean = overlayControllers.any { it is SlottedOverlayController<*, *> && it.kind == kind && it.has(id) }
 
     // Marker
     override suspend fun compositionMarkers(data: List<MarkerState>) {
