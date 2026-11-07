@@ -313,8 +313,11 @@ fun computeSignedArea(path: List<GeoPointInterface>): Double
 
 This function computes the signed area of a closed polygon. The sign of the result indicates the
 orientation of the vertices:
-- **Positive value:** The vertices are in a counter-clockwise order.
-- **Negative value:** The vertices are in a clockwise order.
+- **Positive value:** The vertices are in a clockwise order.
+- **Negative value:** The vertices are in a counter-clockwise order.
+
+Orientation is as seen on a north-up map (longitude increasing to the right, latitude increasing
+upward).
 
 The magnitude of the result is the area in square meters. The path is assumed to be closed.
 
@@ -327,28 +330,28 @@ The magnitude of the result is the area in square meters. The path is assumed to
 ### Returns
 
 - Type: `Double`
-- Description: The signed area in square meters. Positive for CCW, negative for CW.
+- Description: The signed area in square meters. Positive for CW, negative for CCW.
 
 ### Example
 
 ```kotlin
-// Counter-clockwise polygon
-val ccwPolygon = listOf(
+// Clockwise polygon (SW -> NW -> NE -> SE)
+val cwPolygon = listOf(
     GeoPoint(latitude = 40.0, longitude = -75.0),
     GeoPoint(latitude = 41.0, longitude = -75.0),
     GeoPoint(latitude = 41.0, longitude = -74.0),
     GeoPoint(latitude = 40.0, longitude = -74.0)
 )
 
-val signedAreaCCW = Spherical.computeSignedArea(ccwPolygon)
-// signedAreaCCW will be a positive value
-println("Counter-clockwise signed area: $signedAreaCCW")
-
-// Clockwise polygon
-val cwPolygon = ccwPolygon.reversed()
 val signedAreaCW = Spherical.computeSignedArea(cwPolygon)
-// signedAreaCW will be a negative value with the same magnitude
+// signedAreaCW will be a positive value
 println("Clockwise signed area: $signedAreaCW")
+
+// Counter-clockwise polygon
+val ccwPolygon = cwPolygon.reversed()
+val signedAreaCCW = Spherical.computeSignedArea(ccwPolygon)
+// signedAreaCCW will be a negative value with the same magnitude
+println("Counter-clockwise signed area: $signedAreaCCW")
 ```
 
 ---
