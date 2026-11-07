@@ -15,7 +15,7 @@ class PolygonState(
     holes: List<List<GeoPointInterface>> = emptyList(),
     id: String? = null,
     strokeColor: Color = Color.Black,
-    strokeWidth: Dp = 2.dp,
+    strokeWidth: Dp = 1.dp,
     fillColor: Color = Color.Transparent,
     geodesic: Boolean = false,
     clickable: Boolean = true,

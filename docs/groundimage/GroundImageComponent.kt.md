@@ -21,7 +21,7 @@ its geographical bounds, and other optional properties directly as parameters.
 fun MapViewScope.GroundImage(
     bounds: GeoRectBounds,
     image: Drawable,
-    opacity: Float = 0.5f,
+    opacity: Float = 1.0f,
     tileSize: Int = GroundImageTileProvider.DEFAULT_TILE_SIZE,
     id: String? = null,
     extra: Serializable? = null,
@@ -46,7 +46,7 @@ be called within the `MapView` composable's content scope.
 - `opacity`
     - Type: `Float`
     - Description: The opacity of the image, ranging from `0.0` (fully transparent) to `1.0` (fully
-      opaque). Defaults to `0.5f`.
+      opaque). Defaults to `1.0f`.
 - `tileSize`
     - Type: `Int`
     - Description: The size of the tiles (in pixels) used to render the image on the map. Defaults
