@@ -1,13 +1,21 @@
 package com.mapconductor.core.map
 
 import androidx.compose.runtime.saveable.Saver
-import com.mapconductor.core.features.GeoPoint
+import com.mapconductor.core.InternalMapConductorApi
 import android.os.Bundle
 
 /**
  * Base class for MapView state savers
+ *
+ * カメラ（paddings を含む）と [MapViewStateInterface.uiSettings] はここで保存・復元する。
+ * デザインは型がプロバイダごとに違うので [saveMapDesign] / [createState] が受け持つ。
+ * デザインの `attributionRules` を含め、アプリが設定したものは全部書くこと
+ * （`MapViewStateBundle.putAttributionRules` を使う）。書かなかった値は回転などの
+ * 構成変更のあと黙って既定値に戻る。
+ *
  * @param T MapViewStateInterface type
  */
+@OptIn(InternalMapConductorApi::class)
 abstract class BaseMapViewSaver<T : MapViewStateInterface<*>> {
     /**
      * Save map design type to bundle
@@ -47,6 +55,7 @@ abstract class BaseMapViewSaver<T : MapViewStateInterface<*>> {
                     putString("stateId", getStateId(state))
                     putBundle("mapDesign", mapDesignBundle)
                     putBundle("camera", cameraStateBundle)
+                    putBundle(MapViewStateBundle.KEY_UI_SETTINGS, MapViewStateBundle.uiSettingsToBundle(state.uiSettings))
                 }
             },
             restore = { storedData ->
@@ -56,7 +65,14 @@ abstract class BaseMapViewSaver<T : MapViewStateInterface<*>> {
 
                 val cameraPosition = createCameraPositionFromBundle(cameraBundle)
 
-                createState(stateId, mapDesignBundle, cameraPosition)
+                createState(stateId, mapDesignBundle, cameraPosition).also { state ->
+                    // uiSettings はどのプロバイダでも MapViewStateInterface の var なので、
+                    // createState に渡さずここで戻す（以前は保存しておらず、復元後は
+                    // 全部 true の既定値に戻っていた）。
+                    MapViewStateBundle.uiSettingsFromBundle(storedData.getBundle(MapViewStateBundle.KEY_UI_SETTINGS))?.let {
+                        state.uiSettings = it
+                    }
+                }
             },
         )
 
@@ -65,27 +81,8 @@ abstract class BaseMapViewSaver<T : MapViewStateInterface<*>> {
      */
     protected abstract fun getStateId(state: T): String
 
-    private fun createCameraBundle(state: T): Bundle =
-        state.cameraPosition.let {
-            Bundle().apply {
-                putDouble("zoom", it.zoom)
-                putDouble("tilt", it.tilt)
-                putDouble("bearing", it.bearing)
-                putDouble("latitude", it.position.latitude)
-                putDouble("longitude", it.position.longitude)
-            }
-        }
+    private fun createCameraBundle(state: T): Bundle = MapViewStateBundle.cameraToBundle(state.cameraPosition)
 
     private fun createCameraPositionFromBundle(cameraBundle: Bundle?): MapCameraPosition =
-        MapCameraPosition(
-            position =
-                GeoPoint.fromLatLong(
-                    latitude = cameraBundle?.getDouble("latitude") ?: 0.0,
-                    longitude = cameraBundle?.getDouble("longitude") ?: 0.0,
-                ),
-            zoom = cameraBundle?.getDouble("zoom") ?: 0.0,
-            bearing = cameraBundle?.getDouble("bearing") ?: 0.0,
-            tilt = cameraBundle?.getDouble("tilt") ?: 0.0,
-            paddings = getCameraPaddings(),
-        )
+        MapViewStateBundle.cameraFromBundle(cameraBundle, fallbackPaddings = getCameraPaddings())
 }
