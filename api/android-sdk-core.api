@@ -353,6 +353,13 @@ public final class com.mapconductor.core.controller.OverlayKind extends java.lan
   public static com.mapconductor.core.controller.OverlayKind valueOf(java.lang.String);
   public static kotlin.enums.EnumEntries<com.mapconductor.core.controller.OverlayKind> getEntries();
 }
+public final class com.mapconductor.core.controller.OverlayLayerStack {
+  public com.mapconductor.core.controller.OverlayLayerStack();
+  public final void put(java.lang.String, com.mapconductor.core.controller.OverlayStacking$Key);
+  public final void remove(java.lang.String);
+  public final com.mapconductor.core.controller.OverlayStacking$Key keyOf(java.lang.String);
+  public final java.lang.String beforeId(java.util.List<java.lang.String>, com.mapconductor.core.controller.OverlayStacking$Key);
+}
 public interface com.mapconductor.core.controller.OverlayRendererInterface<ActualType, StateType, EntityType> {
   public abstract java.lang.Object onAdd(java.util.List<? extends StateType>, kotlin.coroutines.Continuation<? super java.util.List<? extends ActualType>>);
   public abstract java.lang.Object onChange(java.util.List<? extends com.mapconductor.core.controller.OverlayRendererInterface$ChangeParamsInterface<EntityType>>, kotlin.coroutines.Continuation<? super java.util.List<? extends ActualType>>);
@@ -362,6 +369,26 @@ public interface com.mapconductor.core.controller.OverlayRendererInterface<Actua
 public interface com.mapconductor.core.controller.OverlayRendererInterface$ChangeParamsInterface<EntityType> {
   public abstract EntityType getCurrent();
   public abstract EntityType getPrev();
+}
+public final class com.mapconductor.core.controller.OverlayStacking {
+  public static final com.mapconductor.core.controller.OverlayStacking INSTANCE;
+  public static final float BAND_WIDTH;
+  public final java.util.List<com.mapconductor.core.controller.OverlayKind> getBOTTOM_TO_TOP();
+  public final int band(com.mapconductor.core.controller.OverlayKind);
+  public final float flatZIndex(com.mapconductor.core.controller.OverlayKind, int);
+  public final <L> L insertBefore(java.util.List<? extends L>, com.mapconductor.core.controller.OverlayStacking$Key, kotlin.jvm.functions.Function1<? super L, com.mapconductor.core.controller.OverlayStacking$Key>);
+}
+public final class com.mapconductor.core.controller.OverlayStacking$Key implements java.lang.Comparable<com.mapconductor.core.controller.OverlayStacking$Key> {
+  public final com.mapconductor.core.controller.OverlayKind getKind();
+  public final int getZIndex();
+  public int compareTo(com.mapconductor.core.controller.OverlayStacking$Key);
+  public final com.mapconductor.core.controller.OverlayKind component1();
+  public final int component2();
+  public final com.mapconductor.core.controller.OverlayStacking$Key copy(com.mapconductor.core.controller.OverlayKind, int);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public int compareTo(java.lang.Object);
 }
 public final class com.mapconductor.core.controller.SlottedOverlayController$DefaultImpls {
   public static <StateType, EntityType> boolean has(com.mapconductor.core.controller.SlottedOverlayController<StateType, EntityType>, java.lang.String);

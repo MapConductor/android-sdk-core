@@ -14,7 +14,7 @@ abstract class CircleController<ActualCircle>(
         CircleState,
         CircleEntityInterface<ActualCircle>,
     > {
-    override val zIndex: Int = 3
+    override val zIndex: Int = 4
     val semaphore = Semaphore(1)
 
     var clickListener: OnCircleEventHandler? = null
