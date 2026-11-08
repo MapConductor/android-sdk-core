@@ -282,7 +282,9 @@ abstract class RasterLayerController<ActualLayer : Any>(
     }
 
     override fun destroy() {
-        // No native resources to clean up
+        // A destroyed controller can still be referenced (by its map controller,
+        // or a state that has not let go yet); without this it keeps every entity.
+        rasterLayerManager.clear()
     }
 
     override fun has(id: String): Boolean = rasterLayerManager.hasEntity(id)

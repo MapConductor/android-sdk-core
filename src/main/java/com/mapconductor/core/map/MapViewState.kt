@@ -149,6 +149,23 @@ abstract class MapViewState<ActualMapDesignType>(
     }
 
     /**
+     * 破棄した [controller] を手放す。地図が壊されたあとで呼ぶ。
+     *
+     * state は地図より長生きする（アプリが保持し、プロバイダを切り替えても残る）。
+     * ここで手放さないと、state が最後のコントローラ（とその全オーバーレイ）を
+     * 抱えたままになる。Compose では `MapViewBase` が地図をコンポジションから
+     * 外したときに呼ぶので、プロバイダが呼ぶ必要はない。
+     *
+     * その間に別のコントローラが接続されていれば何もしない（新しい地図を
+     * 古い地図の後始末で切り離さないため）。
+     */
+    fun detachController(controller: MapViewControllerInterface) {
+        if (this.attachedMapController === controller) {
+            this.attachedMapController = null
+        }
+    }
+
+    /**
      * 地図から通知された現在のカメラを保持する（地図を動かさない）。
      *
      * プロバイダの `updateCameraPosition` から呼ぶ。カメラを**動かしたい**ときは
