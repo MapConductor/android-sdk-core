@@ -47,6 +47,7 @@ class PolygonTileSet(
     private var version = 0
     private var registered = false
     private val pending = LinkedHashMap<String, PolygonState>()
+    private val pendingRemovals = ArrayList<Int>()
     private var flushJob: Job? = null
 
     /**
@@ -83,13 +84,33 @@ class PolygonTileSet(
         synchronized(lock) {
             if (!indexById.containsKey(state.id)) return
             pending[state.id] = state
-            if (flushJob == null) {
-                flushJob =
-                    scope.launch {
-                        delay(UPDATE_COALESCE)
-                        flush()
-                    }
-            }
+            scheduleFlushLocked()
+        }
+    }
+
+    /**
+     * Takes one polygon out of the tiles. Its slot in the renderer's list is
+     * left empty, so the others keep their indices and only the tiles it was
+     * in are drawn again.
+     */
+    fun remove(id: String) {
+        synchronized(lock) {
+            val index = indexById[id] ?: return
+            indexById = indexById - id
+            pending.remove(id)
+            pendingRemovals.add(index)
+            scheduleFlushLocked()
+        }
+    }
+
+    /** Called with [lock] held. */
+    private fun scheduleFlushLocked() {
+        if (flushJob == null) {
+            flushJob =
+                scope.launch {
+                    delay(UPDATE_COALESCE)
+                    flush()
+                }
         }
     }
 
@@ -109,11 +130,12 @@ class PolygonTileSet(
         val template =
             synchronized(lock) {
                 flushJob = null
-                val updates =
+                val updates: List<Pair<Int, TilePolygon?>> =
                     pending.values.mapNotNull { state ->
                         indexById[state.id]?.let { index -> index to TilePolygon.from(state) }
-                    }
+                    } + pendingRemovals.map { index -> index to null }
                 pending.clear()
+                pendingRemovals.clear()
                 if (updates.isEmpty() || !registered) return
                 renderer.update(updates)
                 version++
@@ -127,6 +149,7 @@ class PolygonTileSet(
             flushJob?.cancel()
             flushJob = null
             pending.clear()
+            pendingRemovals.clear()
         }
     }
 

@@ -47,6 +47,15 @@ class PolygonTilingTest {
     }
 
     @Test
+    fun `geodesic・経度の幅 180 度以上・頂点 3 未満はタイルにしない`() {
+        assertTrue(PolygonTileSet.canTile(PolygonState(points = square(0.0, 0.0, 1.0))))
+        assertFalse(PolygonTileSet.canTile(PolygonState(points = square(0.0, 0.0, 1.0), geodesic = true)))
+        assertFalse(PolygonTileSet.canTile(PolygonState(points = listOf(p(0.0, -100.0), p(0.0, 80.0), p(10.0, 0.0)))))
+        assertTrue(PolygonTileSet.canTile(PolygonState(points = listOf(p(0.0, -90.0), p(0.0, 89.0), p(10.0, 0.0)))))
+        assertFalse(PolygonTileSet.canTile(PolygonState(points = listOf(p(0.0, 0.0), p(1.0, 1.0)))))
+    }
+
+    @Test
     fun `交わらない穴は計算せずにそのまま返す`() {
         val holes = listOf(square(0.0, 0.0, 1.0), square(0.0, 2.0, 1.0), square(2.0, 0.0, 1.0)).map(::clockwise)
         assertSame(holes, unionHoleRings(holes))

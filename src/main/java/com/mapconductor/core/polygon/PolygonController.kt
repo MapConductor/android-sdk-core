@@ -160,8 +160,32 @@ abstract class PolygonController<ActualPolygon>(
         semaphore.withPermit {
             val prevEntity = polygonManager.getEntity(state.id) ?: return
             if (state.id in tiledIds) {
-                polygonManager.registerEntity(PolygonEntity(polygon = prevEntity.polygon, state = state))
-                tiler?.update(state)
+                if (PolygonTileSet.canTile(state)) {
+                    polygonManager.registerEntity(PolygonEntity(polygon = prevEntity.polygon, state = state))
+                    tiler?.update(state)
+                    return
+                }
+                // No longer drawable in a tile (geodesic, half the world wide, or
+                // under 3 points): the map SDK draws it from now on. Still on the
+                // map, so this is not an add. Whether the rest stay in tiles is
+                // left to the next add(), which decides tiling for the whole list.
+                tiledIds = tiledIds - state.id
+                tiler?.remove(state.id)
+                val polygons =
+                    renderer.onAdd(
+                        listOf(
+                            object : PolygonOverlayRendererInterface.AddParamsInterface {
+                                override val state: PolygonState = state
+                            },
+                        ),
+                    )
+                val polygon = polygons.firstOrNull()
+                if (polygon != null) {
+                    polygonManager.registerEntity(PolygonEntity(polygon = polygon, state = state))
+                } else {
+                    polygonManager.removeEntity(state.id)
+                }
+                renderer.onPostProcess()
                 return
             }
             val currentFinger = state.fingerPrint()
