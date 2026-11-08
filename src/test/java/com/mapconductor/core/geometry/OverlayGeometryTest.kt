@@ -74,7 +74,8 @@ class OverlayGeometryTest {
         val rings = buildPolygonRings(outer, listOf(hole), geodesic = true)
         assertEquals(1, rings.outerRings.size)
         assertEquals(1, rings.holeRings.size)
-        assertEquals(legacyInterpolate(hole, true), rings.holeRings.first())
+        // geodesic の穴は閉じる辺（末尾 → 先頭）も補間する（GeodesicPolygonRingTest）。
+        assertEquals(densifyGeodesicRing(hole).map { it.normalize() }, rings.holeRings.first())
     }
 
     @Test

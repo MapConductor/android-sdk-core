@@ -26,6 +26,47 @@ fun densifyAndNormalize(
     }.map { it.normalize() }
 
 /**
+ * ポリゴンのリング（外周・穴）を測地線（大圏）で密度化する。
+ *
+ * [WGS84Geodesic.createInterpolatePoints] は隣り合う点の間しか補間しないため、開いたリング
+ * （末尾 ≠ 先頭）を渡すと閉じる辺（末尾 → 先頭）が補間されず、描画側で閉じたときに直線の弦に
+ * なる。ポリゴンの輪郭はリングを閉じてからポリラインとして密度化するので、塗りと輪郭で
+ * 閉じる辺の形が食い違う。ここでは閉じる辺も含めて補間する。
+ *
+ * 入力が開いたリングなら開いたまま（末尾に先頭の重複点を付けない）、閉じたリングなら閉じた
+ * まま返す。正規化はしない。頂点 2 未満の入力はそのまま [WGS84Geodesic.createInterpolatePoints] に渡す。
+ */
+fun densifyGeodesicRing(
+    ring: List<GeoPointInterface>,
+    maxSegmentLength: Double = 10000.0,
+): List<GeoPointInterface> {
+    if (ring.size < 2 || isClosedRing(ring)) {
+        return WGS84Geodesic.createInterpolatePoints(ring, maxSegmentLength)
+    }
+    return WGS84Geodesic.createInterpolatePoints(ring + ring.first(), maxSegmentLength).dropLast(1)
+}
+
+private fun isClosedRing(ring: List<GeoPointInterface>): Boolean {
+    val first = ring.first()
+    val last = ring.last()
+    return first.latitude == last.latitude && first.longitude == last.longitude
+}
+
+/**
+ * リング用の [densifyAndNormalize]。geodesic のときは閉じる辺も補間する（[densifyGeodesicRing]）。
+ * geodesic=false は従来どおり [densifyAndNormalize] と同じ。
+ */
+private fun densifyRingAndNormalize(
+    ring: List<GeoPointInterface>,
+    geodesic: Boolean,
+): List<GeoPointInterface> =
+    if (geodesic) {
+        densifyGeodesicRing(ring).map { it.normalize() }
+    } else {
+        densifyAndNormalize(ring, geodesic = false)
+    }
+
+/**
  * ポリライン用パイプライン。密度化・正規化後に子午線で分割したセグメント列を返す。
  * 頂点 2 未満の入力、および分割で 2 点未満になったセグメントは除く（空リストになり得る）。
  */
@@ -61,14 +102,14 @@ fun buildPolygonRings(
 ): PolygonRings {
     if (points.size < 3) return PolygonRings(emptyList(), emptyList())
     val outerRings =
-        splitRingByMeridian(densifyAndNormalize(points, geodesic), geodesic)
+        splitRingByMeridian(densifyRingAndNormalize(points, geodesic), geodesic)
             .filter { it.size >= 3 }
     val includeHoles = holes.isNotEmpty() && outerRings.size == 1
     val holeRings =
         if (includeHoles) {
             holes
                 .filter { it.size >= 3 }
-                .map { densifyAndNormalize(it, geodesic) }
+                .map { densifyRingAndNormalize(it, geodesic) }
                 .filter { it.size >= 3 }
         } else {
             emptyList()
@@ -137,12 +178,12 @@ fun buildUnwrappedPolygonRings(
     geodesic: Boolean,
 ): PolygonRings {
     if (points.size < 3) return PolygonRings(emptyList(), emptyList())
-    val outer = unwrapContinuous(densifyAndNormalize(points, geodesic))
+    val outer = unwrapContinuous(densifyRingAndNormalize(points, geodesic))
     val anchor = outer.first().longitude
     val holeRings =
         holes
             .filter { it.size >= 3 }
-            .map { unwrapContinuous(densifyAndNormalize(it, geodesic), anchorLng = anchor) }
+            .map { unwrapContinuous(densifyRingAndNormalize(it, geodesic), anchorLng = anchor) }
             .filter { it.size >= 3 }
     return PolygonRings(outerRings = listOf(outer), holeRings = holeRings)
 }
