@@ -12,6 +12,14 @@ import com.mapconductor.core.groundimage.GroundImageEntityInterface
 import com.mapconductor.core.groundimage.GroundImageManager
 import com.mapconductor.core.groundimage.GroundImageOverlayRendererInterface
 import com.mapconductor.core.groundimage.GroundImageState
+import com.mapconductor.core.map.MapViewHolderInterface
+import com.mapconductor.core.marker.AbstractMarkerController
+import com.mapconductor.core.marker.MarkerEntity
+import com.mapconductor.core.marker.MarkerEntityInterface
+import com.mapconductor.core.marker.MarkerManager
+import com.mapconductor.core.marker.MarkerOverlayRendererInterface
+import com.mapconductor.core.marker.MarkerState
+import com.mapconductor.core.marker.OnMarkerEventHandler
 import com.mapconductor.core.polygon.PolygonController
 import com.mapconductor.core.polygon.PolygonEntityInterface
 import com.mapconductor.core.polygon.PolygonManager
@@ -240,6 +248,52 @@ class OverlayClearOrderTest {
                 ),
             )
             assertEquals(listOf("r1", "r2"), renderer.drawn.ids)
+
+            controller.clear()
+
+            assertEquals(emptyList<String>(), renderer.drawn.ids)
+        }
+
+    // ── Marker ──────────────────────────────────────────────────────────
+
+    /**
+     * MapLibre / Mapbox / Mappls のマーカーの描画担当と同じ作り: onRemove はアイコンの参照数を
+     * 減らすだけで、地図のソースは onPostProcess が manager の中身から描き直す。
+     */
+    private class MarkerGl(
+        manager: MarkerManager<String>,
+    ) : MarkerOverlayRendererInterface<String> {
+        val drawn = Drawn { manager.allEntities().map { it.state.id } }
+        override var animateStartListener: OnMarkerEventHandler? = null
+        override var animateEndListener: OnMarkerEventHandler? = null
+        override val holder: MapViewHolderInterface<*, *>
+            get() = throw UnsupportedOperationException("not used")
+
+        override suspend fun onAdd(data: List<MarkerOverlayRendererInterface.AddParamsInterface>) = data.map { it.state.id }
+
+        override suspend fun onChange(data: List<MarkerOverlayRendererInterface.ChangeParamsInterface<String>>) =
+            data.map { it.current.state.id }
+
+        override suspend fun onRemove(data: List<MarkerEntityInterface<String>>) = Unit
+
+        override suspend fun onAnimate(entity: MarkerEntityInterface<String>) = Unit
+
+        override suspend fun onPostProcess() = drawn.redraw()
+    }
+
+    @Test
+    fun `marker の clear 後は何も描かれていない`() =
+        runTest {
+            val manager = MarkerManager.defaultManager<String>()
+            val renderer = MarkerGl(manager)
+            val controller = object : AbstractMarkerController<String>(manager, renderer) {}
+            // add() は既定アイコン（Android の Bitmap）を焼くので素の JVM では呼べない。
+            // 描かれた状態は manager へ直接登録して作る。
+            listOf("m1", "m2").forEach { id ->
+                manager.registerEntity(MarkerEntity(marker = id, state = MarkerState(position = a, id = id), isRendered = true))
+            }
+            renderer.onPostProcess()
+            assertEquals(listOf("m1", "m2"), renderer.drawn.ids)
 
             controller.clear()
 
