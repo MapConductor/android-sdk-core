@@ -225,7 +225,8 @@ class PolygonTilerDeviceTest {
 
     private suspend fun movesToNative(change: (PolygonState) -> Unit): Triple<Controller, Renderer, List<PolygonState>> {
         val (controller, renderer, templates) = controller()
-        val states = parcels(2000)
+        // しきい値（2,000）より 1 つ多い。移った 1 つを除いても、渡し直したときに残りはタイルのまま。
+        val states = parcels(2001)
         controller.add(states)
         assertTrue(renderer.onMap.isEmpty())
         val before = templates.last()!!
