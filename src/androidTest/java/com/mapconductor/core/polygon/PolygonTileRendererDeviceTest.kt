@@ -140,6 +140,23 @@ class PolygonTileRendererDeviceTest {
         assertEquals(0x00FF00, rgb(decoded.getPixel(120, 234)))
     }
 
+    /** タイルから外したポリゴン（null）は、重なっていたタイルだけ描き直して消える */
+    @Test
+    fun removedPolygonRedrawsOnlyItsTiles() {
+        val west = PolygonState(points = box(10.0, -100.0, 20.0, -90.0), fillColor = blue, id = "west")
+        val east = PolygonState(points = box(10.0, 90.0, 20.0, 100.0), fillColor = blue, id = "east")
+        val r = renderer(west, east)
+        val westTile = TileRequest(x = 0, y = 0, z = 1)
+        val eastTile = TileRequest(x = 1, y = 0, z = 1)
+        assertNotNull(r.renderTile(westTile))
+        val eastBefore = r.renderTile(eastTile)!!
+
+        r.update(listOf(0 to null))
+
+        assertNull("外したポリゴンしか無いタイルは空", r.renderTile(westTile))
+        assertSame("触れていないタイルはキャッシュから返す", eastBefore, r.renderTile(eastTile))
+    }
+
     /** 形が変わったら索引も作り直す */
     @Test
     fun movedShapeIsReindexed() {

@@ -27,7 +27,8 @@ fun polygonTileRasterLayerState(
  *    in tiles; the controller keeps those in its [PolygonManager] (taps are
  *    resolved there, against the original shapes) but gives the map SDK
  *    nothing for them, and removes any native polygon it had drawn for one.
- * 2. [update] for an in-place change of a tiled polygon.
+ * 2. [update] for an in-place change of a tiled polygon, or [remove] when the
+ *    change means it can no longer be tiled.
  * 3. [onTemplate] is how the tiles reach the map: a URL template to show as a
  *    raster layer, or null to remove it. A provider with a RasterLayer
  *    controller hands [polygonTileRasterLayerState] to its `upsert`, and
@@ -81,6 +82,18 @@ class PolygonTiler(
     /** An in-place change of a tiled polygon; only the tiles it touches are drawn again. */
     fun update(state: PolygonState) {
         tileSet.update(state)
+    }
+
+    /**
+     * Takes one polygon out of the tiles, for a change that left it no longer
+     * [PolygonTileSet.canTile]; only the tiles it was in are drawn again. The
+     * controller then hands it to the map SDK.
+     */
+    fun remove(id: String) {
+        if (id !in tiled) return
+        tiled = tiled - id
+        states = states.filter { it.id != id }
+        tileSet.remove(id)
     }
 
     /**
