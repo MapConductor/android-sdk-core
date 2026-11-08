@@ -75,7 +75,7 @@ class OverlayGeometryTest {
         assertEquals(1, rings.outerRings.size)
         assertEquals(1, rings.holeRings.size)
         // geodesic の穴は閉じる辺（末尾 → 先頭）も補間する（GeodesicPolygonRingTest）。
-        assertEquals(densifyGeodesicRing(hole).map { it.normalize() }, rings.holeRings.first())
+        assertEquals(densifyPolygonRing(hole, geodesic = true).map { it.normalize() }, rings.holeRings.first())
     }
 
     @Test

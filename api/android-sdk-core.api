@@ -516,7 +516,7 @@ public final class com.mapconductor.core.geometry.OverlayGeoJson {
 }
 public final class com.mapconductor.core.geometry.OverlayGeometryKt {
   public static final java.util.List<com.mapconductor.core.features.GeoPointInterface> densifyAndNormalize(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, boolean);
-  public static final java.util.List<com.mapconductor.core.features.GeoPointInterface> densifyGeodesicRing(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, double);
+  public static final java.util.List<com.mapconductor.core.features.GeoPointInterface> densifyPolygonRing(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, boolean, double);
   public static final java.util.List<java.util.List<com.mapconductor.core.features.GeoPointInterface>> buildPolylineSegments(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, boolean);
   public static final com.mapconductor.core.geometry.PolygonRings buildPolygonRings(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>>, boolean);
   public static final <T> java.util.List<T> closeRing(java.util.List<? extends T>);

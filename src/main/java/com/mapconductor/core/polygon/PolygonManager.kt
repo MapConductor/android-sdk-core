@@ -1,7 +1,7 @@
 package com.mapconductor.core.polygon
 
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.geometry.densifyGeodesicRing
+import com.mapconductor.core.geometry.densifyPolygonRing
 import com.mapconductor.core.normalizeLng
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
@@ -60,7 +60,7 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
             // Densify edges to better approximate geodesic/linear edges
             val ring =
                 try {
-                    if (state.geodesic) densifyGeodesicRing(basePoints) else basePoints
+                    if (state.geodesic) densifyPolygonRing(basePoints, geodesic = true) else basePoints
                 } catch (_: Exception) {
                     basePoints
                 }
@@ -77,7 +77,7 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
                     if (hole.size < 3) continue
                     val holeRing =
                         try {
-                            if (state.geodesic) densifyGeodesicRing(hole) else hole
+                            if (state.geodesic) densifyPolygonRing(hole, geodesic = true) else hole
                         } catch (_: Exception) {
                             hole
                         }

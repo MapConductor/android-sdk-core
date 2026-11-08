@@ -2,7 +2,6 @@ package com.mapconductor.core.geometry
 
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
-import com.mapconductor.core.features.normalize
 import com.mapconductor.core.polygon.PolygonEntity
 import com.mapconductor.core.polygon.PolygonManager
 import com.mapconductor.core.polygon.PolygonState
@@ -22,7 +21,8 @@ import kotlin.math.ln
 import kotlin.math.tan
 
 /**
- * geodesic ポリゴンの閉じる辺（末尾 → 先頭）も大圏で補間すること。
+ * ポリゴンの閉じる辺（末尾 → 先頭）も他の辺と同じ方式で補間すること。geodesic は大圏、
+ * geodesic=false は緯度経度の線形補間。どちらも塗り・穴・輪郭が同じ点列になる。
  *
  * js-sdk-core の `GeodesicPolygonRing.test.mjs`、ios-sdk の `GeodesicPolygonRingTests` と 1 対 1 で対応する。
  *
@@ -72,8 +72,8 @@ class GeodesicPolygonRingTest {
     }
 
     @Test
-    fun densifyGeodesicRing_interpolatesClosingEdge_andKeepsRingOpen() {
-        val ring = densifyGeodesicRing(triangle)
+    fun densifyPolygonRing_interpolatesClosingEdge_andKeepsRingOpen() {
+        val ring = densifyPolygonRing(triangle, geodesic = true)
         assertTrue(same(boston, ring.first()))
         // 先頭の重複点を末尾に付けない（閉じて補間した結果から末尾の 1 点だけを除いた長さ）。
         // createInterpolatePoints は分割比を足し込むため、末尾の手前に終点とほぼ同じ点が残ることがある。
@@ -84,9 +84,19 @@ class GeodesicPolygonRingTest {
     }
 
     @Test
-    fun densifyGeodesicRing_keepsClosedRingClosed() {
+    fun densifyPolygonRing_keepsClosedRingClosed() {
         val closed = triangle + boston
-        assertSamePoints(WGS84Geodesic.createInterpolatePoints(closed), densifyGeodesicRing(closed))
+        assertSamePoints(WGS84Geodesic.createInterpolatePoints(closed), densifyPolygonRing(closed, geodesic = true))
+        assertSamePoints(Planar.createInterpolatePoints(closed), densifyPolygonRing(closed, geodesic = false))
+    }
+
+    @Test
+    fun densifyPolygonRing_nonGeodesic_interpolatesClosingEdgeLinearly() {
+        val ring = densifyPolygonRing(triangle, geodesic = false)
+        assertTrue(same(boston, ring.first()))
+        assertEquals(Planar.createInterpolatePoints(triangle + boston).size - 1, ring.size)
+        val expected = Planar.createInterpolatePoints(listOf(iceland, boston))
+        assertSamePoints(expected.subList(1, expected.size - 1), ring.takeLast(expected.size - 2))
     }
 
     @Test
@@ -105,13 +115,20 @@ class GeodesicPolygonRingTest {
         assertSamePoints(outlineOf(triangle, true), rings.single())
     }
 
+    /**
+     * geodesic=false の輪郭は閉じる辺も緯度経度で線形補間する（メルカトルではわずかに曲がる）。
+     * 塗りも同じ点列であること。以前は閉じる辺だけ補間されず、メルカトル上の直線（弦）だった。
+     */
     @Test
-    fun nonGeodesicFill_isUnchanged() {
-        val legacy = Planar.createInterpolatePoints(triangle).map { it.normalize() }
-        val fill = buildUnwrappedPolygonRings(triangle, emptyList(), geodesic = false).outerRings.single()
-        assertSamePoints(legacy, fill)
-        assertTrue(same(iceland, fill.last()))
-        assertSamePoints(legacy, buildPolygonRings(triangle, emptyList(), geodesic = false).outerRings.single())
+    fun nonGeodesicFill_matchesOutline_includingClosingEdge() {
+        val unwrapped = buildUnwrappedPolygonRings(triangle, emptyList(), geodesic = false).outerRings.single()
+        assertSamePoints(outlineOf(triangle, false), unwrapped)
+        assertSamePoints(outlineOf(triangle, false), buildPolygonRings(triangle, emptyList(), geodesic = false).outerRings.single())
+
+        // 閉じる辺（アイスランド → ボストン）の緯度経度の中点が点列に含まれる（弦の上ではない）。
+        val mid = GeoPoint.fromLatLong((iceland.latitude + boston.latitude) / 2, (iceland.longitude + boston.longitude) / 2)
+        val nearest = unwrapped.minOf { hypot(it.latitude - mid.latitude, it.longitude - mid.longitude) }
+        assertTrue("nearest $nearest", nearest < 0.1)
     }
 
     @Test
@@ -128,10 +145,22 @@ class GeodesicPolygonRingTest {
         assertSamePoints(outlineOf(hole, true), unwrapped.holeRings.single())
         assertSamePoints(outlineOf(outer, true), unwrapped.outerRings.single())
         assertSamePoints(outlineOf(hole, true), buildPolygonRings(outer, listOf(hole), geodesic = true).holeRings.single())
-        assertSamePoints(
-            Planar.createInterpolatePoints(hole).map { it.normalize() },
-            buildUnwrappedPolygonRings(outer, listOf(hole), geodesic = false).holeRings.single(),
-        )
+    }
+
+    @Test
+    fun nonGeodesicHoles_interpolateClosingEdge() {
+        val outer =
+            listOf(
+                GeoPoint.fromLatLong(30.0, -80.0),
+                GeoPoint.fromLatLong(30.0, 10.0),
+                GeoPoint.fromLatLong(70.0, 10.0),
+                GeoPoint.fromLatLong(70.0, -80.0),
+            )
+        val hole = triangle
+        val unwrapped = buildUnwrappedPolygonRings(outer, listOf(hole), geodesic = false)
+        assertSamePoints(outlineOf(hole, false), unwrapped.holeRings.single())
+        assertSamePoints(outlineOf(outer, false), unwrapped.outerRings.single())
+        assertSamePoints(outlineOf(hole, false), buildPolygonRings(outer, listOf(hole), geodesic = false).holeRings.single())
     }
 
     @Test
@@ -149,5 +178,27 @@ class GeodesicPolygonRingTest {
 
         state.geodesic = false
         assertNull(manager.find(bulge))
+    }
+
+    /**
+     * geodesic=false のタップ判定は生の頂点を緯度経度平面で判定する。閉じる辺は緯度経度の直線
+     * （= 線形補間した塗り・輪郭と同じ線）になり、メルカトルの弦ではない。
+     */
+    @Test
+    fun nonGeodesicHitTest_followsLinearClosingEdge() {
+        val midLng = (iceland.longitude + boston.longitude) / 2
+        val linearLat = (iceland.latitude + boston.latitude) / 2
+
+        fun merc(lat: Double) = ln(tan(PI / 4 + lat * PI / 360))
+        val chordLat = (2 * atan(exp((merc(iceland.latitude) + merc(boston.latitude)) / 2)) - PI / 2) * 180 / PI
+        // メルカトルの弦は緯度経度の直線より北を通る。その間は塗りの外。
+        assertTrue("chord $chordLat linear $linearLat", chordLat > linearLat + 0.5)
+        val between = GeoPoint.fromLatLong((chordLat + linearLat) / 2, midLng)
+        val inside = GeoPoint.fromLatLong(linearLat - 0.5, midLng)
+
+        val manager = PolygonManager<Unit>()
+        manager.registerEntity(PolygonEntity(polygon = Unit, state = PolygonState(points = triangle, id = "p", geodesic = false)))
+        assertNull(manager.find(between))
+        assertEquals("p", manager.find(inside)?.state?.id)
     }
 }
