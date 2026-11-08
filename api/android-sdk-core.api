@@ -2929,6 +2929,18 @@ public final class com.mapconductor.core.tileserver.LocalTileServer$TileOutcome$
 public final class com.mapconductor.core.tileserver.LocalTileServerKt {
   public static final com.mapconductor.core.tileserver.TileCoordinate parseTileCoordinate(java.lang.String);
 }
+public final class com.mapconductor.core.tileserver.ScratchPool<T> {
+  public static final com.mapconductor.core.tileserver.ScratchPool$Companion Companion;
+  public com.mapconductor.core.tileserver.ScratchPool(int);
+  public com.mapconductor.core.tileserver.ScratchPool(int, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final T acquire(kotlin.jvm.functions.Function1<? super T, java.lang.Boolean>);
+  public final boolean release(T);
+  public final int getSize();
+  public com.mapconductor.core.tileserver.ScratchPool();
+}
+public final class com.mapconductor.core.tileserver.ScratchPool$Companion {
+  public final int getDEFAULT_CAPACITY();
+}
 public final class com.mapconductor.core.tileserver.TileCoordinate {
   public com.mapconductor.core.tileserver.TileCoordinate(int, int);
   public final int getY();
