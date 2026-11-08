@@ -23,13 +23,15 @@ import android.graphics.Bitmap
  */
 object TilePngEncoder {
     /**
-     * Scratch pixel buffer, one per calling thread.
+     * Scratch pixel buffers, shared by the calling threads.
      *
-     * Tile rendering runs concurrently across the tile server's threads, and a
-     * tile at this SDK's densities is around 7 MB of RGBA — allocating that per
-     * call would cost more than the encoding it is meant to speed up.
+     * Tile rendering runs concurrently across several threads, and a tile at
+     * this SDK's densities is around 7 MB of RGBA — allocating that per call
+     * would cost more than the encoding it is meant to speed up. Not one per
+     * thread: the callers include map SDK threads that outlive their map (see
+     * [ScratchPool]), and each would keep its buffer for good.
      */
-    private val scratch = ThreadLocal<ByteBuffer>()
+    private val scratch = ScratchPool<ByteBuffer>()
 
     /** False where the native library is missing for this device's ABI. */
     val isAvailable: Boolean =
@@ -55,16 +57,17 @@ object TilePngEncoder {
         if (width <= 0 || height <= 0) return null
         val needed = width * height * 4
 
-        var buffer = scratch.get()
-        if (buffer == null || buffer.capacity() < needed) {
-            buffer = ByteBuffer.allocateDirect(needed).order(ByteOrder.nativeOrder())
-            scratch.set(buffer)
+        val buffer =
+            scratch.acquire { it.capacity() >= needed }
+                ?: ByteBuffer.allocateDirect(needed).order(ByteOrder.nativeOrder())
+        try {
+            buffer.clear()
+            bitmap.copyPixelsToBuffer(buffer)
+            buffer.rewind()
+            return encode(buffer, width, height, premultiplied = bitmap.isPremultiplied)
+        } finally {
+            scratch.release(buffer)
         }
-        buffer.clear()
-        bitmap.copyPixelsToBuffer(buffer)
-        buffer.rewind()
-
-        return encode(buffer, width, height, premultiplied = bitmap.isPremultiplied)
     }
 
     /**

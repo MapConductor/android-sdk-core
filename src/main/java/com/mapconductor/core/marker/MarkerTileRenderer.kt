@@ -6,6 +6,7 @@ import androidx.core.graphics.createBitmap
 import com.mapconductor.core.ResourceProvider
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
+import com.mapconductor.core.tileserver.ScratchPool
 import com.mapconductor.core.tileserver.TilePngEncoder
 import com.mapconductor.core.tileserver.TileProviderInterface
 import com.mapconductor.core.tileserver.TileRequest
@@ -686,10 +687,10 @@ class MarkerTileRenderer<ActualMarker>(
     // ByteArrayOutputStream starts at 32 bytes and doubles its backing array on every
     // compress() call until it reaches the tile's steady-state size (often hundreds of KB
     // for dense tiles), so a new instance per call re-triggers that regrowth every time.
-    // Keeping one per thread (reset, not recreated, before each use) lets the backing
-    // array settle at its steady-state size and be reused across tiles.
-    private val tileByteStream =
-        ThreadLocal.withInitial { ByteArrayOutputStream(16 * 1024) }
+    // Keeping a few (reset, not recreated, before each use) lets the backing array
+    // settle at its steady-state size and be reused across tiles. A pool, not one per
+    // thread: map SDK threads that outlive their map would keep theirs (ScratchPool).
+    private val tileByteStreams = ScratchPool<ByteArrayOutputStream>()
 
     private fun bitmapToByteArray(bitmap: Bitmap): ByteArray {
         // Rust first: it is 4-6x faster than Bitmap.compress on the tiles this
@@ -698,15 +699,17 @@ class MarkerTileRenderer<ActualMarker>(
         // declined the bitmap, and the platform encoder takes over.
         TilePngEncoder.encode(bitmap)?.let { return it }
 
-        // ThreadLocal.get() is a Java generic method, so Kotlin sees its return type as
-        // nullable even though withInitial() guarantees a value; !! is safe here.
-        val outputStream = tileByteStream.get()!!
-        outputStream.reset()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-        // toByteArray() still copies out a right-sized array: callers cache this array or
-        // hand it to a socket write, both of which need a stable array that isn't mutated
-        // by the next renderTile() call on this thread.
-        return outputStream.toByteArray()
+        val outputStream = tileByteStreams.acquire() ?: ByteArrayOutputStream(16 * 1024)
+        try {
+            outputStream.reset()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            // toByteArray() still copies out a right-sized array: callers cache this array or
+            // hand it to a socket write, both of which need a stable array that isn't mutated
+            // by the next renderTile() call.
+            return outputStream.toByteArray()
+        } finally {
+            tileByteStreams.release(outputStream)
+        }
     }
 
     private fun acquireBitmap(size: Int): Bitmap {

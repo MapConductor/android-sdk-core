@@ -39,7 +39,8 @@ abstract class PolylineController<ActualPolyline>(
 
             data.forEach { state ->
                 if (previous.contains(state.id)) {
-                    val prevEntity = polylineManager.getEntity(state.id)!!
+                    // Gone only if destroy() cleared the manager meanwhile; nothing left to update.
+                    val prevEntity = polylineManager.getEntity(state.id) ?: return@withPermit
                     if (state.fingerPrint() == prevEntity.fingerPrint) {
                         // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
                         polylineManager.registerEntity(PolylineEntity(state = state, polyline = prevEntity.polyline))
@@ -171,7 +172,9 @@ abstract class PolylineController<ActualPolyline>(
     }
 
     override fun destroy() {
-        // No native resources to clean up for polylines
+        // A destroyed controller can still be referenced (by its map controller,
+        // or a state that has not let go yet); without this it keeps every entity.
+        polylineManager.clear()
     }
 
     override fun has(id: String): Boolean = polylineManager.hasEntity(id)

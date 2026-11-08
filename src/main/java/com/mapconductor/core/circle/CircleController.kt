@@ -35,7 +35,8 @@ abstract class CircleController<ActualCircle>(
 
             data.forEach { state ->
                 if (previous.contains(state.id)) {
-                    val prevEntity = circleManager.getEntity(state.id)!!
+                    // Gone only if destroy() cleared the manager meanwhile; nothing left to update.
+                    val prevEntity = circleManager.getEntity(state.id) ?: return@withPermit
                     if (state.fingerPrint() == prevEntity.fingerPrint) {
                         // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する
                         // （react-sdk と同じ。composition ごとに全オーバーレイへ onChange を
@@ -160,7 +161,9 @@ abstract class CircleController<ActualCircle>(
     override fun find(position: GeoPointInterface): CircleEntityInterface<ActualCircle>? = circleManager.find(position)
 
     override fun destroy() {
-        // No native resources to clean up for circles
+        // A destroyed controller can still be referenced (by its map controller,
+        // or a state that has not let go yet); without this it keeps every entity.
+        circleManager.clear()
     }
 
     override fun has(id: String): Boolean = circleManager.hasEntity(id)
