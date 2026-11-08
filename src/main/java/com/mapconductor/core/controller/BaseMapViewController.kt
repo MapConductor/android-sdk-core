@@ -19,6 +19,7 @@ import com.mapconductor.core.marker.MarkerAnimationOverlayHost
 import com.mapconductor.core.marker.MarkerCapableInterface
 import com.mapconductor.core.marker.MarkerState
 import com.mapconductor.core.marker.OnMarkerEventHandler
+import com.mapconductor.core.marker.StrategyMarkerController
 import com.mapconductor.core.polygon.OnPolygonEventHandler
 import com.mapconductor.core.polygon.PolygonCapableInterface
 import com.mapconductor.core.polygon.PolygonState
@@ -156,6 +157,21 @@ abstract class BaseMapViewController :
         if (controller is OnCameraChangeReceiverInterface) {
             defaultCoroutine.launch { controller.onCameraChanged(camera) }
         }
+    }
+
+    /**
+     * 登録されている [StrategyMarkerController]（クラスタリングなどの Strategy で描くマーカー）を
+     * すべて clear する。各プロバイダの `clearOverlays()` から呼ぶ。
+     *
+     * Strategy のコントローラはプロバイダが持つものではなく、拡張モジュール
+     * （android-marker-clustering の MarkerRenderingGroup など）が
+     * [registerOverlayController] で登録していくもの。プロバイダの `clearOverlays()` は
+     * 自分のフィールドのコントローラしか知らないので、ここで登録簿から拾う。
+     *
+     * 他の種類（ヒートマップのようにカメラだけ購読するもの）は消さない。
+     */
+    protected suspend fun clearStrategyMarkerControllers() {
+        overlayControllers.filterIsInstance<StrategyMarkerController<*>>().forEach { it.clear() }
     }
 
     // ── タップのカスケード ──────────────────────────────────────────────
