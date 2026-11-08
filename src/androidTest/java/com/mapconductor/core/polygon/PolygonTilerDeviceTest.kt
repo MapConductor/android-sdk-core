@@ -225,7 +225,8 @@ class PolygonTilerDeviceTest {
 
     private suspend fun movesToNative(change: (PolygonState) -> Unit): Triple<Controller, Renderer, List<PolygonState>> {
         val (controller, renderer, templates) = controller()
-        val states = parcels(2000)
+        // しきい値（2,000）より 1 つ多い。移った 1 つを除いても、渡し直したときに残りはタイルのまま。
+        val states = parcels(2001)
         controller.add(states)
         assertTrue(renderer.onMap.isEmpty())
         val before = templates.last()!!
@@ -284,29 +285,6 @@ class PolygonTilerDeviceTest {
         runBlocking {
             movesToNative { it.points = listOf(p(42.3012, -71.0988), p(42.3012, -71.0978)) }
             Unit
-        }
-
-    /** タイルからネイティブへ移っても onAdded は呼ばない（地図に載ったまま） */
-    @Test
-    fun movingFromTilesToNativeCallsNoOnAdded() =
-        runBlocking {
-            val (controller, renderer, templates) = controller()
-            val added = mutableListOf<String>()
-            val states = parcels(2000).onEach { state -> state.onAdded = { synchronized(added) { added.add(it.id) } } }
-            controller.add(states)
-            assertEquals(2000, synchronized(added) { added.size })
-            synchronized(added) { added.clear() }
-            val before = templates.last()
-
-            states[101].geodesic = true
-            controller.update(states[101])
-            withTimeout(2000) {
-                while (synchronized(templates) { templates.last() } == before) delay(5)
-            }
-            assertEquals(listOf("parcel-101"), renderer.added)
-            // 同じリストを渡し直しても、地図に載ったまま
-            controller.add(states)
-            assertTrue(synchronized(added) { added.toList() }.toString(), synchronized(added) { added.isEmpty() })
         }
 
     /** The alpha of the tile pixel at a coordinate. */

@@ -156,6 +156,24 @@ class OverlayOnAddedDeviceTest {
     }
 
     @Test
+    fun aTiledPolygonMadeGeodesicInPlaceMovesToNativeAndCallsNothing() {
+        val map = map(minPolygonCount = 2)
+        val overlay = overlay()
+        val states = List(3) { square(it) }
+        overlay.show(map, states)
+        assertEquals(3, events.count { it.startsWith("onAdded") })
+        events.clear()
+
+        // No longer tileable: drawn natively from now on, still on the map.
+        states[0].geodesic = true
+        runBlocking { map.updatePolygon(states[0]) }
+        assertTrue(events.toString(), "native:p0" in events)
+        overlay.show(map, states)
+
+        assertTrue(events.toString(), events.none { it.startsWith("onAdded") })
+    }
+
+    @Test
     fun movingBetweenNativeAndTilesWhileOnTheMapCallsNothing() {
         val map = map(minPolygonCount = 4)
         val overlay = overlay()
