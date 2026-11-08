@@ -259,6 +259,7 @@ public abstract class com.mapconductor.core.controller.BaseMapViewController imp
   public final void setMapClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.features.GeoPoint, kotlin.Unit>);
   public final void setMapLongClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.features.GeoPoint, kotlin.Unit>);
   public void registerOverlayController(com.mapconductor.core.controller.OverlayControllerInterface<?, ?>);
+  protected final java.lang.Object clearStrategyMarkerControllers(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   protected java.util.List<com.mapconductor.core.controller.OverlayKind> getOverlayCascadeOrder();
   protected boolean dispatchMarkerTap(com.mapconductor.core.features.GeoPointInterface);
   public final boolean dispatchOverlayTap(com.mapconductor.core.features.GeoPointInterface);
