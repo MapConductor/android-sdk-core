@@ -2098,9 +2098,20 @@ final class com.mapconductor.core.polygon.Edge {
   public int hashCode();
   public boolean equals(java.lang.Object);
 }
+final class com.mapconductor.core.polygon.EdgeGrid {
+  public com.mapconductor.core.polygon.EdgeGrid(java.util.List<com.mapconductor.core.polygon.Edge>, double);
+  public final com.mapconductor.core.polygon.IntArrayList near(double, double, double, double, com.mapconductor.core.polygon.IntArrayList);
+}
 public final class com.mapconductor.core.polygon.HoleBridgeKt {
   public static final java.util.List<com.mapconductor.core.features.GeoPointInterface> bridgeHolesIntoSingleRing(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>>, double);
   public static final java.util.List<com.mapconductor.core.features.GeoPointInterface> bridgeHolesIntoSingleRingWrapAware(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>>, double);
+}
+final class com.mapconductor.core.polygon.IntArrayList {
+  public com.mapconductor.core.polygon.IntArrayList();
+  public final int getSize();
+  public final int get(int);
+  public final void add(int);
+  public final void clear();
 }
 final class com.mapconductor.core.polygon.Node {
   public com.mapconductor.core.polygon.Node(double, double, com.mapconductor.core.features.GeoPointInterface);
