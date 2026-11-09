@@ -71,6 +71,9 @@ private const val Q = 1e-9
 // フィーチャースケール座標での平行・共線・線分上判定の許容誤差。
 private const val EPS = 1e-12
 
+// 中点からこれより近い部分辺はその中点を通っている（度。Q よりはるかに小さい）。
+private const val ON_EDGE = 1e-12
+
 private fun unionRings(rings: List<List<Vec>>): List<List<Vec>> {
     // 全リングの有向辺（閉じたものとして扱う）。
     val edges = mutableListOf<Edge>()
@@ -140,10 +143,13 @@ private fun classifyBoundary(
 
         val mid = add2(seg.a, scale(dir, 0.5))
         // 単位左法線。中点の左右すぐ横でカバレッジを標本化する。分割後は他の辺が
-        // この部分辺の内部を横切らないため、微小オフセットはこの辺が隔てる 2 セル内に収まる。
+        // この部分辺の内部を横切らないため、最寄りの他の辺までの距離より短いオフセットなら
+        // この辺が隔てる 2 セル内に収まる。固定オフセットでは収まらない: 別の穴がそれより
+        // 近くを通る（1e-5 度離れた 2 つの穴）と標本点がその穴に入り、辺が両側とも内部に
+        // 見えて落とされ、繋ぎ直したリングが穴を横切る。
         val nx = -dir.y / len
         val ny = dir.x / len
-        val off = min(len * 0.25, 1e-5)
+        val off = min(len * 0.25, 0.5 * clearance(mid, 2e-5, subEdges))
         val leftInside = coverage(Vec(mid.x + nx * off, mid.y + ny * off), rings) > 0
         val rightInside = coverage(Vec(mid.x - nx * off, mid.y - ny * off), rings) > 0
         if (leftInside == rightInside) continue // 両側とも内部、または両側とも外部
@@ -156,6 +162,41 @@ private fun classifyBoundary(
         out.add(Edge(a, b))
     }
     return out
+}
+
+/**
+ * `point`（部分辺の中点）から、それを通らない最寄りの部分辺までの距離。`cap` より近いものが
+ * 無ければ `cap`。その部分辺自身と、他のリングから来た同じ部分辺は中点を通るので除く。
+ */
+private fun clearance(
+    point: Vec,
+    cap: Double,
+    subEdges: List<Edge>,
+): Double {
+    var best = cap
+    for (e in subEdges) {
+        if (minOf(e.a.x, e.b.x) > point.x + best ||
+            maxOf(e.a.x, e.b.x) < point.x - best ||
+            minOf(e.a.y, e.b.y) > point.y + best ||
+            maxOf(e.a.y, e.b.y) < point.y - best
+        ) {
+            continue
+        }
+        val d = distanceToSegment(point, e)
+        if (d > ON_EDGE && d < best) best = d
+    }
+    return best
+}
+
+private fun distanceToSegment(
+    p: Vec,
+    e: Edge,
+): Double {
+    val d = sub(e.b, e.a)
+    val lenSq = dot(d, d)
+    val t = if (lenSq > 0.0) clamp01(dot(sub(p, e.a), d) / lenSq) else 0.0
+    val q = add2(e.a, scale(d, t))
+    return hypot(p.x - q.x, p.y - q.y)
 }
 
 /** 有向境界辺を連結して閉リングにする。 */
