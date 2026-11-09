@@ -40,6 +40,11 @@ class RasterLayerState(
     var zIndex by mutations.notifying(zIndex)
     var userAgent by mutations.notifying(userAgent)
     var debug by mutations.notifying(debug)
+
+    /**
+     * タイル要求に足すヘッダー。変えるときは新しい Map を代入する。渡した Map をその場で
+     * 書き換えても state には伝わらず、内容の等しい Map の代入は無視される。
+     */
     var extraHeaders by mutations.notifying(extraHeaders)
 
     private fun rasterLayerId(hashCodes: List<Int>): Int =
