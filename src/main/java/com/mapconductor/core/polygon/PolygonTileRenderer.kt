@@ -8,6 +8,7 @@ import android.graphics.Path
 import android.util.LruCache
 import androidx.core.graphics.createBitmap
 import com.mapconductor.core.ResourceProvider
+import com.mapconductor.core.tileserver.ScratchPool
 import com.mapconductor.core.tileserver.TilePngEncoder
 import com.mapconductor.core.tileserver.TileProviderInterface
 import com.mapconductor.core.tileserver.TileRequest
@@ -72,8 +73,10 @@ internal class PolygonTileRenderer(
         }
     private val cacheLock = Any()
 
-    private val scratchBitmap = ThreadLocal<Bitmap?>()
-    private val byteStream = ThreadLocal.withInitial { ByteArrayOutputStream(16 * 1024) }
+    // Pools, not thread-locals: tiles are drawn on the map SDK's threads, which can
+    // outlive this renderer (see ScratchPool) and would keep a tile bitmap each.
+    private val scratchBitmaps = ScratchPool<Bitmap>()
+    private val byteStreams = ScratchPool<ByteArrayOutputStream>()
 
     /** Replaces every polygon. Draw order is list order. */
     fun setPolygons(polygons: List<TilePolygon?>) {
@@ -141,7 +144,12 @@ internal class PolygonTileRenderer(
         synchronized(cacheLock) { tileCache.get(key) }?.let { return it }
 
         val bitmap = draw(m, x, y, z, ratio, isCancelled) ?: return null
-        val bytes = encode(bitmap)
+        val bytes =
+            try {
+                encode(bitmap)
+            } finally {
+                releaseScratch(bitmap)
+            }
         synchronized(cacheLock) {
             // The polygons may have changed while this tile was drawn.
             if (generation.get() == generationAtStart) tileCache.put(key, bytes)
@@ -155,7 +163,14 @@ internal class PolygonTileRenderer(
         y: Int,
         z: Int,
         pixelRatio: Int = 1,
-    ): Bitmap? = model?.let { draw(it, x, y, z, pixelRatio) { false } }?.copy(Bitmap.Config.ARGB_8888, false)
+    ): Bitmap? =
+        model?.let { draw(it, x, y, z, pixelRatio) { false } }?.let { scratch ->
+            try {
+                scratch.copy(Bitmap.Config.ARGB_8888, false)
+            } finally {
+                releaseScratch(scratch)
+            }
+        }
 
     private fun draw(
         m: Model,
@@ -182,6 +197,26 @@ internal class PolygonTileRenderer(
         val r = pixelScale() * pixelRatio
         val px = (tileSize * r).roundToInt().coerceAtLeast(1)
         val bitmap = scratch(px)
+        try {
+            return drawInto(bitmap, m, candidates, originX, originY, r, z, scale, isCancelled)
+        } catch (error: Throwable) {
+            releaseScratch(bitmap)
+            throw error
+        }
+    }
+
+    /** Draws into [bitmap]; null (and the bitmap back in the pool) when nothing was drawn. */
+    private fun drawInto(
+        bitmap: Bitmap,
+        m: Model,
+        candidates: IntArray,
+        originX: Double,
+        originY: Double,
+        r: Float,
+        z: Int,
+        scale: Double,
+        isCancelled: () -> Boolean,
+    ): Bitmap? {
         val canvas = Canvas(bitmap)
         val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
         val strokePaint =
@@ -229,6 +264,7 @@ internal class PolygonTileRenderer(
                 }
             }
         }
+        if (!drew) releaseScratch(bitmap)
         return if (drew) bitmap else null
     }
 
@@ -278,21 +314,29 @@ internal class PolygonTileRenderer(
     }
 
     private fun scratch(px: Int): Bitmap {
-        val existing = scratchBitmap.get()
-        if (existing != null && !existing.isRecycled && existing.width == px && existing.height == px) {
+        val existing = scratchBitmaps.acquire { !it.isRecycled && it.width == px && it.height == px }
+        if (existing != null) {
             existing.eraseColor(Color.TRANSPARENT)
             return existing
         }
-        return createBitmap(px, px).also { scratchBitmap.set(it) }
+        return createBitmap(px, px)
+    }
+
+    private fun releaseScratch(bitmap: Bitmap) {
+        scratchBitmaps.release(bitmap)
     }
 
     private fun encode(bitmap: Bitmap): ByteArray {
         // Rust first, as for marker tiles: Bitmap.compress is several times slower.
         TilePngEncoder.encode(bitmap)?.let { return it }
-        val out = byteStream.get()!!
-        out.reset()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-        return out.toByteArray()
+        val out = byteStreams.acquire() ?: ByteArrayOutputStream(16 * 1024)
+        try {
+            out.reset()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            return out.toByteArray()
+        } finally {
+            byteStreams.release(out)
+        }
     }
 
     private fun dropTilesIn(

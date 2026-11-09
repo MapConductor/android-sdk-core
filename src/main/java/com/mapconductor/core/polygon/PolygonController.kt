@@ -55,7 +55,8 @@ abstract class PolygonController<ActualPolygon>(
 
             native.forEach { state ->
                 if (previous.contains(state.id)) {
-                    val prevEntity = polygonManager.getEntity(state.id)!!
+                    // Gone only if destroy() cleared the manager meanwhile; nothing left to update.
+                    val prevEntity = polygonManager.getEntity(state.id) ?: return@withPermit
                     if (state.fingerPrint() == prevEntity.fingerPrint) {
                         // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
                         polygonManager.registerEntity(PolygonEntity(state = state, polygon = prevEntity.polygon))
@@ -228,7 +229,10 @@ abstract class PolygonController<ActualPolygon>(
             val entities: List<PolygonEntityInterface<ActualPolygon>> =
                 polygonManager.allEntities().filter { it.state.id !in tiled }
             renderer.onRemove(entities)
+            // manager を空にしてから onPostProcess を呼ぶ。GL 系の描画担当は remove では何もせず、
+            // onPostProcess で manager の全部を描き直すので、逆の順だと clear() 後も地図に残る。
             polygonManager.clear()
+            renderer.onPostProcess()
         }
     }
 
@@ -240,6 +244,9 @@ abstract class PolygonController<ActualPolygon>(
         // The tile server outlives the map; without this its route keeps every
         // tiled polygon (and the renderer's copies of them) alive.
         tiler?.dispose()
+        // A destroyed controller can still be referenced (by its map controller,
+        // or a state that has not let go yet); without this it keeps every entity.
+        polygonManager.clear()
     }
 
     override fun has(id: String): Boolean = polygonManager.hasEntity(id)
