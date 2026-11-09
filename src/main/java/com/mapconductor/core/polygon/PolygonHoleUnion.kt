@@ -403,12 +403,12 @@ private fun nextEdge(
 }
 
 /**
- * True when no two rings cross, touch or nest. Edges are binned into a uniform
- * grid and only pairs sharing a cell are tested, so the cost grows with the
+ * True when no two rings cross, touch or nest. Edges are filed in an [EdgeGrid]
+ * and each is tested only against the edges near it, so the cost grows with the
  * edge count rather than its square. Same as js-sdk-core's `holesAreDisjoint`.
  */
 private fun holesAreDisjoint(rings: List<List<Vec>>): Boolean {
-    val boxes = rings.map(::ringBox)
+    val boxes = rings.map(::ringBounds)
     // A ring inside another: one of its vertices is inside it.
     for (i in rings.indices) {
         val p = rings[i][0]
@@ -422,80 +422,32 @@ private fun holesAreDisjoint(rings: List<List<Vec>>): Boolean {
     }
 
     val edges = ArrayList<Edge>()
-    val edgeRing = ArrayList<Int>()
+    val edgeRing = IntArrayList()
     for ((r, ring) in rings.withIndex()) {
         for (i in ring.indices) {
             edges.add(Edge(ring[i], ring[(i + 1) % ring.size]))
             edgeRing.add(r)
         }
     }
-    var minX = Double.POSITIVE_INFINITY
-    var minY = Double.POSITIVE_INFINITY
-    var maxX = Double.NEGATIVE_INFINITY
-    var maxY = Double.NEGATIVE_INFINITY
-    for (b in boxes) {
-        minX = minOf(minX, b[0])
-        minY = minOf(minY, b[1])
-        maxX = maxOf(maxX, b[2])
-        maxY = maxOf(maxY, b[3])
-    }
-    val side =
-        kotlin.math
-            .ceil(kotlin.math.sqrt(edges.size.toDouble()))
-            .toInt()
-            .coerceIn(1, 1024)
-    // Padded by EPS so an edge lying on a cell border is in both cells.
-    val cellW = ((maxX - minX) / side).takeIf { it != 0.0 } ?: 1.0
-    val cellH = ((maxY - minY) / side).takeIf { it != 0.0 } ?: 1.0
-
-    fun cellOf(
-        v: Double,
-        min: Double,
-        size: Double,
-    ): Int =
-        kotlin.math
-            .floor((v - min) / size)
-            .toInt()
-            .coerceIn(0, side - 1)
-    val cells = HashMap<Int, MutableList<Int>>()
-    for ((e, edge) in edges.withIndex()) {
-        val a = edge.a
-        val b = edge.b
-        val x0 = cellOf(minOf(a.x, b.x) - EPS, minX, cellW)
-        val x1 = cellOf(maxOf(a.x, b.x) + EPS, minX, cellW)
-        val y0 = cellOf(minOf(a.y, b.y) - EPS, minY, cellH)
-        val y1 = cellOf(maxOf(a.y, b.y) + EPS, minY, cellH)
-        for (cx in x0..x1) {
-            for (cy in y0..y1) {
-                cells.getOrPut(cx * side + cy) { ArrayList(4) }.add(e)
-            }
-        }
-    }
-    for (bucket in cells.values) {
-        for (i in bucket.indices) {
-            for (j in i + 1 until bucket.size) {
-                val p = bucket[i]
-                val q = bucket[j]
-                if (edgeRing[p] != edgeRing[q] && intersectionPoints(edges[p], edges[q]).isNotEmpty()) return false
-            }
+    // Only an edge whose box comes within MEET_PAD of another's can meet it.
+    val grid = EdgeGrid(edges, MEET_PAD)
+    val near = IntArrayList()
+    for (i in edges.indices) {
+        val seg = edges[i]
+        grid.near(
+            minOf(seg.a.x, seg.b.x) - MEET_PAD,
+            minOf(seg.a.y, seg.b.y) - MEET_PAD,
+            maxOf(seg.a.x, seg.b.x) + MEET_PAD,
+            maxOf(seg.a.y, seg.b.y) + MEET_PAD,
+            near,
+        )
+        for (k in 0 until near.size) {
+            val j = near[k]
+            if (j <= i || edgeRing[j] == edgeRing[i]) continue
+            if (intersectionPoints(seg, edges[j]).isNotEmpty()) return false
         }
     }
     return true
-}
-
-/** minX, minY, maxX, maxY. */
-private fun ringBox(ring: List<Vec>): DoubleArray {
-    var minX = Double.POSITIVE_INFINITY
-    var minY = Double.POSITIVE_INFINITY
-    var maxX = Double.NEGATIVE_INFINITY
-    var maxY = Double.NEGATIVE_INFINITY
-    for (p in ring) {
-        minX = minOf(minX, p.x)
-        maxX = maxOf(maxX, p.x)
-        minY = minOf(minY, p.y)
-        maxY = maxOf(maxY, p.y)
-    }
-    return doubleArrayOf(minX, minY, maxX, maxY)
 }
 
 /** 線分 `other` が線分 `seg` と出会う点（交差・T 字接触・共線重複の端点）。 */
