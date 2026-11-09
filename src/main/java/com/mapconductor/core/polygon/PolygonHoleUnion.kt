@@ -5,9 +5,12 @@ import com.mapconductor.core.features.GeoPointInterface
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToLong
+import kotlin.math.sqrt
 
 /**
  * 重なり合う穴リング同士を平面（経度緯度）座標系で結合する。外部ジオメトリライブラリ非依存。
@@ -90,9 +93,127 @@ private fun unionRings(rings: List<List<Vec>>): List<List<Vec>> {
     return traceRings(boundary)
 }
 
+// intersectionPoints が線分の外接矩形の外まで拾う距離（度）。共線判定は直線から EPS / |seg| までの
+// 辺を受け入れ、sqrt(EPS) = 1e-6 より短い線分はそこで除かれるので、高々 2e-6。
+private const val MEET_PAD = 4e-6
+
+// 部分辺の中点から左右の標本点までの距離の上限の 2 倍（度）。
+private const val CLEARANCE_CAP = 2e-5
+
+/**
+ * 辺を外接矩形で一様格子に登録し、探索をすべての辺ではなく矩形の近くの辺だけに絞る。
+ * 辺の矩形が触れるすべてのセルに登録するので、矩形が触れるセルを全部見れば、
+ * その矩形と出会い得る辺はすべて見つかる。
+ */
+private class EdgeGrid(
+    edges: List<Edge>,
+    pad: Double,
+) {
+    private val side: Int
+    private val minX: Double
+    private val minY: Double
+    private val cellW: Double
+    private val cellH: Double
+    private val cells = HashMap<Int, IntArrayList>()
+    private val seen = IntArray(edges.size)
+    private var stamp = 0
+
+    init {
+        var x0 = Double.POSITIVE_INFINITY
+        var y0 = Double.POSITIVE_INFINITY
+        var x1 = Double.NEGATIVE_INFINITY
+        var y1 = Double.NEGATIVE_INFINITY
+        for (e in edges) {
+            x0 = minOf(x0, e.a.x, e.b.x)
+            x1 = maxOf(x1, e.a.x, e.b.x)
+            y0 = minOf(y0, e.a.y, e.b.y)
+            y1 = maxOf(y1, e.a.y, e.b.y)
+        }
+        side = ceil(sqrt(edges.size.toDouble())).toInt().coerceIn(1, 1024)
+        minX = x0
+        minY = y0
+        cellW = ((x1 - x0) / side).let { if (it > 0.0) it else 1.0 }
+        cellH = ((y1 - y0) / side).let { if (it > 0.0) it else 1.0 }
+        for (i in edges.indices) {
+            val e = edges[i]
+            forCells(
+                minOf(e.a.x, e.b.x) - pad,
+                minOf(e.a.y, e.b.y) - pad,
+                maxOf(e.a.x, e.b.x) + pad,
+                maxOf(e.a.y, e.b.y) + pad,
+            ) { key -> cells.getOrPut(key) { IntArrayList() }.add(i) }
+        }
+    }
+
+    /** 矩形が触れるセルに登録された辺の番号。各辺 1 回、順序は不定。 */
+    fun near(
+        minX: Double,
+        minY: Double,
+        maxX: Double,
+        maxY: Double,
+        out: IntArrayList,
+    ): IntArrayList {
+        out.clear()
+        val current = ++stamp
+        forCells(minX, minY, maxX, maxY) { key ->
+            val bucket = cells[key] ?: return@forCells
+            for (k in 0 until bucket.size) {
+                val i = bucket[k]
+                if (seen[i] == current) continue
+                seen[i] = current
+                out.add(i)
+            }
+        }
+        return out
+    }
+
+    private inline fun forCells(
+        minX: Double,
+        minY: Double,
+        maxX: Double,
+        maxY: Double,
+        visit: (Int) -> Unit,
+    ) {
+        val cx0 = cell(minX, this.minX, cellW)
+        val cx1 = cell(maxX, this.minX, cellW)
+        val cy0 = cell(minY, this.minY, cellH)
+        val cy1 = cell(maxY, this.minY, cellH)
+        for (cx in cx0..cx1) {
+            for (cy in cy0..cy1) visit(cx * side + cy)
+        }
+    }
+
+    private fun cell(
+        v: Double,
+        min: Double,
+        size: Double,
+    ): Int = floor((v - min) / size).coerceIn(0.0, (side - 1).toDouble()).toInt()
+}
+
+/** 箱詰めしない Int の可変長配列。 */
+private class IntArrayList {
+    private var items = IntArray(4)
+    var size = 0
+        private set
+
+    operator fun get(index: Int): Int = items[index]
+
+    fun add(value: Int) {
+        if (size == items.size) items = items.copyOf(size * 2)
+        items[size++] = value
+    }
+
+    fun clear() {
+        size = 0
+    }
+}
+
 /** 各辺を、他の辺が交差・接触する全ての点で分割する。 */
 private fun splitEdges(edges: List<Edge>): List<Edge> {
     val result = mutableListOf<Edge>()
+    // この辺の矩形から MEET_PAD 以内に矩形が来る辺だけが、この辺と出会い得る。
+    val grid = EdgeGrid(edges, MEET_PAD)
+    val near = IntArrayList()
     for (i in edges.indices) {
         val seg = edges[i]
         val dir = sub(seg.b, seg.a)
@@ -108,7 +229,15 @@ private fun splitEdges(edges: List<Edge>): List<Edge> {
         }
         add(seg.a)
         add(seg.b)
-        for (j in edges.indices) {
+        grid.near(
+            minOf(seg.a.x, seg.b.x) - MEET_PAD,
+            minOf(seg.a.y, seg.b.y) - MEET_PAD,
+            maxOf(seg.a.x, seg.b.x) + MEET_PAD,
+            maxOf(seg.a.y, seg.b.y) + MEET_PAD,
+            near,
+        )
+        for (k in 0 until near.size) {
+            val j = near[k]
             if (i == j) continue
             for (p in intersectionPoints(seg, edges[j])) add(p)
         }
@@ -136,6 +265,9 @@ private fun classifyBoundary(
 ): List<Edge> {
     val out = mutableListOf<Edge>()
     val seen = HashSet<Pair<VecKey, VecKey>>()
+    val grid = EdgeGrid(subEdges, 0.0)
+    val near = IntArrayList()
+    val ringsBounds = rings.map(::ringBounds)
     for (seg in subEdges) {
         val dir = sub(seg.b, seg.a)
         val len = hypot(dir.x, dir.y)
@@ -149,9 +281,9 @@ private fun classifyBoundary(
         // 見えて落とされ、繋ぎ直したリングが穴を横切る。
         val nx = -dir.y / len
         val ny = dir.x / len
-        val off = min(len * 0.25, 0.5 * clearance(mid, 2e-5, subEdges))
-        val leftInside = coverage(Vec(mid.x + nx * off, mid.y + ny * off), rings) > 0
-        val rightInside = coverage(Vec(mid.x - nx * off, mid.y - ny * off), rings) > 0
+        val off = min(len * 0.25, 0.5 * clearance(mid, CLEARANCE_CAP, subEdges, grid, near))
+        val leftInside = coverage(Vec(mid.x + nx * off, mid.y + ny * off), rings, ringsBounds) > 0
+        val rightInside = coverage(Vec(mid.x - nx * off, mid.y - ny * off), rings, ringsBounds) > 0
         if (leftInside == rightInside) continue // 両側とも内部、または両側とも外部
 
         // 内部が左側に来る向きへ揃える。
@@ -167,14 +299,19 @@ private fun classifyBoundary(
 /**
  * `point`（部分辺の中点）から、それを通らない最寄りの部分辺までの距離。`cap` より近いものが
  * 無ければ `cap`。その部分辺自身と、他のリングから来た同じ部分辺は中点を通るので除く。
+ * 点のまわり `cap` の矩形の近くに登録された部分辺だけを調べる。`cap` より近いものはその中にある。
  */
 private fun clearance(
     point: Vec,
     cap: Double,
     subEdges: List<Edge>,
+    grid: EdgeGrid,
+    near: IntArrayList,
 ): Double {
     var best = cap
-    for (e in subEdges) {
+    grid.near(point.x - cap, point.y - cap, point.x + cap, point.y + cap, near)
+    for (k in 0 until near.size) {
+        val e = subEdges[near[k]]
         if (minOf(e.a.x, e.b.x) > point.x + best ||
             maxOf(e.a.x, e.b.x) < point.x - best ||
             minOf(e.a.y, e.b.y) > point.y + best ||
@@ -291,11 +428,23 @@ private fun intersectionPoints(
     return listOf(add2(seg.a, scale(r, clamp01(t))))
 }
 
-/** 点を内部に含むリングの数。 */
+/**
+ * 点を内部に含むリングの数。緯度の範囲が点の緯度をまたがないリングには pointInRing が数える辺が
+ * 無いので飛ばす。
+ */
 private fun coverage(
     point: Vec,
     rings: List<List<Vec>>,
-): Int = rings.count { pointInRing(point, it) }
+    bounds: List<DoubleArray>,
+): Int {
+    var count = 0
+    for (i in rings.indices) {
+        val b = bounds[i]
+        if (point.y < b[1] || point.y >= b[3]) continue
+        if (pointInRing(point, rings[i])) count++
+    }
+    return count
+}
 
 /** 偶奇規則のレイキャスティングによる点包含判定（巻き方向に依存しない）。 */
 private fun pointInRing(
@@ -346,6 +495,21 @@ private fun toRing(
         points.removeAt(points.size - 1)
     }
     return if (points.size >= 3) points else null
+}
+
+/** リングの外接矩形 [minX, minY, maxX, maxY]。 */
+private fun ringBounds(ring: List<Vec>): DoubleArray {
+    var minX = Double.POSITIVE_INFINITY
+    var minY = Double.POSITIVE_INFINITY
+    var maxX = Double.NEGATIVE_INFINITY
+    var maxY = Double.NEGATIVE_INFINITY
+    for (p in ring) {
+        if (p.x < minX) minX = p.x
+        if (p.x > maxX) maxX = p.x
+        if (p.y < minY) minY = p.y
+        if (p.y > maxY) maxY = p.y
+    }
+    return doubleArrayOf(minX, minY, maxX, maxY)
 }
 
 private fun signedArea(ring: List<Vec>): Double {
