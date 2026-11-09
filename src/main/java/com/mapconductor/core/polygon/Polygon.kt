@@ -60,7 +60,27 @@ class PolygonState(
      */
     var clickable by mutations.notifying(clickable)
     var zIndex by mutations.notifying(zIndex)
+
+    /**
+     * 外周の頂点。
+     *
+     * state が見ているのはこのプロパティへの代入だけ。渡したリストをその場で書き換えても
+     * 描き直されない（`mutableStateListOf` を渡して `add` / `set` する使い方は効かない）。
+     * 形を変えるときは新しいリストを代入する:
+     *
+     * ```
+     * polygonState.points = polygonState.points.toMutableList().apply { this[i] = moved }
+     * ```
+     *
+     * 内容の等しいリストの代入は無視される。その場で書き換えた同じリストを代入し直しても、
+     * 前の値と同じものなので何も起きない。
+     */
     var points by mutations.notifying<List<GeoPointInterface>>(points)
+
+    /**
+     * 穴（内周）の頂点。[points] と同じく、変えるときは新しいリストを代入する。
+     * 内側のリストをその場で書き換えても描き直されない。
+     */
     var holes by mutations.notifying<List<List<GeoPointInterface>>>(holes)
     var extra by mutations.notifying(extra)
     var onClick by mutations.notifying(onClick)

@@ -9,8 +9,9 @@ package com.mapconductor.core.controller
  * ジェネリクスは実行時に消えるので状態の型では判別できない。かといって `Class` を
  * 持たせると、状態型がプロバイダ固有になったときに破綻する。種別という別の軸で持つ。
  *
- * **描画順（zIndex）とは別軸**であることに注意。現状 polygon(3) > groundImage(2) だが、
- * クリックの探索は groundImage が先。
+ * **描画順とは別軸**であることに注意。描画は [OverlayStacking] の帯
+ * （ラスター < GroundImage < ポリゴン < サークル < ポリライン < マーカー）で決まるが、
+ * クリックの探索は groundImage がポリゴンより先。
  */
 enum class OverlayKind {
     Marker,

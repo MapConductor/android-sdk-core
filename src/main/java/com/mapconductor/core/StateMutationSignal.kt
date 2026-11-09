@@ -53,6 +53,11 @@ class StateMutationSignal {
      *
      * Declare `mutations` above the fields that use it: property initialisers
      * run in declaration order, and the other way round it is still null here.
+     *
+     * The field reports assignments to itself and nothing else: an in-place
+     * change to the object it holds (a `MutableList`, a `mutableStateListOf`)
+     * is not seen, and an assignment equal to the current value is dropped.
+     * Callers change such a field by assigning a new value.
      */
     fun <T> notifying(initial: T): MutableState<T> = NotifyingState(mutableStateOf(initial), this)
 }

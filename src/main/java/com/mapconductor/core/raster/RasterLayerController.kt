@@ -236,8 +236,10 @@ abstract class RasterLayerController<ActualLayer : Any>(
                 upsertedIds.clear()
                 val entities: List<RasterLayerEntityInterface<ActualLayer>> = rasterLayerManager.allEntities()
                 renderer.onRemove(entities)
-                renderer.onPostProcess()
+                // manager を空にしてから onPostProcess を呼ぶ。GL 系の描画担当は remove では何もせず、
+                // onPostProcess で manager の全部を描き直すので、逆の順だと clear() 後も地図に残る。
                 rasterLayerManager.clear()
+                renderer.onPostProcess()
             }
         }
     }
@@ -282,7 +284,9 @@ abstract class RasterLayerController<ActualLayer : Any>(
     }
 
     override fun destroy() {
-        // No native resources to clean up
+        // A destroyed controller can still be referenced (by its map controller,
+        // or a state that has not let go yet); without this it keeps every entity.
+        rasterLayerManager.clear()
     }
 
     override fun has(id: String): Boolean = rasterLayerManager.hasEntity(id)

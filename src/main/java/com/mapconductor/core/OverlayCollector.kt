@@ -24,6 +24,11 @@ interface ComponentState {
      * [StateMutationSignal.notifying]. Without that the collector never hears
      * about an in-place change and the renderer keeps drawing the old value —
      * silently, which is why this is required rather than defaulted.
+     *
+     * Only an assignment to a field is reported. Changing the object a field
+     * holds — adding to a list passed in as `points`, say — reaches no one, and
+     * assigning a value equal to the current one is ignored, so re-assigning a
+     * list after editing it in place does nothing either. Assign a new value.
      */
     val mutations: StateMutationSignal
 }

@@ -36,7 +36,8 @@ abstract class GroundImageController<ActualGroundImage>(
 
             data.forEach { state ->
                 if (previous.contains(state.id)) {
-                    val prevEntity = groundImageManager.getEntity(state.id)!!
+                    // Gone only if destroy() cleared the manager meanwhile; nothing left to update.
+                    val prevEntity = groundImageManager.getEntity(state.id) ?: return@withPermit
                     if (state.fingerPrint() == prevEntity.fingerPrint) {
                         // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
                         groundImageManager
@@ -147,8 +148,10 @@ abstract class GroundImageController<ActualGroundImage>(
         semaphore.withPermit {
             val entities: List<GroundImageEntityInterface<ActualGroundImage>> = groundImageManager.allEntities()
             renderer.onRemove(entities)
-            renderer.onPostProcess()
+            // manager を空にしてから onPostProcess を呼ぶ。GL 系の描画担当は remove では何もせず、
+            // onPostProcess で manager の全部を描き直すので、逆の順だと clear() 後も地図に残る。
             groundImageManager.clear()
+            renderer.onPostProcess()
         }
     }
 
@@ -157,7 +160,9 @@ abstract class GroundImageController<ActualGroundImage>(
             .find(position)
 
     override fun destroy() {
-        // No native resources to clean up
+        // A destroyed controller can still be referenced (by its map controller,
+        // or a state that has not let go yet); without this it keeps every entity.
+        groundImageManager.clear()
     }
 
     override fun has(id: String): Boolean = groundImageManager.hasEntity(id)
