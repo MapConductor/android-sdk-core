@@ -2113,6 +2113,16 @@ final class com.mapconductor.core.polygon.IntArrayList {
   public final void add(int);
   public final void clear();
 }
+public final class com.mapconductor.core.polygon.IntList {
+  public com.mapconductor.core.polygon.IntList(int);
+  public com.mapconductor.core.polygon.IntList(int, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final int getSize();
+  public final void add(int);
+  public final int pop();
+  public final int[] toArray();
+  public final int[] toSortedDistinctArray();
+  public com.mapconductor.core.polygon.IntList();
+}
 final class com.mapconductor.core.polygon.Node {
   public com.mapconductor.core.polygon.Node(double, double, com.mapconductor.core.features.GeoPointInterface);
   public final double getX();
@@ -2150,6 +2160,8 @@ public abstract class com.mapconductor.core.polygon.PolygonController<ActualPoly
   public final kotlinx.coroutines.sync.Semaphore getSemaphore();
   public final kotlin.jvm.functions.Function1<com.mapconductor.core.polygon.PolygonEvent, kotlin.Unit> getClickListener();
   public final void setClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.polygon.PolygonEvent, kotlin.Unit>);
+  public final com.mapconductor.core.polygon.PolygonTiler getTiler();
+  public final void setTiler(com.mapconductor.core.polygon.PolygonTiler);
   public final void dispatchClick(com.mapconductor.core.polygon.PolygonEvent);
   public java.lang.Object add(java.util.List<com.mapconductor.core.polygon.PolygonState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public java.lang.Object update(com.mapconductor.core.polygon.PolygonState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -2209,6 +2221,14 @@ public final class com.mapconductor.core.polygon.PolygonFingerPrint {
   public java.lang.String toString();
   public int hashCode();
   public boolean equals(java.lang.Object);
+}
+public final class com.mapconductor.core.polygon.PolygonGridIndex {
+  public static final com.mapconductor.core.polygon.PolygonGridIndex$Companion Companion;
+  public com.mapconductor.core.polygon.PolygonGridIndex(java.util.HashMap<java.lang.Long, int[]>, int[]);
+  public final int[] query(com.mapconductor.core.polygon.TilePolygon[], double, double, double, double);
+}
+public final class com.mapconductor.core.polygon.PolygonGridIndex$Companion {
+  public final com.mapconductor.core.polygon.PolygonGridIndex build(com.mapconductor.core.polygon.TilePolygon[]);
 }
 public final class com.mapconductor.core.polygon.PolygonHolePieceSplitKt {
   public static final kotlin.Pair<java.util.List<com.mapconductor.core.features.GeoPointInterface>, java.util.List<com.mapconductor.core.features.GeoPointInterface>> splitPiece(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>>);
@@ -2301,6 +2321,108 @@ public final class com.mapconductor.core.polygon.PolygonState implements com.map
   public final com.mapconductor.core.polygon.PolygonState copy-lqbfp2Q(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>>, java.lang.String, long, float, long, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.polygon.PolygonEvent, kotlin.Unit>);
   public com.mapconductor.core.polygon.PolygonState(java.util.List, java.util.List, java.lang.String, long, float, long, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
 }
+public final class com.mapconductor.core.polygon.PolygonTileGeometryKt {
+  public static final double POLYGON_CELL;
+  public static final int POLYGON_MAX_CELLS;
+  public static final double DP_TOLERANCE_PX;
+  public static final double MIN_OUTLINED_PX;
+  public static final boolean isVisibleColor(int);
+  public static final double[] toMercatorRing(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>);
+  public static final double signedArea(double[]);
+  public static final double[] reversedRing(double[]);
+  public static final com.mapconductor.core.polygon.TileShape simplifyPolygon(com.mapconductor.core.polygon.TilePolygon, double);
+  public static final double[] simplifyRing(double[], double);
+  public static final double[] douglasPeucker(double[], int, double);
+  public static final int vertexCountOf(java.util.List<com.mapconductor.core.polygon.PolygonState>);
+}
+public final class com.mapconductor.core.polygon.PolygonTileRenderer implements com.mapconductor.core.tileserver.TileProviderInterface {
+  public static final com.mapconductor.core.polygon.PolygonTileRenderer$Companion Companion;
+  public static final int DEFAULT_CACHE_BYTES;
+  public com.mapconductor.core.polygon.PolygonTileRenderer(int, int, kotlin.jvm.functions.Function0<java.lang.Float>);
+  public com.mapconductor.core.polygon.PolygonTileRenderer(int, int, kotlin.jvm.functions.Function0, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final int getTileSize();
+  public final void setPolygons(java.util.List<com.mapconductor.core.polygon.TilePolygon>);
+  public final void update(java.util.List<kotlin.Pair<java.lang.Integer, com.mapconductor.core.polygon.TilePolygon>>);
+  public final void clear();
+  public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest);
+  public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
+  public final android.graphics.Bitmap renderBitmap(int, int, int, int);
+  public com.mapconductor.core.polygon.PolygonTileRenderer();
+}
+public final class com.mapconductor.core.polygon.PolygonTileRenderer$Companion {
+}
+final class com.mapconductor.core.polygon.PolygonTileRenderer$Model {
+  public final com.mapconductor.core.polygon.TilePolygon[] getPolygons();
+  public final com.mapconductor.core.polygon.PolygonGridIndex getIndex();
+  public final float getMaxStrokePx();
+  public final java.util.LinkedHashMap<java.lang.Integer, java.util.concurrent.atomic.AtomicReferenceArray<com.mapconductor.core.polygon.PolygonTileRenderer$Simplified>> getPerZoom();
+}
+final class com.mapconductor.core.polygon.PolygonTileRenderer$Simplified {
+  public final com.mapconductor.core.polygon.TilePolygon getSource();
+  public final com.mapconductor.core.polygon.TileShape getShape();
+}
+public final class com.mapconductor.core.polygon.PolygonTileRenderer$TileRenderCancelled extends java.lang.Exception {
+}
+public final class com.mapconductor.core.polygon.PolygonTileSet {
+  public static final com.mapconductor.core.polygon.PolygonTileSet$Companion Companion;
+  public com.mapconductor.core.polygon.PolygonTileSet(com.mapconductor.core.tileserver.LocalTileServer, kotlinx.coroutines.CoroutineScope);
+  public com.mapconductor.core.polygon.PolygonTileSet(com.mapconductor.core.tileserver.LocalTileServer, kotlinx.coroutines.CoroutineScope, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final java.lang.String getRouteId();
+  public final kotlin.jvm.functions.Function2<java.lang.String, kotlin.coroutines.Continuation<? super kotlin.Unit>, java.lang.Object> getOnTemplateChanged();
+  public final void setOnTemplateChanged(kotlin.jvm.functions.Function2<? super java.lang.String, ? super kotlin.coroutines.Continuation<? super kotlin.Unit>, ? extends java.lang.Object>);
+  public final int getTileSize();
+  public final java.lang.Object setPolygons(java.util.List<com.mapconductor.core.polygon.PolygonState>, kotlin.coroutines.Continuation<? super java.lang.String>);
+  public final boolean has(java.lang.String);
+  public final void update(com.mapconductor.core.polygon.PolygonState);
+  public final void remove(java.lang.String);
+  public final java.lang.String template();
+  public final void dispose();
+  public com.mapconductor.core.polygon.PolygonTileSet();
+}
+public final class com.mapconductor.core.polygon.PolygonTileSet$Companion {
+  public final boolean canTile(com.mapconductor.core.polygon.PolygonState);
+  public final int vertexCount(java.util.List<com.mapconductor.core.polygon.PolygonState>);
+}
+public final class com.mapconductor.core.polygon.PolygonTiler {
+  public com.mapconductor.core.polygon.PolygonTiler(com.mapconductor.core.polygon.PolygonTilingOptions);
+  public com.mapconductor.core.polygon.PolygonTiler(com.mapconductor.core.polygon.PolygonTilingOptions, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final com.mapconductor.core.polygon.PolygonTilingOptions getOptions();
+  public final kotlin.jvm.functions.Function3<java.lang.String, java.lang.Integer, kotlin.coroutines.Continuation<? super kotlin.Unit>, java.lang.Object> getOnTemplate();
+  public final void setOnTemplate(kotlin.jvm.functions.Function3<? super java.lang.String, ? super java.lang.Integer, ? super kotlin.coroutines.Continuation<? super kotlin.Unit>, ? extends java.lang.Object>);
+  public final java.lang.Object route(java.util.List<com.mapconductor.core.polygon.PolygonState>, kotlin.coroutines.Continuation<? super java.util.Set<java.lang.String>>);
+  public final java.util.List<com.mapconductor.core.polygon.PolygonState> tiledStates();
+  public final boolean isTiled(java.lang.String);
+  public final void update(com.mapconductor.core.polygon.PolygonState);
+  public final void remove(java.lang.String);
+  public final void dispose();
+  public final java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public com.mapconductor.core.polygon.PolygonTiler();
+}
+public final class com.mapconductor.core.polygon.PolygonTilerKt {
+  public static final java.lang.String POLYGON_TILE_LAYER_ID;
+  public static final com.mapconductor.core.raster.RasterLayerState polygonTileRasterLayerState(java.lang.String, int);
+}
+public final class com.mapconductor.core.polygon.PolygonTilingOptions {
+  public static final com.mapconductor.core.polygon.PolygonTilingOptions$Companion Companion;
+  public com.mapconductor.core.polygon.PolygonTilingOptions(boolean, int, int);
+  public com.mapconductor.core.polygon.PolygonTilingOptions(boolean, int, int, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final boolean getEnabled();
+  public final int getMinPolygonCount();
+  public final int getMinVertexCount();
+  public final boolean shouldUseTiles(int, int);
+  public final boolean component1();
+  public final int component2();
+  public final int component3();
+  public final com.mapconductor.core.polygon.PolygonTilingOptions copy(boolean, int, int);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public com.mapconductor.core.polygon.PolygonTilingOptions();
+}
+public final class com.mapconductor.core.polygon.PolygonTilingOptions$Companion {
+  public final com.mapconductor.core.polygon.PolygonTilingOptions getDefault();
+  public final com.mapconductor.core.polygon.PolygonTilingOptions getDisabled();
+}
 public final class com.mapconductor.core.polygon.PolygonUnionKt {
   public static final com.mapconductor.core.polygon.PolygonState unionHoles(com.mapconductor.core.polygon.PolygonState);
   public static final com.mapconductor.core.polygon.PolygonState union(com.mapconductor.core.polygon.PolygonState);
@@ -2310,6 +2432,32 @@ public final class com.mapconductor.core.polygon.PolygonWindingUtilsKt {
   public static final double polygonSignedArea(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>);
   public static final java.util.List<com.mapconductor.core.features.GeoPointInterface> ensureCounterClockwise(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>);
   public static final java.util.List<com.mapconductor.core.features.GeoPointInterface> ensureClockwiseRing(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>);
+}
+public final class com.mapconductor.core.polygon.TilePolygon {
+  public static final com.mapconductor.core.polygon.TilePolygon$Companion Companion;
+  public com.mapconductor.core.polygon.TilePolygon(double[][], double[], int, int, float);
+  public final double[][] getRings();
+  public final double[] getBbox();
+  public final int getFill();
+  public final int getStroke();
+  public final float getStrokeWidth();
+  public final boolean getFillVisible();
+  public final boolean getStrokeVisible();
+  public final boolean sameBox(com.mapconductor.core.polygon.TilePolygon);
+}
+public final class com.mapconductor.core.polygon.TilePolygon$Companion {
+  public final com.mapconductor.core.polygon.TilePolygon from(com.mapconductor.core.polygon.PolygonState);
+}
+public abstract class com.mapconductor.core.polygon.TileShape {
+  public com.mapconductor.core.polygon.TileShape(kotlin.jvm.internal.DefaultConstructorMarker);
+}
+public final class com.mapconductor.core.polygon.TileShape$Dot extends com.mapconductor.core.polygon.TileShape {
+  public final double getX();
+  public final double getY();
+}
+public final class com.mapconductor.core.polygon.TileShape$Rings extends com.mapconductor.core.polygon.TileShape {
+  public final double[][] getRings();
+  public final boolean getOutlined();
 }
 final class com.mapconductor.core.polygon.Vec {
   public com.mapconductor.core.polygon.Vec(double, double);

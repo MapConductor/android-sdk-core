@@ -4,10 +4,8 @@ import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.geometry.densifyPolygonRing
 import com.mapconductor.core.normalizeLng
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sqrt
 
 interface PolygonManagerInterface<ActualPolygon> {
     fun registerEntity(entity: PolygonEntityInterface<ActualPolygon>)
@@ -164,13 +162,17 @@ class PolygonManager<ActualPolygon> : PolygonManagerInterface<ActualPolygon> {
         by: Double,
         eps: Double,
     ): Boolean {
+        // 線分までの距離が eps（度）以内なら辺上とみなす。
+        // 以前は外積と内積を eps と直接比べていた。内積は度の 2 乗なので、
+        // `(p-a)·(p-b) <= 1e-6` は「辺の中点から約 0.001°（~100 m）以内」を意味し、
+        // 短い辺を持つ建物ほど、離れたタップを辺上として拾っていた。
         val dx = bx - ax
         val dy = by - ay
-        val cross = dx * (py - ay) - dy * (px - ax)
-        val segLen = sqrt(dx * dx + dy * dy)
-        if (abs(cross) > eps * max(1.0, segLen)) return false
-        val dot = (px - ax) * (px - bx) + (py - ay) * (py - by)
-        return dot <= eps * max(1.0, segLen)
+        val lenSq = dx * dx + dy * dy
+        val t = if (lenSq > 0.0) (((px - ax) * dx + (py - ay) * dy) / lenSq).coerceIn(0.0, 1.0) else 0.0
+        val ex = px - (ax + t * dx)
+        val ey = py - (ay + t * dy)
+        return ex * ex + ey * ey <= eps * eps
     }
 
     private fun unwrapLongitudesAround(

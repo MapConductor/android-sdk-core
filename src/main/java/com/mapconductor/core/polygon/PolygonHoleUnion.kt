@@ -34,6 +34,17 @@ fun unionHoleRings(holes: List<List<GeoPointInterface>>): List<List<GeoPointInte
 
         val rings = holes.mapNotNull { toRing(it, origin) }
         if (rings.size <= 1) return holes
+        // Holes that neither cross, touch nor contain one another are already
+        // their own union. Checking that is linear; the union is quadratic in
+        // the hole edges, which a street-network parcel with 80 holes and
+        // 8,000 hole vertices turns into seconds.
+        // The union's other promise still holds: holes come back clockwise.
+        // Only those wound the other way are copied, so holes that already
+        // were come back as the same list.
+        if (rings.size == holes.size && holesAreDisjoint(rings)) {
+            if (rings.none { signedArea(it) > 0.0 }) return holes
+            return holes.mapIndexed { i, hole -> if (signedArea(rings[i]) > 0.0) hole.asReversed() else hole }
+        }
 
         val merged = unionRings(rings)
         if (merged.isEmpty()) return holes
@@ -389,6 +400,54 @@ private fun nextEdge(
         }
     }
     return best
+}
+
+/**
+ * True when no two rings cross, touch or nest. Edges are filed in an [EdgeGrid]
+ * and each is tested only against the edges near it, so the cost grows with the
+ * edge count rather than its square. Same as js-sdk-core's `holesAreDisjoint`.
+ */
+private fun holesAreDisjoint(rings: List<List<Vec>>): Boolean {
+    val boxes = rings.map(::ringBounds)
+    // A ring inside another: one of its vertices is inside it.
+    for (i in rings.indices) {
+        val p = rings[i][0]
+        for (j in rings.indices) {
+            if (i == j) continue
+            val b = boxes[j]
+            if (p.x >= b[0] && p.x <= b[2] && p.y >= b[1] && p.y <= b[3] && pointInRing(p, rings[j])) {
+                return false
+            }
+        }
+    }
+
+    val edges = ArrayList<Edge>()
+    val edgeRing = IntArrayList()
+    for ((r, ring) in rings.withIndex()) {
+        for (i in ring.indices) {
+            edges.add(Edge(ring[i], ring[(i + 1) % ring.size]))
+            edgeRing.add(r)
+        }
+    }
+    // Only an edge whose box comes within MEET_PAD of another's can meet it.
+    val grid = EdgeGrid(edges, MEET_PAD)
+    val near = IntArrayList()
+    for (i in edges.indices) {
+        val seg = edges[i]
+        grid.near(
+            minOf(seg.a.x, seg.b.x) - MEET_PAD,
+            minOf(seg.a.y, seg.b.y) - MEET_PAD,
+            maxOf(seg.a.x, seg.b.x) + MEET_PAD,
+            maxOf(seg.a.y, seg.b.y) + MEET_PAD,
+            near,
+        )
+        for (k in 0 until near.size) {
+            val j = near[k]
+            if (j <= i || edgeRing[j] == edgeRing[i]) continue
+            if (intersectionPoints(seg, edges[j]).isNotEmpty()) return false
+        }
+    }
+    return true
 }
 
 /** 線分 `other` が線分 `seg` と出会う点（交差・T 字接触・共線重複の端点）。 */
