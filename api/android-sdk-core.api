@@ -1692,11 +1692,11 @@ public final class com.mapconductor.core.marker.MarkerCapableInterface$DefaultIm
 }
 public final class com.mapconductor.core.marker.MarkerCollector implements com.mapconductor.core.OverlayCollectorInterface<com.mapconductor.core.marker.MarkerState> {
   public com.mapconductor.core.marker.MarkerCollector(long, kotlinx.coroutines.CoroutineScope, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public kotlinx.coroutines.flow.MutableStateFlow<java.util.Map<java.lang.String, com.mapconductor.core.marker.MarkerState>> getFlow();
   public java.lang.Object add(com.mapconductor.core.marker.MarkerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void remove(java.lang.String);
   public void setUpdateHandler(kotlin.jvm.functions.Function2<? super com.mapconductor.core.marker.MarkerState, ? super kotlin.coroutines.Continuation<? super kotlin.Unit>, ? extends java.lang.Object>);
   public void replaceAll(java.util.List<com.mapconductor.core.marker.MarkerState>);
-  public kotlinx.coroutines.flow.MutableStateFlow<java.util.Map<java.lang.String, com.mapconductor.core.marker.MarkerState>> getFlow();
   public java.lang.Object add(com.mapconductor.core.ComponentState, kotlin.coroutines.Continuation);
   public com.mapconductor.core.marker.MarkerCollector(long, kotlinx.coroutines.CoroutineScope, kotlin.jvm.internal.DefaultConstructorMarker);
 }
