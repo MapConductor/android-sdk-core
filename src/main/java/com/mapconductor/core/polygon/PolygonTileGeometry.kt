@@ -2,6 +2,7 @@ package com.mapconductor.core.polygon
 
 import androidx.compose.ui.graphics.toArgb
 import com.mapconductor.core.features.GeoPointInterface
+import com.mapconductor.core.shapetile.ShapeGridIndex
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.floor
@@ -136,11 +137,16 @@ internal fun reversedRing(ring: DoubleArray): DoubleArray {
     return out
 }
 
-/** The polygon index: polygons by the grid cells their bounding box covers. */
+/**
+ * The polygon index: polygons by the grid cells their bounding box covers.
+ * The grid itself is [ShapeGridIndex], shared with the polyline tiles.
+ */
 internal class PolygonGridIndex(
     private val cells: HashMap<Long, IntArray>,
     private val large: IntArray,
 ) {
+    private val grid = ShapeGridIndex(cells, large)
+
     /**
      * The polygons whose bounding box meets the given box, each once, in
      * ascending index order -- which is draw order.
@@ -151,56 +157,13 @@ internal class PolygonGridIndex(
         minY: Double,
         maxX: Double,
         maxY: Double,
-    ): IntArray {
-        val out = IntList()
-
-        fun take(i: Int) {
-            val b = polygons[i]?.bbox ?: return
-            if (b[0] <= maxX && b[2] >= minX && b[1] <= maxY && b[3] >= minY) out.add(i)
-        }
-        for (i in large) take(i)
-        val cx0 = floor(minX / POLYGON_CELL).toLong()
-        val cx1 = floor(maxX / POLYGON_CELL).toLong()
-        val cy0 = floor(minY / POLYGON_CELL).toLong()
-        val cy1 = floor(maxY / POLYGON_CELL).toLong()
-        for (cx in cx0..cx1) {
-            for (cy in cy0..cy1) {
-                cells[cellKey(cx, cy)]?.forEach(::take)
-            }
-        }
-        // A polygon in several cells was taken once per cell.
-        return out.toSortedDistinctArray()
-    }
+    ): IntArray = grid.query({ polygons[it]?.bbox }, minX, minY, maxX, maxY)
 
     companion object {
         fun build(polygons: Array<TilePolygon?>): PolygonGridIndex {
-            val cells = HashMap<Long, IntList>()
-            val large = IntList()
-            for (i in polygons.indices) {
-                val p = polygons[i] ?: continue
-                val cx0 = floor(p.bbox[0] / POLYGON_CELL).toLong()
-                val cx1 = floor(p.bbox[2] / POLYGON_CELL).toLong()
-                val cy0 = floor(p.bbox[1] / POLYGON_CELL).toLong()
-                val cy1 = floor(p.bbox[3] / POLYGON_CELL).toLong()
-                if ((cx1 - cx0 + 1) * (cy1 - cy0 + 1) > POLYGON_MAX_CELLS) {
-                    large.add(i)
-                    continue
-                }
-                for (cx in cx0..cx1) {
-                    for (cy in cy0..cy1) {
-                        cells.getOrPut(cellKey(cx, cy)) { IntList() }.add(i)
-                    }
-                }
-            }
-            val packed = HashMap<Long, IntArray>(cells.size * 2)
-            for ((key, list) in cells) packed[key] = list.toArray()
-            return PolygonGridIndex(packed, large.toArray())
+            val grid = ShapeGridIndex.build(polygons.size) { polygons[it]?.bbox }
+            return PolygonGridIndex(grid.cells, grid.large)
         }
-
-        private fun cellKey(
-            cx: Long,
-            cy: Long,
-        ): Long = cx * 1_048_576L + cy
     }
 }
 

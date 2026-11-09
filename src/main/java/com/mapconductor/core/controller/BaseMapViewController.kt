@@ -25,7 +25,9 @@ import com.mapconductor.core.polygon.PolygonCapableInterface
 import com.mapconductor.core.polygon.PolygonState
 import com.mapconductor.core.polyline.OnPolylineEventHandler
 import com.mapconductor.core.polyline.PolylineCapableInterface
+import com.mapconductor.core.polyline.PolylineController
 import com.mapconductor.core.polyline.PolylineState
+import com.mapconductor.core.polyline.PolylineTiler
 import com.mapconductor.core.raster.RasterLayerCapableInterface
 import com.mapconductor.core.raster.RasterLayerController
 import com.mapconductor.core.raster.RasterLayerState
@@ -279,6 +281,10 @@ abstract class BaseMapViewController :
         overlayControllers
             .filterIsInstance<SlottedOverlayController<*, *>>()
             .filter { it.kind == kind }
+
+    /** The tilers of this map's polyline controllers, for [com.mapconductor.core.polyline.PolylineOverlay]'s per-map options. */
+    internal fun polylineTilers(): List<PolylineTiler> =
+        overlayControllersOf(OverlayKind.Polyline).mapNotNull { (it as? PolylineController<*>)?.tiler }
 
     /**
      * [kind] のいずれかのコントローラがこの id を持っているか。`hasXxx` の既定実装。

@@ -2373,16 +2373,6 @@ public final class com.mapconductor.core.polygon.PolygonTileRenderer implements 
 }
 public final class com.mapconductor.core.polygon.PolygonTileRenderer$Companion {
 }
-final class com.mapconductor.core.polygon.PolygonTileRenderer$Model {
-  public final com.mapconductor.core.polygon.TilePolygon[] getPolygons();
-  public final com.mapconductor.core.polygon.PolygonGridIndex getIndex();
-  public final float getMaxStrokePx();
-  public final java.util.LinkedHashMap<java.lang.Integer, java.util.concurrent.atomic.AtomicReferenceArray<com.mapconductor.core.polygon.PolygonTileRenderer$Simplified>> getPerZoom();
-}
-final class com.mapconductor.core.polygon.PolygonTileRenderer$Simplified {
-  public final com.mapconductor.core.polygon.TilePolygon getSource();
-  public final com.mapconductor.core.polygon.TileShape getShape();
-}
 public final class com.mapconductor.core.polygon.PolygonTileRenderer$TileRenderCancelled extends java.lang.Exception {
 }
 public final class com.mapconductor.core.polygon.PolygonTileSet {
@@ -2540,6 +2530,8 @@ public abstract class com.mapconductor.core.polyline.PolylineController<ActualPo
   public final kotlinx.coroutines.sync.Semaphore getSemaphore();
   public final kotlin.jvm.functions.Function1<com.mapconductor.core.polyline.PolylineEvent, kotlin.Unit> getClickListener();
   public final void setClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.polyline.PolylineEvent, kotlin.Unit>);
+  public final com.mapconductor.core.polyline.PolylineTiler getTiler();
+  public final void setTiler(com.mapconductor.core.polyline.PolylineTiler);
   public final void dispatchClick(com.mapconductor.core.polyline.PolylineEvent);
   public java.lang.Object add(java.util.List<com.mapconductor.core.polyline.PolylineState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public java.lang.Object update(com.mapconductor.core.polyline.PolylineState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -2634,9 +2626,11 @@ public interface com.mapconductor.core.polyline.PolylineManagerInterface<ActualP
 public final class com.mapconductor.core.polyline.PolylineManagerInterface$DefaultImpls {
 }
 public final class com.mapconductor.core.polyline.PolylineOverlay implements com.mapconductor.core.map.MapOverlayInterface<com.mapconductor.core.polyline.PolylineState> {
-  public com.mapconductor.core.polyline.PolylineOverlay(kotlinx.coroutines.flow.StateFlow<? extends java.util.Map<java.lang.String, com.mapconductor.core.polyline.PolylineState>>);
+  public com.mapconductor.core.polyline.PolylineOverlay(kotlinx.coroutines.flow.StateFlow<? extends java.util.Map<java.lang.String, com.mapconductor.core.polyline.PolylineState>>, kotlinx.coroutines.flow.StateFlow<com.mapconductor.core.polyline.PolylineTilingOptions>);
+  public com.mapconductor.core.polyline.PolylineOverlay(kotlinx.coroutines.flow.StateFlow, kotlinx.coroutines.flow.StateFlow, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public kotlinx.coroutines.flow.StateFlow<java.util.Map<java.lang.String, com.mapconductor.core.polyline.PolylineState>> getFlow();
   public java.lang.Object render(java.util.Map<java.lang.String, com.mapconductor.core.polyline.PolylineState>, com.mapconductor.core.controller.MapViewControllerInterface, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public com.mapconductor.core.polyline.PolylineOverlay(kotlinx.coroutines.flow.StateFlow<? extends java.util.Map<java.lang.String, com.mapconductor.core.polyline.PolylineState>>);
 }
 public interface com.mapconductor.core.polyline.PolylineOverlayRendererInterface<ActualPolyline> {
   public abstract java.lang.Object onAdd(java.util.List<? extends com.mapconductor.core.polyline.PolylineOverlayRendererInterface$AddParamsInterface>, kotlin.coroutines.Continuation<? super java.util.List<? extends ActualPolyline>>);
@@ -2681,6 +2675,67 @@ public final class com.mapconductor.core.polyline.PolylineState implements com.m
   public final com.mapconductor.core.polyline.PolylineFingerPrint fingerPrint();
   public com.mapconductor.core.polyline.PolylineState(java.util.List, java.lang.String, long, float, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
   public com.mapconductor.core.polyline.PolylineState(java.util.List, java.lang.String, long, float, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
+}
+public final class com.mapconductor.core.polyline.PolylineTileSet {
+  public static final com.mapconductor.core.polyline.PolylineTileSet$Companion Companion;
+  public com.mapconductor.core.polyline.PolylineTileSet(com.mapconductor.core.tileserver.LocalTileServer, kotlinx.coroutines.CoroutineScope);
+  public com.mapconductor.core.polyline.PolylineTileSet(com.mapconductor.core.tileserver.LocalTileServer, kotlinx.coroutines.CoroutineScope, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final java.lang.String getRouteId();
+  public final kotlin.jvm.functions.Function2<java.lang.String, kotlin.coroutines.Continuation<? super kotlin.Unit>, java.lang.Object> getOnTemplateChanged();
+  public final void setOnTemplateChanged(kotlin.jvm.functions.Function2<? super java.lang.String, ? super kotlin.coroutines.Continuation<? super kotlin.Unit>, ? extends java.lang.Object>);
+  public final int getTileSize();
+  public final java.lang.Object setPolylines(java.util.List<com.mapconductor.core.polyline.PolylineState>, kotlin.coroutines.Continuation<? super java.lang.String>);
+  public final boolean has(java.lang.String);
+  public final void update(com.mapconductor.core.polyline.PolylineState);
+  public final void remove(java.lang.String);
+  public final java.lang.String template();
+  public final void dispose();
+  public com.mapconductor.core.polyline.PolylineTileSet();
+}
+public final class com.mapconductor.core.polyline.PolylineTileSet$Companion {
+  public final boolean canTile(com.mapconductor.core.polyline.PolylineState);
+  public final int vertexCount(java.util.List<com.mapconductor.core.polyline.PolylineState>);
+}
+public final class com.mapconductor.core.polyline.PolylineTiler {
+  public com.mapconductor.core.polyline.PolylineTiler(com.mapconductor.core.polyline.PolylineTilingOptions);
+  public com.mapconductor.core.polyline.PolylineTiler(com.mapconductor.core.polyline.PolylineTilingOptions, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final com.mapconductor.core.polyline.PolylineTilingOptions getOptions();
+  public final void setOptions(com.mapconductor.core.polyline.PolylineTilingOptions);
+  public final kotlin.jvm.functions.Function3<java.lang.String, java.lang.Integer, kotlin.coroutines.Continuation<? super kotlin.Unit>, java.lang.Object> getOnTemplate();
+  public final void setOnTemplate(kotlin.jvm.functions.Function3<? super java.lang.String, ? super java.lang.Integer, ? super kotlin.coroutines.Continuation<? super kotlin.Unit>, ? extends java.lang.Object>);
+  public final java.lang.Object route(java.util.List<com.mapconductor.core.polyline.PolylineState>, kotlin.coroutines.Continuation<? super java.util.Set<java.lang.String>>);
+  public final java.util.List<com.mapconductor.core.polyline.PolylineState> tiledStates();
+  public final boolean isTiled(java.lang.String);
+  public final void update(com.mapconductor.core.polyline.PolylineState);
+  public final void remove(java.lang.String);
+  public final void dispose();
+  public final java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public com.mapconductor.core.polyline.PolylineTiler();
+}
+public final class com.mapconductor.core.polyline.PolylineTilerKt {
+  public static final java.lang.String POLYLINE_TILE_LAYER_ID;
+  public static final com.mapconductor.core.raster.RasterLayerState polylineTileRasterLayerState(java.lang.String, int);
+}
+public final class com.mapconductor.core.polyline.PolylineTilingOptions {
+  public static final com.mapconductor.core.polyline.PolylineTilingOptions$Companion Companion;
+  public com.mapconductor.core.polyline.PolylineTilingOptions(boolean, int, int);
+  public com.mapconductor.core.polyline.PolylineTilingOptions(boolean, int, int, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final boolean getEnabled();
+  public final int getMinPolylineCount();
+  public final int getMinVertexCount();
+  public final boolean shouldUseTiles(int, int);
+  public final boolean component1();
+  public final int component2();
+  public final int component3();
+  public final com.mapconductor.core.polyline.PolylineTilingOptions copy(boolean, int, int);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public com.mapconductor.core.polyline.PolylineTilingOptions();
+}
+public final class com.mapconductor.core.polyline.PolylineTilingOptions$Companion {
+  public final com.mapconductor.core.polyline.PolylineTilingOptions getDefault();
+  public final com.mapconductor.core.polyline.PolylineTilingOptions getDisabled();
 }
 public final class com.mapconductor.core.projection.Earth {
   public static final com.mapconductor.core.projection.Earth INSTANCE;

@@ -107,6 +107,59 @@ class OverlayStackingTest {
     }
 }
 
+/**
+ * SDK が描くタイルの置き場所。プロバイダはこの鍵（GL 系）と flatZIndex（Google など）で
+ * タイルのレイヤーを置く。ポリラインのタイルはポリラインの帯の一番下: ポリゴンのタイルと
+ * サークルの上、ネイティブのポリラインとマーカー（のタイル）の下。
+ */
+class ShapeTileStackingTest {
+    private val polygonTile = OverlayStacking.Key(OverlayKind.Polygon, Int.MIN_VALUE)
+    private val polylineTile = OverlayStacking.Key(OverlayKind.Polyline, Int.MIN_VALUE)
+    private val markerTile = OverlayStacking.Key(OverlayKind.Marker, Int.MIN_VALUE)
+
+    @Test
+    fun `ポリラインのタイルはサークルの上、ネイティブのポリラインとマーカーの下`() {
+        val keys =
+            listOf(
+                OverlayStacking.Key(OverlayKind.Marker, Int.MIN_VALUE + 1),
+                markerTile,
+                OverlayStacking.Key(OverlayKind.Polyline, -1_000_000),
+                polylineTile,
+                OverlayStacking.Key(OverlayKind.Circle, Int.MAX_VALUE),
+                OverlayStacking.Key(OverlayKind.Polygon, Int.MAX_VALUE),
+                polygonTile,
+            )
+        assertEquals(keys.reversed(), keys.sorted())
+    }
+
+    @Test
+    fun `flatZIndex でも同じ順`() {
+        val polylineTileZ = OverlayStacking.flatZIndex(OverlayKind.Polyline, Int.MIN_VALUE)
+        assertTrue(polylineTileZ > OverlayStacking.flatZIndex(OverlayKind.Circle, Int.MAX_VALUE))
+        assertTrue(polylineTileZ > OverlayStacking.flatZIndex(OverlayKind.Polygon, Int.MIN_VALUE))
+        assertTrue(polylineTileZ < OverlayStacking.flatZIndex(OverlayKind.Polyline, -1_000))
+        assertTrue(polylineTileZ < OverlayStacking.flatZIndex(OverlayKind.Marker, Int.MIN_VALUE))
+    }
+
+    @Test
+    fun `GL 系の層の並びでは、ポリゴンのタイルとサークルの上、ネイティブのポリラインの下へ入る`() {
+        val stack = OverlayLayerStack()
+        stack.put("raster-layer-mc-polygon-tiles", polygonTile)
+        stack.put("circle-layer", OverlayStacking.Key(OverlayKind.Circle))
+        stack.put("polyline-layer", OverlayStacking.Key(OverlayKind.Polyline))
+        stack.put("raster-layer-marker-tile-1", markerTile)
+        val layers =
+            listOf(
+                "water",
+                "raster-layer-mc-polygon-tiles",
+                "circle-layer",
+                "polyline-layer",
+                "raster-layer-marker-tile-1",
+            )
+        assertEquals("polyline-layer", stack.beforeId(layers, polylineTile))
+    }
+}
+
 class OverlayLayerStackTest {
     @Test
     fun `台帳に無い層は無視し、スタイルを読み直しても同じ位置を返す`() {

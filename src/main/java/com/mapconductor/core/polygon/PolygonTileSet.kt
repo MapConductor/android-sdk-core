@@ -1,16 +1,11 @@
 package com.mapconductor.core.polygon
 
+import com.mapconductor.core.shapetile.ShapeTileSet
 import com.mapconductor.core.tileserver.LocalTileServer
 import com.mapconductor.core.tileserver.TileServerRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.util.UUID
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The polygons of one map that are drawn as raster tiles, and their route on
@@ -24,140 +19,66 @@ import kotlin.time.Duration.Companion.milliseconds
  * [onTemplateChanged]. Tiles the change did not touch are still cached by the
  * renderer and come back without being drawn again.
  *
+ * The route, its version and the coalescing of changes are
+ * [ShapeTileSet]'s, shared with [com.mapconductor.core.polyline.PolylineTileSet].
+ *
  * Same shape as js-sdk-core's `PolygonTileSet`. The web draws in its tile
  * service worker and hands the polygons over as Encoded Polylines; here the
  * server is in the process, so the renderer reads the states directly.
  */
 class PolygonTileSet(
-    private val server: LocalTileServer = TileServerRegistry.get(),
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    server: LocalTileServer = TileServerRegistry.get(),
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
-    val routeId: String = "polygons-${UUID.randomUUID().toString().take(8)}"
+    internal val shapes: ShapeTileSet<PolygonState, TilePolygon> =
+        ShapeTileSet(
+            routePrefix = "polygons",
+            server = server,
+            scope = scope,
+            renderer = PolygonTileRenderer(TILE_SIZE).shapes,
+            idOf = { it.id },
+            zIndexOf = { it.zIndex },
+            toTile = TilePolygon::from,
+        )
+
+    val routeId: String get() = shapes.routeId
 
     /** Called with the new template after an [update]. */
-    var onTemplateChanged: (suspend (String) -> Unit)? = null
+    var onTemplateChanged: (suspend (String) -> Unit)?
+        get() = shapes.onTemplateChanged
+        set(value) {
+            shapes.onTemplateChanged = value
+        }
 
     val tileSize: Int get() = TILE_SIZE
-
-    private val renderer = PolygonTileRenderer(TILE_SIZE)
-    private val lock = Any()
-    private var indexById: Map<String, Int> = emptyMap()
-
-    @Volatile
-    private var version = 0
-    private var registered = false
-    private val pending = LinkedHashMap<String, PolygonState>()
-    private val pendingRemovals = ArrayList<Int>()
-    private var flushJob: Job? = null
 
     /**
      * Registers [states] (replacing whatever was registered) and returns the
      * URL template of their tiles.
      */
-    suspend fun setPolygons(states: List<PolygonState>): String {
-        cancelPending()
-        val (polygons, ids) =
-            withContext(Dispatchers.Default) {
-                // Draw order is list order: zIndex, then the order given (sortedBy is stable).
-                val ordered = states.sortedBy { it.zIndex }
-                val ids = HashMap<String, Int>(ordered.size * 2)
-                ordered.forEachIndexed { index, state -> ids[state.id] = index }
-                ordered.map(TilePolygon::from) to ids
-            }
-        synchronized(lock) {
-            renderer.setPolygons(polygons)
-            if (!registered) server.register(routeId, renderer)
-            indexById = ids
-            registered = true
-            version++
-        }
-        return template()
-    }
+    suspend fun setPolygons(states: List<PolygonState>): String = shapes.setShapes(states)
 
-    fun has(id: String): Boolean = synchronized(lock) { indexById.containsKey(id) }
+    fun has(id: String): Boolean = shapes.has(id)
 
     /**
      * One polygon changed in place. A change of zIndex reorders the list and
      * needs [setPolygons] instead; everything else is applied here.
      */
-    fun update(state: PolygonState) {
-        synchronized(lock) {
-            if (!indexById.containsKey(state.id)) return
-            pending[state.id] = state
-            scheduleFlushLocked()
-        }
-    }
+    fun update(state: PolygonState) = shapes.update(state)
 
     /**
      * Takes one polygon out of the tiles. Its slot in the renderer's list is
      * left empty, so the others keep their indices and only the tiles it was
      * in are drawn again.
      */
-    fun remove(id: String) {
-        synchronized(lock) {
-            val index = indexById[id] ?: return
-            indexById = indexById - id
-            pending.remove(id)
-            pendingRemovals.add(index)
-            scheduleFlushLocked()
-        }
-    }
+    fun remove(id: String) = shapes.remove(id)
 
-    /** Called with [lock] held. */
-    private fun scheduleFlushLocked() {
-        if (flushJob == null) {
-            flushJob =
-                scope.launch {
-                    delay(UPDATE_COALESCE)
-                    flush()
-                }
-        }
-    }
+    fun template(): String = shapes.template()
 
-    fun template(): String = server.urlTemplate(routeId, TILE_SIZE, version.toString())
-
-    fun dispose() {
-        cancelPending()
-        synchronized(lock) {
-            if (registered) server.unregister(routeId)
-            registered = false
-            indexById = emptyMap()
-            renderer.clear()
-        }
-    }
-
-    private suspend fun flush() {
-        val template =
-            synchronized(lock) {
-                flushJob = null
-                val updates: List<Pair<Int, TilePolygon?>> =
-                    pending.values.mapNotNull { state ->
-                        indexById[state.id]?.let { index -> index to TilePolygon.from(state) }
-                    } + pendingRemovals.map { index -> index to null }
-                pending.clear()
-                pendingRemovals.clear()
-                if (updates.isEmpty() || !registered) return
-                renderer.update(updates)
-                version++
-                template()
-            }
-        onTemplateChanged?.invoke(template)
-    }
-
-    private fun cancelPending() {
-        synchronized(lock) {
-            flushJob?.cancel()
-            flushJob = null
-            pending.clear()
-            pendingRemovals.clear()
-        }
-    }
+    fun dispose() = shapes.dispose()
 
     companion object {
         private const val TILE_SIZE = 256
-
-        /** In-place changes arriving within this window are drawn as one. */
-        private val UPDATE_COALESCE = 16.milliseconds
 
         /**
          * Whether a polygon can be drawn in a tile. Geodesic edges are curves
