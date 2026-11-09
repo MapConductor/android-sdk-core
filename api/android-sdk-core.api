@@ -2098,9 +2098,20 @@ final class com.mapconductor.core.polygon.Edge {
   public int hashCode();
   public boolean equals(java.lang.Object);
 }
+final class com.mapconductor.core.polygon.EdgeGrid {
+  public com.mapconductor.core.polygon.EdgeGrid(java.util.List<com.mapconductor.core.polygon.Edge>, double);
+  public final com.mapconductor.core.polygon.IntArrayList near(double, double, double, double, com.mapconductor.core.polygon.IntArrayList);
+}
 public final class com.mapconductor.core.polygon.HoleBridgeKt {
   public static final java.util.List<com.mapconductor.core.features.GeoPointInterface> bridgeHolesIntoSingleRing(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>>, double);
   public static final java.util.List<com.mapconductor.core.features.GeoPointInterface> bridgeHolesIntoSingleRingWrapAware(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>>, double);
+}
+final class com.mapconductor.core.polygon.IntArrayList {
+  public com.mapconductor.core.polygon.IntArrayList();
+  public final int getSize();
+  public final int get(int);
+  public final void add(int);
+  public final void clear();
 }
 public final class com.mapconductor.core.polygon.IntList {
   public com.mapconductor.core.polygon.IntList(int);
@@ -2363,6 +2374,7 @@ public final class com.mapconductor.core.polygon.PolygonTileSet {
   public final java.lang.Object setPolygons(java.util.List<com.mapconductor.core.polygon.PolygonState>, kotlin.coroutines.Continuation<? super java.lang.String>);
   public final boolean has(java.lang.String);
   public final void update(com.mapconductor.core.polygon.PolygonState);
+  public final void remove(java.lang.String);
   public final java.lang.String template();
   public final void dispose();
   public com.mapconductor.core.polygon.PolygonTileSet();
@@ -2381,8 +2393,9 @@ public final class com.mapconductor.core.polygon.PolygonTiler {
   public final java.util.List<com.mapconductor.core.polygon.PolygonState> tiledStates();
   public final boolean isTiled(java.lang.String);
   public final void update(com.mapconductor.core.polygon.PolygonState);
-  public final java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public final void remove(java.lang.String);
   public final void dispose();
+  public final java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public com.mapconductor.core.polygon.PolygonTiler();
 }
 public final class com.mapconductor.core.polygon.PolygonTilerKt {
