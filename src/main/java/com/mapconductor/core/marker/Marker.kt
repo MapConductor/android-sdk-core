@@ -28,6 +28,7 @@ class MarkerState(
     onDragEnd: OnMarkerEventHandler? = null,
     onAnimateStart: OnMarkerEventHandler? = null,
     onAnimateEnd: OnMarkerEventHandler? = null,
+    onAdded: OnMarkerEventHandler? = null,
 ) : ComponentState {
     override val id =
         (
@@ -74,6 +75,23 @@ class MarkerState(
     var onDragEnd by mutations.notifying(onDragEnd)
     var onAnimateStart by mutations.notifying(onAnimateStart)
     var onAnimateEnd by mutations.notifying(onAnimateEnd)
+
+    /**
+     * Called once each time this marker goes from not being on the map to being on it:
+     * after the map SDK's object for it has been created, or, when it is drawn in tiles,
+     * after the URL template of those tiles has been handed to the map as a raster layer
+     * (the tile images may still be loading then). Not called for an in-place change,
+     * nor when it moves between native drawing and tiles while staying on the map;
+     * called again if it is removed and added again. Clearing or destroying the map calls
+     * nothing.
+     *
+     * Runs on the main thread once the map has finished adding the overlays it was given.
+     * A callback that throws is logged and does not stop the other overlays' callbacks.
+     *
+     * Like `onClick`, it is not part of the id, fingerprint, equality or hash: replacing
+     * it redraws nothing. If the same state is shown on two maps, each map calls it.
+     */
+    var onAdded: OnMarkerEventHandler? = onAdded
     var zIndex by mutations.notifying<Int?>(zIndex)
 
     private var internalAnimation by mutations.notifying<MarkerAnimation?>(animation)
@@ -98,6 +116,40 @@ class MarkerState(
             }
         }
     }
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    constructor(
+        position: GeoPointInterface,
+        id: String? = null,
+        extra: Serializable? = null,
+        icon: MarkerIconInterface? = null,
+        animation: MarkerAnimation? = null,
+        zIndex: Int? = null,
+        clickable: Boolean = true,
+        draggable: Boolean = false,
+        onClick: OnMarkerEventHandler? = null,
+        onDragStart: OnMarkerEventHandler? = null,
+        onDrag: OnMarkerEventHandler? = null,
+        onDragEnd: OnMarkerEventHandler? = null,
+        onAnimateStart: OnMarkerEventHandler? = null,
+        onAnimateEnd: OnMarkerEventHandler? = null,
+    ) : this(
+        position,
+        id,
+        extra,
+        icon,
+        animation,
+        zIndex,
+        clickable,
+        draggable,
+        onClick,
+        onDragStart,
+        onDrag,
+        onDragEnd,
+        onAnimateStart,
+        onAnimateEnd,
+        null,
+    )
 
     fun animate(animation: MarkerAnimation?) {
         internalAnimation = animation
@@ -138,6 +190,7 @@ class MarkerState(
         onDragEnd: OnMarkerEventHandler? = this.onDragEnd,
         onAnimateStart: OnMarkerEventHandler? = this.onAnimateStart,
         onAnimateEnd: OnMarkerEventHandler? = this.onAnimateEnd,
+        onAdded: OnMarkerEventHandler? = this.onAdded,
     ): MarkerState =
         MarkerState(
             id = id, // Keep marker id
@@ -154,6 +207,42 @@ class MarkerState(
             onDragEnd = onDragEnd,
             onAnimateStart = onAnimateStart,
             onAnimateEnd = onAnimateEnd,
+            onAdded = onAdded,
+        )
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    fun copy(
+        id: String? = this.id,
+        position: GeoPointInterface = this.position,
+        extra: Serializable? = this.extra,
+        icon: MarkerIconInterface? = this.icon,
+        animation: MarkerAnimation? = this.getAnimation(),
+        zIndex: Int? = this.zIndex,
+        clickable: Boolean? = this.clickable,
+        draggable: Boolean? = this.draggable,
+        onClick: OnMarkerEventHandler? = this.onClick,
+        onDragStart: OnMarkerEventHandler? = this.onDragStart,
+        onDrag: OnMarkerEventHandler? = this.onDrag,
+        onDragEnd: OnMarkerEventHandler? = this.onDragEnd,
+        onAnimateStart: OnMarkerEventHandler? = this.onAnimateStart,
+        onAnimateEnd: OnMarkerEventHandler? = this.onAnimateEnd,
+    ): MarkerState =
+        copy(
+            id,
+            position,
+            extra,
+            icon,
+            animation,
+            zIndex,
+            clickable,
+            draggable,
+            onClick,
+            onDragStart,
+            onDrag,
+            onDragEnd,
+            onAnimateStart,
+            onAnimateEnd,
+            onAdded,
         )
 
     override fun equals(other: Any?): Boolean {

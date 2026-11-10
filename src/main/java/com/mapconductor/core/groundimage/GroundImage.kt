@@ -27,6 +27,7 @@ class GroundImageState(
     id: String? = null,
     extra: Serializable? = null,
     onClick: OnGroundImageEventHandler? = null,
+    onAdded: OnGroundImageAddedHandler? = null,
 ) : ComponentState {
     override val id = (id ?: generateId(bounds, image, opacity, tileSize, clickable, extra)).toString()
 
@@ -83,6 +84,23 @@ class GroundImageState(
     var extra by mutations.notifying(extra)
     var onClick by mutations.notifying(onClick)
 
+    /**
+     * Called once each time this ground image goes from not being on the map to being on it:
+     * after the map SDK's object for it has been created, or, when it is drawn in tiles,
+     * after the URL template of those tiles has been handed to the map as a raster layer
+     * (the tile images may still be loading then). Not called for an in-place change,
+     * nor when it moves between native drawing and tiles while staying on the map;
+     * called again if it is removed and added again. Clearing or destroying the map calls
+     * nothing.
+     *
+     * Runs on the main thread once the map has finished adding the overlays it was given.
+     * A callback that throws is logged and does not stop the other overlays' callbacks.
+     *
+     * Like `onClick`, it is not part of the id, fingerprint, equality or hash: replacing
+     * it redraws nothing. If the same state is shown on two maps, each map calls it.
+     */
+    var onAdded: OnGroundImageAddedHandler? = onAdded
+
     /** [imageUrl] の画像を貼る。読み終えるまでは透明。ほかの引数は `Drawable` を渡すコンストラクタと同じ。 */
     constructor(
         bounds: GeoRectBounds,
@@ -93,6 +111,7 @@ class GroundImageState(
         id: String? = null,
         extra: Serializable? = null,
         onClick: OnGroundImageEventHandler? = null,
+        onAdded: OnGroundImageAddedHandler? = null,
     ) : this(
         bounds = bounds,
         image = UrlImageDrawable(imageUrl, null),
@@ -102,9 +121,54 @@ class GroundImageState(
         id = id,
         extra = extra,
         onClick = onClick,
+        onAdded = onAdded,
     ) {
         this.imageUrl = imageUrl
     }
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    constructor(
+        bounds: GeoRectBounds,
+        image: Drawable,
+        opacity: Float = 1.0f,
+        tileSize: Int = GroundImageTileProvider.DEFAULT_TILE_SIZE,
+        clickable: Boolean = true,
+        id: String? = null,
+        extra: Serializable? = null,
+        onClick: OnGroundImageEventHandler? = null,
+    ) : this(
+        bounds,
+        image,
+        opacity,
+        tileSize,
+        clickable,
+        id,
+        extra,
+        onClick,
+        null,
+    )
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    constructor(
+        bounds: GeoRectBounds,
+        imageUrl: String,
+        opacity: Float = 1.0f,
+        tileSize: Int = GroundImageTileProvider.DEFAULT_TILE_SIZE,
+        clickable: Boolean = true,
+        id: String? = null,
+        extra: Serializable? = null,
+        onClick: OnGroundImageEventHandler? = null,
+    ) : this(
+        bounds,
+        imageUrl,
+        opacity,
+        tileSize,
+        clickable,
+        id,
+        extra,
+        onClick,
+        null,
+    )
 
     fun fingerPrint(): GroundImageFingerPrint =
         GroundImageFingerPrint(
@@ -143,6 +207,7 @@ class GroundImageState(
         id: String? = this.id,
         extra: Serializable? = this.extra,
         onClick: OnGroundImageEventHandler? = this.onClick,
+        onAdded: OnGroundImageAddedHandler? = this.onAdded,
     ): GroundImageState {
         // 画像を差し替えないなら URL ごと引き継ぐ（読み込み中でも、届いたら写る）。
         val url = imageUrl
@@ -156,6 +221,7 @@ class GroundImageState(
                 id = id,
                 extra = extra,
                 onClick = onClick,
+                onAdded = onAdded,
             )
         }
         return GroundImageState(
@@ -167,8 +233,32 @@ class GroundImageState(
             id = id,
             extra = extra,
             onClick = onClick,
+            onAdded = onAdded,
         )
     }
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    fun copy(
+        bounds: GeoRectBounds = this.bounds,
+        image: Drawable = this.image,
+        opacity: Float = this.opacity,
+        tileSize: Int = this.tileSize,
+        clickable: Boolean = this.clickable,
+        id: String? = this.id,
+        extra: Serializable? = this.extra,
+        onClick: OnGroundImageEventHandler? = this.onClick,
+    ): GroundImageState =
+        copy(
+            bounds,
+            image,
+            opacity,
+            tileSize,
+            clickable,
+            id,
+            extra,
+            onClick,
+            onAdded,
+        )
 
     override fun equals(other: Any?): Boolean = (other as? GroundImageState)?.hashCode() == this.hashCode()
 
@@ -194,3 +284,6 @@ class GroundImageEvent(
 }
 
 typealias OnGroundImageEventHandler = (GroundImageEvent) -> Unit
+
+/** Receives the state whose ground image was just added to the map. See [GroundImageState.onAdded]. */
+typealias OnGroundImageAddedHandler = (GroundImageState) -> Unit

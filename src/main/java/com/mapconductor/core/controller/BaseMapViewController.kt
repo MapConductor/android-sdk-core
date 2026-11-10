@@ -25,7 +25,9 @@ import com.mapconductor.core.polygon.PolygonCapableInterface
 import com.mapconductor.core.polygon.PolygonState
 import com.mapconductor.core.polyline.OnPolylineEventHandler
 import com.mapconductor.core.polyline.PolylineCapableInterface
+import com.mapconductor.core.polyline.PolylineController
 import com.mapconductor.core.polyline.PolylineState
+import com.mapconductor.core.polyline.PolylineTiler
 import com.mapconductor.core.raster.RasterLayerCapableInterface
 import com.mapconductor.core.raster.RasterLayerController
 import com.mapconductor.core.raster.RasterLayerState
@@ -280,11 +282,20 @@ abstract class BaseMapViewController :
             .filterIsInstance<SlottedOverlayController<*, *>>()
             .filter { it.kind == kind }
 
-    /** [kind] のいずれかのコントローラがこの id を持っているか。`hasXxx` の既定実装。 */
+    /** The tilers of this map's polyline controllers, for [com.mapconductor.core.polyline.PolylineOverlay]'s per-map options. */
+    internal fun polylineTilers(): List<PolylineTiler> =
+        overlayControllersOf(OverlayKind.Polyline).mapNotNull { (it as? PolylineController<*>)?.tiler }
+
+    /**
+     * [kind] のいずれかのコントローラがこの id を持っているか。`hasXxx` の既定実装。
+     *
+     * 一覧を作らずに直接なめる。composition のたびに全オーバーレイについて呼ばれる
+     * （`onAdded` の判定）ので、1 回ごとに 2 本のリストを作ると 10 万件で数百 ms になる。
+     */
     protected fun hasOverlay(
         kind: OverlayKind,
         id: String,
-    ): Boolean = overlayControllersOf(kind).any { it.has(id) }
+    ): Boolean = overlayControllers.any { it is SlottedOverlayController<*, *> && it.kind == kind && it.has(id) }
 
     // Marker
     override suspend fun compositionMarkers(data: List<MarkerState>) {

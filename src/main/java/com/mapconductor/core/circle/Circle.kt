@@ -28,6 +28,7 @@ class CircleState(
     zIndex: Int? = null,
     extra: Serializable? = null,
     onClick: OnCircleEventHandler? = null,
+    onAdded: OnCircleAddedHandler? = null,
 ) : ComponentState {
     /**
      * Writes to the fields below are announced here rather than discovered by
@@ -45,6 +46,57 @@ class CircleState(
     var extra by mutations.notifying(extra)
     var zIndex by mutations.notifying<Int?>(zIndex)
     var onClick by mutations.notifying(onClick)
+
+    /**
+     * Called once each time this circle goes from not being on the map to being on it:
+     * after the map SDK's object for it has been created, or, when it is drawn in tiles,
+     * after the URL template of those tiles has been handed to the map as a raster layer
+     * (the tile images may still be loading then). Not called for an in-place change,
+     * nor when it moves between native drawing and tiles while staying on the map;
+     * called again if it is removed and added again. Clearing or destroying the map calls
+     * nothing.
+     *
+     * Runs on the main thread once the map has finished adding the overlays it was given.
+     * A callback that throws is logged and does not stop the other overlays' callbacks.
+     *
+     * Like `onClick`, it is not part of the id, fingerprint, equality or hash: replacing
+     * it redraws nothing. If the same state is shown on two maps, each map calls it.
+     */
+    var onAdded: OnCircleAddedHandler? = onAdded
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    constructor(
+        center: GeoPointInterface,
+        radiusMeters: Double,
+        geodesic: Boolean = true,
+        clickable: Boolean = true,
+        strokeColor: Color = Color.Red,
+        strokeWidth: Dp = 1.dp,
+        fillColor: Color =
+            Color(
+                red = 255,
+                green = 255,
+                blue = 255,
+                alpha = 127,
+            ),
+        id: String? = null,
+        zIndex: Int? = null,
+        extra: Serializable? = null,
+        onClick: OnCircleEventHandler? = null,
+    ) : this(
+        center,
+        radiusMeters,
+        geodesic,
+        clickable,
+        strokeColor,
+        strokeWidth,
+        fillColor,
+        id,
+        zIndex,
+        extra,
+        onClick,
+        null,
+    )
 
     override val id =
         (
@@ -94,6 +146,7 @@ class CircleState(
         zIndex: Int? = this.zIndex,
         extra: Serializable? = this.extra,
         onClick: OnCircleEventHandler? = this.onClick,
+        onAdded: OnCircleAddedHandler? = this.onAdded,
     ): CircleState =
         CircleState(
             center = center,
@@ -107,6 +160,36 @@ class CircleState(
             zIndex = zIndex,
             extra = extra,
             onClick = onClick,
+            onAdded = onAdded,
+        )
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    fun copy(
+        center: GeoPointInterface = this.center,
+        radiusMeters: Double = this.radiusMeters,
+        geodesic: Boolean = this.geodesic,
+        clickable: Boolean = this.clickable,
+        strokeColor: Color = this.strokeColor,
+        strokeWidth: Dp = this.strokeWidth,
+        fillColor: Color = this.fillColor,
+        id: String? = this.id,
+        zIndex: Int? = this.zIndex,
+        extra: Serializable? = this.extra,
+        onClick: OnCircleEventHandler? = this.onClick,
+    ): CircleState =
+        copy(
+            center,
+            radiusMeters,
+            geodesic,
+            clickable,
+            strokeColor,
+            strokeWidth,
+            fillColor,
+            id,
+            zIndex,
+            extra,
+            onClick,
+            onAdded,
         )
 
     override fun equals(other: Any?): Boolean {
@@ -151,3 +234,6 @@ class CircleEvent(
 }
 
 typealias OnCircleEventHandler = (CircleEvent) -> Unit
+
+/** Receives the state whose circle was just added to the map. See [CircleState.onAdded]. */
+typealias OnCircleAddedHandler = (CircleState) -> Unit

@@ -2,8 +2,7 @@ package com.mapconductor.core.polygon
 
 import com.mapconductor.core.raster.RasterLayerSource
 import com.mapconductor.core.raster.RasterLayerState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.mapconductor.core.shapetile.ShapeTiler
 
 /** The id of the raster layer that shows tiled polygons. */
 const val POLYGON_TILE_LAYER_ID: String = "mc-polygon-tiles"
@@ -34,6 +33,8 @@ fun polygonTileRasterLayerState(
  *    controller hands [polygonTileRasterLayerState] to its `upsert`, and
  *    removes it with `removeById(POLYGON_TILE_LAYER_ID)`.
  *
+ * The routing is [ShapeTiler]'s, shared with [com.mapconductor.core.polyline.PolylineTiler].
+ *
  * Same as js-sdk-core's and ios-sdk-core's `PolygonTiler`.
  */
 class PolygonTiler(
@@ -41,75 +42,39 @@ class PolygonTiler(
 ) {
     var onTemplate: (suspend (template: String?, tileSize: Int) -> Unit)? = null
 
-    private val tileSet = PolygonTileSet()
-
-    @Volatile
-    private var tiled: Set<String> = emptySet()
-
-    @Volatile
-    private var states: List<PolygonState> = emptyList()
-
-    init {
-        tileSet.onTemplateChanged = { template -> onTemplate?.invoke(template, tileSet.tileSize) }
-    }
+    private val tiler =
+        ShapeTiler(
+            tileSet = PolygonTileSet().shapes,
+            canTile = PolygonTileSet::canTile,
+            vertexCount = PolygonTileSet::vertexCount,
+            shouldUseTiles = { count, vertices -> options.shouldUseTiles(count, vertices) },
+            idOf = { it.id },
+            onTemplate = { template, tileSize -> onTemplate?.invoke(template, tileSize) },
+        )
 
     /** Re-decides tiling for [data] and returns the ids drawn as tiles. */
-    suspend fun route(data: List<PolygonState>): Set<String> {
-        // A city of polygons is a second of work; none of it belongs on the map's thread.
-        val (tileable, useTiles) =
-            withContext(Dispatchers.Default) {
-                val tileable = data.filter(PolygonTileSet::canTile)
-                tileable to options.shouldUseTiles(tileable.size, PolygonTileSet.vertexCount(tileable))
-            }
-        val template = if (useTiles) tileSet.setPolygons(tileable) else null
-        if (template == null) {
-            tileSet.dispose()
-            tiled = emptySet()
-            states = emptyList()
-        } else {
-            tiled = withContext(Dispatchers.Default) { tileable.mapTo(HashSet(tileable.size * 2)) { it.id } }
-            states = tileable
-        }
-        onTemplate?.invoke(template, tileSet.tileSize)
-        return tiled
-    }
+    suspend fun route(data: List<PolygonState>): Set<String> = tiler.route(data)
 
     /** The states drawn as tiles, as of the last [route]. */
-    fun tiledStates(): List<PolygonState> = states
+    fun tiledStates(): List<PolygonState> = tiler.tiledStates()
 
-    fun isTiled(id: String): Boolean = tiled.contains(id)
+    fun isTiled(id: String): Boolean = tiler.isTiled(id)
 
     /** An in-place change of a tiled polygon; only the tiles it touches are drawn again. */
-    fun update(state: PolygonState) {
-        tileSet.update(state)
-    }
+    fun update(state: PolygonState) = tiler.update(state)
 
     /**
      * Takes one polygon out of the tiles, for a change that left it no longer
      * [PolygonTileSet.canTile]; only the tiles it was in are drawn again. The
      * controller then hands it to the map SDK.
      */
-    fun remove(id: String) {
-        if (id !in tiled) return
-        tiled = tiled - id
-        states = states.filter { it.id != id }
-        tileSet.remove(id)
-    }
+    fun remove(id: String) = tiler.remove(id)
 
     /**
      * Releases the tiles when the map goes away. Unlike [clear], it does not
      * call [onTemplate]: there is no map left to remove the layer from.
      */
-    fun dispose() {
-        tileSet.dispose()
-        tiled = emptySet()
-        states = emptyList()
-    }
+    fun dispose() = tiler.dispose()
 
-    suspend fun clear() {
-        tileSet.dispose()
-        tiled = emptySet()
-        states = emptyList()
-        onTemplate?.invoke(null, tileSet.tileSize)
-    }
+    suspend fun clear() = tiler.clear()
 }

@@ -22,6 +22,7 @@ class PolygonState(
     zIndex: Int = 0,
     extra: Serializable? = null,
     onClick: OnPolygonEventHandler? = null,
+    onAdded: OnPolygonAddedHandler? = null,
 ) : ComponentState {
     override val id =
         (
@@ -84,6 +85,51 @@ class PolygonState(
     var holes by mutations.notifying<List<List<GeoPointInterface>>>(holes)
     var extra by mutations.notifying(extra)
     var onClick by mutations.notifying(onClick)
+
+    /**
+     * Called once each time this polygon goes from not being on the map to being on it:
+     * after the map SDK's object for it has been created, or, when it is drawn in tiles,
+     * after the URL template of those tiles has been handed to the map as a raster layer
+     * (the tile images may still be loading then). Not called for an in-place change,
+     * nor when it moves between native drawing and tiles while staying on the map;
+     * called again if it is removed and added again. Clearing or destroying the map calls
+     * nothing.
+     *
+     * Runs on the main thread once the map has finished adding the overlays it was given.
+     * A callback that throws is logged and does not stop the other overlays' callbacks.
+     *
+     * Like `onClick`, it is not part of the id, fingerprint, equality or hash: replacing
+     * it redraws nothing. If the same state is shown on two maps, each map calls it.
+     */
+    var onAdded: OnPolygonAddedHandler? = onAdded
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    constructor(
+        points: List<GeoPointInterface>,
+        holes: List<List<GeoPointInterface>> = emptyList(),
+        id: String? = null,
+        strokeColor: Color = Color.Black,
+        strokeWidth: Dp = 1.dp,
+        fillColor: Color = Color.Transparent,
+        geodesic: Boolean = false,
+        clickable: Boolean = true,
+        zIndex: Int = 0,
+        extra: Serializable? = null,
+        onClick: OnPolygonEventHandler? = null,
+    ) : this(
+        points,
+        holes,
+        id,
+        strokeColor,
+        strokeWidth,
+        fillColor,
+        geodesic,
+        clickable,
+        zIndex,
+        extra,
+        onClick,
+        null,
+    )
 
     private fun polygonId(hashCodes: List<Int>): Int =
         hashCodes.reduce { result, hashCode ->
@@ -149,6 +195,7 @@ class PolygonState(
         zIndex: Int = this.zIndex,
         extra: Serializable? = this.extra,
         onClick: OnPolygonEventHandler? = this.onClick,
+        onAdded: OnPolygonAddedHandler? = this.onAdded,
     ): PolygonState =
         PolygonState(
             points = points,
@@ -162,6 +209,36 @@ class PolygonState(
             zIndex = zIndex,
             extra = extra,
             onClick = onClick,
+            onAdded = onAdded,
+        )
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    fun copy(
+        points: List<GeoPointInterface> = this.points,
+        holes: List<List<GeoPointInterface>> = this.holes,
+        id: String? = this.id,
+        strokeColor: Color = this.strokeColor,
+        strokeWidth: Dp = this.strokeWidth,
+        fillColor: Color = this.fillColor,
+        geodesic: Boolean = this.geodesic,
+        clickable: Boolean = this.clickable,
+        zIndex: Int = this.zIndex,
+        extra: Serializable? = this.extra,
+        onClick: OnPolygonEventHandler? = this.onClick,
+    ): PolygonState =
+        copy(
+            points,
+            holes,
+            id,
+            strokeColor,
+            strokeWidth,
+            fillColor,
+            geodesic,
+            clickable,
+            zIndex,
+            extra,
+            onClick,
+            onAdded,
         )
 }
 
@@ -187,3 +264,6 @@ class PolygonEvent(
 }
 
 typealias OnPolygonEventHandler = (PolygonEvent) -> Unit
+
+/** Receives the state whose polygon was just added to the map. See [PolygonState.onAdded]. */
+typealias OnPolygonAddedHandler = (PolygonState) -> Unit
