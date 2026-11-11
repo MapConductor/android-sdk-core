@@ -61,6 +61,16 @@ internal class ShapeTiler<S>(
         tileSet.update(state)
     }
 
+    /** Rebuild draw order without re-evaluating the native/tile threshold. */
+    suspend fun reorder(state: S) {
+        val updated = ArrayList<S>()
+        tileSet.visitSources { updated.add(if (idOf(it) == idOf(state)) state else it) }
+        val template = tileSet.setShapes(updated)
+        states = updated
+        tiled = tileSet.ids()
+        onTemplate(template, tileSet.tileSize)
+    }
+
     fun remove(id: String) {
         if (id !in tiled) return
         tiled = tiled - id
