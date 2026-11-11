@@ -43,12 +43,13 @@ abstract class PolygonController<ActualPolygon>(
             tiledIds = tiled
             val native = if (tiled.isEmpty()) data else data.filter { it.id !in tiled }
             val modifiedEntities = mutableListOf<PolygonEntityInterface<ActualPolygon>>()
-            // Only natively drawn polygons are diffed against the renderer.
+            // Native handles remain authoritative after a cancelled transition:
+            // route() may already have switched the IDs to tiles before removal finishes.
             val previous =
                 polygonManager
                     .allEntities()
-                    .map { it.state.id }
-                    .filterTo(mutableSetOf()) { it !in wasTiled }
+                    .filter { it.polygon != null }
+                    .mapTo(mutableSetOf()) { it.state.id }
             val added = mutableListOf<PolygonOverlayRendererInterface.AddParamsInterface>()
             val updated = mutableListOf<PolygonOverlayRendererInterface.ChangeParamsInterface<ActualPolygon>>()
             val removed = mutableListOf<PolygonEntityInterface<ActualPolygon>>()
@@ -162,8 +163,12 @@ abstract class PolygonController<ActualPolygon>(
             val prevEntity = polygonManager.getEntity(state.id) ?: return
             if (state.id in tiledIds) {
                 if (PolygonTileSet.canTile(state)) {
+                    if (state.zIndex != prevEntity.fingerPrint.zIndex) {
+                        tiler?.reorder(state)
+                    } else {
+                        tiler?.update(state)
+                    }
                     polygonManager.registerEntity(PolygonEntity(polygon = prevEntity.polygon, state = state))
-                    tiler?.update(state)
                     return
                 }
                 // No longer drawable in a tile (geodesic, half the world wide, or
@@ -223,11 +228,10 @@ abstract class PolygonController<ActualPolygon>(
 
     override suspend fun clear() {
         semaphore.withPermit {
-            val tiled = tiledIds
             tiledIds = emptySet()
             tiler?.clear()
             val entities: List<PolygonEntityInterface<ActualPolygon>> =
-                polygonManager.allEntities().filter { it.state.id !in tiled }
+                polygonManager.allEntities().filter { it.polygon != null }
             renderer.onRemove(entities)
             // manager を空にしてから onPostProcess を呼ぶ。GL 系の描画担当は remove では何もせず、
             // onPostProcess で manager の全部を描き直すので、逆の順だと clear() 後も地図に残る。

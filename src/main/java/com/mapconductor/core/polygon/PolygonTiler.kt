@@ -63,6 +63,8 @@ class PolygonTiler(
     /** An in-place change of a tiled polygon; only the tiles it touches are drawn again. */
     fun update(state: PolygonState) = tiler.update(state)
 
+    internal suspend fun reorder(state: PolygonState) = tiler.reorder(state)
+
     /**
      * Takes one polygon out of the tiles, for a change that left it no longer
      * [PolygonTileSet.canTile]; only the tiles it was in are drawn again. The
