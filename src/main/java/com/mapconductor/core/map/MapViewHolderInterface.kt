@@ -3,6 +3,9 @@ package com.mapconductor.core.map
 import androidx.compose.ui.geometry.Offset
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
+import com.mapconductor.core.projection.MapCoordinateSystem
+import com.mapconductor.core.projection.ProjectedPoint
+import com.mapconductor.core.projection.WebMercator
 
 interface MapViewHolderInterface<ActualMapView, ActualMap> {
     val mapView: ActualMapView
@@ -36,4 +39,28 @@ interface MapViewHolderInterface<ActualMapView, ActualMap> {
      * 既定 null のまま黙って無反応にしない。
      */
     fun fromScreenOffsetSync(offset: Offset): GeoPoint? = null
+
+    /**
+     * 地図エンジンが今使っている座標系。[toProjectedPoint] の値はこの座標系になる。
+     *
+     * 既定は EPSG:3857 メートル。Mercator しか持たないエンジンと、地球儀表示中の
+     * エンジンはこのままでよい。地図ごとに座標系を持てるエンジン（ArcGIS など）
+     * だけが上書きする。
+     */
+    val coordinateSystem: MapCoordinateSystem
+        get() = MapCoordinateSystem.WebMercator
+
+    /**
+     * 地理座標 → [coordinateSystem] の投影座標。**画面座標ではない。**
+     *
+     * 投影の定義域の外などで変換できないときは null。既定は EPSG:3857。
+     */
+    fun toProjectedPoint(position: GeoPointInterface): ProjectedPoint? = WebMercator.project(position)
+
+    /**
+     * [coordinateSystem] の投影座標 → 地理座標。[toProjectedPoint] の逆。
+     *
+     * 変換できないときは null。既定は EPSG:3857。
+     */
+    fun fromProjectedPoint(point: ProjectedPoint): GeoPoint? = GeoPoint.from(WebMercator.unproject(point))
 }
