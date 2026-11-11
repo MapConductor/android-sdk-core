@@ -88,6 +88,36 @@ internal class ShapeTileSet<S, T : Any>(
             }
         }
 
+    /**
+     * The registered states whose shape's bounding box meets the given one (Web
+     * Mercator, [0, 1]), as of now: changes still waiting for [flush] are
+     * included, since their shape in the renderer may be the old one.
+     */
+    fun sources(
+        minX: Double,
+        minY: Double,
+        maxX: Double,
+        maxY: Double,
+    ): List<S> {
+        val slots = renderer.candidates(minX, minY, maxX, maxY)
+        return synchronized(lock) {
+            val seen = HashSet<String>()
+            val states = ArrayList<S>(slots.size)
+            for (slot in slots) {
+                if (slot >= sourceStates.size || active?.get(slot) == false) continue
+                val state = sourceStates[slot] ?: continue
+                if (seen.add(idOf(state))) states.add(state)
+            }
+            for ((id, state) in pending) {
+                if (indexById.containsKey(id) && seen.add(id)) states.add(state)
+            }
+            states
+        }
+    }
+
+    /** The widest stroke drawn, in pixels of a tile. */
+    val maxStroke: Float get() = renderer.maxStroke
+
     @Volatile
     private var version = 0
     private var registered = false

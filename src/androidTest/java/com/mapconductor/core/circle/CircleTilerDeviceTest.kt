@@ -328,6 +328,69 @@ class CircleTilerDeviceTest {
         return bitmap.getPixel((px * k).toInt(), (py * k).toInt()) ushr 24
     }
 
+    /** タップは今の state で決める。位置を変えた直後、タイルの描き直し（まとめて 16 ms 後）より前でも */
+    @Test
+    fun aTapFindsAMovedCircleBeforeItsTilesAreRedrawn() =
+        runBlocking {
+            val (controller, _, _) = controller()
+            val list = trees(2001)
+            controller.add(list)
+            val before = list[101].center
+            val moved = p(42.25, -71.10)
+            list[101].center = moved
+            controller.update(list[101])
+            assertEquals("tree-101", controller.find(moved)?.state?.id)
+            assertNull(controller.find(before))
+            delay(100)
+            assertEquals("tree-101", controller.find(moved)?.state?.id)
+            assertNull(controller.find(before))
+        }
+
+    /** 縁の半分は半径の外まで当たる（カメラのズームで）。半径より太い縁、描かない（透明な）縁でも */
+    @Test
+    fun aTapOnATiledCirclesStrokeHitsIt() =
+        runBlocking {
+            val (controller, _, _) = controller()
+            val list = trees(2001)
+            for (state in list) {
+                state.radiusMeters = 5.0
+                state.strokeWidth = 40.dp
+            }
+            list[101].strokeColor = Color.Transparent
+            controller.add(list)
+            controller.onCameraChanged(MapCameraPosition(position = p(42.3012, -71.0988), zoom = 18.0))
+            val half = com.mapconductor.core.spherical.calculateMetersPerPixel(42.3012, 18.0) * 40.0 / 2.0
+            val center = p(42.3012, -71.0988)
+            val onStroke = com.mapconductor.core.spherical.Spherical.computeOffset(center, 5.0 + half - 0.5, 270.0)
+            val beyond = com.mapconductor.core.spherical.Spherical.computeOffset(center, 5.0 + half + 0.5, 270.0)
+            assertEquals("tree-101", controller.find(onStroke)?.state?.id)
+            assertNull(controller.find(beyond))
+        }
+
+    /** タップは近くのタイルの円だけを読む。全国の例の規模で全部を読むと 1 回 0.6 秒かかった */
+    @Test
+    fun aTapAmongManyTiledCirclesIsQuick() =
+        runBlocking {
+            val (controller, _, _) = controller()
+            val random = kotlin.random.Random(7)
+            val list =
+                List(100_000) { i ->
+                    CircleState(
+                        center = p(random.nextDouble(30.0, 45.0), random.nextDouble(130.0, 145.0)),
+                        radiusMeters = 500.0,
+                        id = "c$i",
+                        strokeWidth = 1.dp,
+                        onClick = {},
+                    )
+                }
+            controller.add(list)
+            controller.onCameraChanged(MapCameraPosition(position = list[0].center, zoom = 12.0))
+            val start = System.nanoTime()
+            for (state in list.take(10)) assertNotNull(controller.find(state.center))
+            val perTapMs = (System.nanoTime() - start) / 1e6 / 10
+            assertTrue("a tap took $perTapMs ms", perTapMs < 20.0)
+        }
+
     private fun get(
         template: String,
         z: Int,

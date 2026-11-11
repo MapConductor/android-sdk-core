@@ -131,7 +131,11 @@ class CircleManager<ActualCircle> : CircleManagerInterface<ActualCircle> {
             }
         }
         for (entity in entities.values) consider(entity.state, entity)
-        tiledSource?.visitStates { state -> if (!entities.containsKey(state.id)) consider(state, null) }
+        // Tiled circles: only those near the tap, found through the tiles' index.
+        // Reading every state here took 0.6 s at 700k circles on a tablet.
+        tiledSource?.states(position.latitude, position.longitude, metersPerPixel)?.forEach { state ->
+            if (!entities.containsKey(state.id)) consider(state, null)
+        }
         return best ?: bestState?.let(::tiledEntity)
     }
 }

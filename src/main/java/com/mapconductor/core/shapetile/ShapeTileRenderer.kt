@@ -163,6 +163,28 @@ internal class ShapeTileRenderer<T : Any>(
         }
     }
 
+    /**
+     * Indices of the items whose bounding box meets the given one (Web Mercator,
+     * [0, 1]), through the index the tiles use. For taps: the caller tests these
+     * few against their states instead of reading every state.
+     */
+    fun candidates(
+        minX: Double,
+        minY: Double,
+        maxX: Double,
+        maxY: Double,
+    ): IntArray {
+        val m = acquireModel() ?: return IntArray(0)
+        return try {
+            m.index.query({ index -> if (m.active?.get(index) == false) null else m.storage.bbox(index) }, minX, minY, maxX, maxY)
+        } finally {
+            m.storage.release()
+        }
+    }
+
+    /** The widest stroke drawn, in pixels of a [tileSize] tile. */
+    val maxStroke: Float get() = model?.maxStroke ?: 0f
+
     /** Immutable membership snapshot; geometry and its spatial index stay shared. */
     fun setActiveItems(active: BitSet) {
         synchronized(modelLock) {

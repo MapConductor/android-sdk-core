@@ -1,8 +1,15 @@
 package com.mapconductor.core.circle
 
+import com.mapconductor.core.normalizeLng
 import com.mapconductor.core.raster.RasterLayerSource
 import com.mapconductor.core.raster.RasterLayerState
 import com.mapconductor.core.shapetile.ShapeTiler
+import com.mapconductor.core.projection.Earth
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.ln
+import kotlin.math.max
+import kotlin.math.sin
 
 /** The id of the raster layer that shows tiled circles. */
 const val CIRCLE_TILE_LAYER_ID: String = "mc-circle-tiles"
@@ -72,6 +79,34 @@ class CircleTiler(
     internal fun state(id: String): CircleState? = tileSet.shapes.source(id)
     internal fun visitStates(action: (CircleState) -> Unit) = tileSet.shapes.visitSources(action)
 
+    /**
+     * The tiled circles a tap at [latitude]/[longitude] can hit: those whose
+     * extent (the box the tiles index them by) comes within reach of the point.
+     * Found through the tiles' index, so a tap reads a handful of states, not
+     * every one; [CircleManager.find] then decides on those states as before.
+     *
+     * The reach allows for half the widest stroke (pixels, at [metersPerPixel];
+     * at least [TAP_STROKE_SLACK_PX], since a stroke that is not drawn, such as a
+     * transparent one, still counts for a tap) plus [TAP_SLACK_METERS], for a
+     * planar circle's box (along the parallel) against the great-circle distance
+     * the tap is decided with.
+     */
+    internal fun states(
+        latitude: Double,
+        longitude: Double,
+        metersPerPixel: Double,
+    ): List<CircleState> {
+        val lat = latitude.coerceIn(-MAX_LATITUDE, MAX_LATITUDE)
+        val s = sin(lat * PI / 180.0)
+        val x = (normalizeLng(longitude) + 180.0) / 360.0
+        val y = 0.5 - ln((1 + s) / (1 - s)) / (4 * PI)
+        // Mercator units per metre at this latitude.
+        val perMeter = 1.0 / (Earth.CIRCUMFERENCE_METERS * max(cos(lat * PI / 180.0), 1e-6))
+        val stroke = max(TAP_STROKE_SLACK_PX, tileSet.shapes.maxStroke.toDouble())
+        val pad = (metersPerPixel * stroke / 2.0 + TAP_SLACK_METERS) * perMeter
+        return tileSet.shapes.sources(x - pad, y - pad, x + pad, y + pad)
+    }
+
     /** An in-place change of a tiled circle; only the tiles it touches are drawn again. */
     fun update(state: CircleState) = tiler.update(state)
 
@@ -92,4 +127,10 @@ class CircleTiler(
 
     /** The tile set, for tests that look at the pixels. */
     internal val tiles: CircleTileSet get() = tileSet
+
+    private companion object {
+        const val MAX_LATITUDE = 85.05112878
+        const val TAP_STROKE_SLACK_PX = 64.0
+        const val TAP_SLACK_METERS = 100.0
+    }
 }
