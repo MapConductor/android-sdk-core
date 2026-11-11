@@ -69,6 +69,7 @@ kotlin {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.5.2")
     // Make Compose dependencies implementation instead of compileOnly for proper runtime support
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)

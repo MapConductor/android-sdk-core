@@ -199,4 +199,43 @@ class LocalTileServerCancellationTest {
             }
         }
     }
+
+    @Test
+    fun frequentCancellationChecksDoNotBecomeSocketTimeoutWaits() {
+        val elapsed = java.util.concurrent.atomic.AtomicLong()
+        server.register(routeId, object : TileProviderInterface {
+            override fun renderTile(request: TileRequest): ByteArray = png
+            override fun renderTile(request: TileRequest, isCancelled: () -> Boolean): ByteArray {
+                val began = System.nanoTime()
+                repeat(10_000) { assertTrue("live client was cancelled", !isCancelled()) }
+                elapsed.set((System.nanoTime() - began) / 1_000_000)
+                return png
+            }
+        })
+        assertTrue(statusOf(tileUrl(10)).contains("200"))
+        assertTrue("10k checks took ${elapsed.get()}ms", elapsed.get() < 1500)
+    }
+
+    @Test
+    fun idleKeepAliveConnectionsDoNotStarveNewTiles() {
+        server.register(routeId, object : TileProviderInterface {
+            override fun renderTile(request: TileRequest): ByteArray = png
+        })
+        val url = tileUrl(10)
+        val idle = mutableListOf<Socket>()
+        try {
+            repeat(8) {
+                val socket = Socket(url.host, url.port)
+                idle.add(socket)
+                socket.soTimeout = 10_000
+                socket.getOutputStream().write("GET ${url.path} HTTP/1.1\r\nHost: ${url.host}\r\n\r\n".toByteArray())
+                socket.getOutputStream().flush()
+                assertTrue(readResponse(socket.getInputStream())!!.status.contains("200"))
+            }
+            val began = System.nanoTime()
+            assertTrue(statusOf(url).contains("200"))
+            val elapsed = (System.nanoTime() - began) / 1_000_000
+            assertTrue("new tile waited ${elapsed}ms behind idle connections", elapsed < 1500)
+        } finally { idle.forEach { it.close() } }
+    }
 }

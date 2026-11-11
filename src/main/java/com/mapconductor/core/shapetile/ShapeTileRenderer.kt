@@ -8,6 +8,7 @@ import com.mapconductor.core.tileserver.TilePngEncoder
 import com.mapconductor.core.tileserver.TileProviderInterface
 import com.mapconductor.core.tileserver.TileRequest
 import java.io.ByteArrayOutputStream
+import java.util.BitSet
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReferenceArray
 import kotlin.math.max
@@ -64,6 +65,20 @@ internal class ShapeTileRenderer<T : Any>(
          */
         fun strokeWidth(item: T): Float
 
+        val cacheSimplifiedShapes: Boolean get() = true
+        val thinSubpixelOverlaps: Boolean get() = false
+
+        fun isVisible(item: T): Boolean = true
+
+        /** Pixel slot, -1 outside the tile, or -2 when the shape is not subpixel. */
+        fun subpixelSlot(
+            item: T,
+            scale: Double,
+            originX: Double,
+            originY: Double,
+            tileSize: Int,
+        ): Int = -2
+
         /** The shape at a zoom whose world is [scale] units wide. Cached per zoom. */
         fun simplify(
             item: T,
@@ -114,16 +129,52 @@ internal class ShapeTileRenderer<T : Any>(
      * simplified again without clearing anything.
      */
     @InternalMapConductorApi
-    private class Model(
-        val items: Array<Any?>,
-        val bboxes: Array<DoubleArray?>,
+    private class Model<T : Any>(
+        val storage: ShapeTileStorage<T>,
         val index: ShapeGridIndex,
         val maxStroke: Float,
         val perZoom: LinkedHashMap<Int, AtomicReferenceArray<Simplified?>>,
+        val active: BitSet? = null,
     )
 
     @Volatile
-    private var model: Model? = null
+    private var model: Model<T>? = null
+    private val modelLock = Any()
+
+    private fun acquireModel(): Model<T>? =
+        synchronized(modelLock) {
+            model?.also { it.storage.retain() }
+        }
+
+    /** Takes ownership of the replacement's storage reference. */
+    private fun replaceModel(next: Model<T>?) =
+        synchronized(modelLock) {
+            val previous = model
+            model = next
+            previous?.storage?.release()
+        }
+
+    fun itemAt(index: Int): T? {
+        val current = acquireModel() ?: return null
+        return try {
+            current.storage[index]
+        } finally {
+            current.storage.release()
+        }
+    }
+
+    /** Immutable membership snapshot; geometry and its spatial index stay shared. */
+    fun setActiveItems(active: BitSet) {
+        synchronized(modelLock) {
+            val current = model ?: return
+            current.storage.retain()
+            replaceModel(Model(current.storage, current.index, current.maxStroke, current.perZoom, active))
+        }
+        synchronized(cacheLock) {
+            generation.incrementAndGet()
+            tileCache.evictAll()
+        }
+    }
 
     /** Bumped by every change, so a tile drawn before it is not cached after it. */
     private val generation = AtomicLong()
@@ -144,10 +195,26 @@ internal class ShapeTileRenderer<T : Any>(
 
     /** Replaces every shape. Draw order is list order. */
     fun setItems(items: List<T?>) {
-        val array: Array<Any?> = items.toTypedArray<Any?>()
-        val bboxes = Array(array.size) { i -> bboxAt(array, i) }
-        val index = ShapeGridIndex.build(bboxes.size) { bboxes[it] }
-        model = Model(array, bboxes, index, maxStrokeOf(array), LinkedHashMap(8, 0.75f, true))
+        setStorage(MemoryShapeTileStorage(items, painter))
+    }
+
+    /** Builds the shared shape index without materialising file-backed geometry. Consumes [storage]. */
+    fun setStorage(
+        storage: ShapeTileStorage<T>,
+        checkCancelled: () -> Unit = {},
+    ) {
+        val index =
+            try {
+                ShapeGridIndex
+                    .build(storage.size) {
+                        if (it % 4096 == 0) checkCancelled()
+                        storage.bbox(it)
+                    }.also { checkCancelled() }
+            } catch (error: Throwable) {
+                storage.release()
+                throw error
+            }
+        replaceModel(Model(storage, index, storage.maxStroke, LinkedHashMap(8, 0.75f, true)))
         synchronized(cacheLock) {
             generation.incrementAndGet()
             tileCache.evictAll()
@@ -159,34 +226,39 @@ internal class ShapeTileRenderer<T : Any>(
      * overlapped one of them, before or after, are drawn again.
      */
     fun update(updates: List<Pair<Int, T?>>) {
-        val current = model ?: return
-        val items = current.items.copyOf()
-        val bboxes = current.bboxes.copyOf()
-        val touched = ArrayList<DoubleArray>(updates.size * 2)
-        var maxStroke = current.maxStroke
-        var reindex = false
-        for ((index, after) in updates) {
-            if (index !in items.indices) continue
-            val before = bboxes[index]
-            items[index] = after
-            val afterBox = after?.let(painter::bbox)
-            bboxes[index] = afterBox
-            before?.let(touched::add)
-            afterBox?.let(touched::add)
-            if (after != null) maxStroke = max(maxStroke, painter.strokeWidth(after))
-            // A shape that moved needs the index rebuilt; a restyle does not.
-            if (before == null || afterBox == null || !before.contentEquals(afterBox)) reindex = true
-        }
-        val index = if (reindex) ShapeGridIndex.build(bboxes.size) { bboxes[it] } else current.index
-        model = Model(items, bboxes, index, maxStroke, current.perZoom)
-        synchronized(cacheLock) {
-            generation.incrementAndGet()
-            dropTilesIn(touched, maxStroke)
+        val current = acquireModel() ?: return
+        var next: ShapeTileStorage<T>? = null
+        try {
+            val touched = ArrayList<DoubleArray>(updates.size * 2)
+            var maxStroke = current.maxStroke
+            var reindex = false
+            for ((index, after) in updates) {
+                if (index !in 0 until current.storage.size) continue
+                val before = current.storage.bbox(index)
+                val afterBox = after?.let(painter::bbox)
+                before?.let(touched::add)
+                afterBox?.let(touched::add)
+                if (after != null) maxStroke = max(maxStroke, painter.strokeWidth(after))
+                // A shape that moved needs the index rebuilt; a restyle does not.
+                if (before == null || afterBox == null || !before.contentEquals(afterBox)) reindex = true
+            }
+            val replacement = current.storage.updated(updates)
+            next = replacement
+            val index = if (reindex) ShapeGridIndex.build(replacement.size, replacement::bbox) else current.index
+            replaceModel(Model(replacement, index, maxStroke, current.perZoom, current.active))
+            next = null
+            synchronized(cacheLock) {
+                generation.incrementAndGet()
+                dropTilesIn(touched, maxStroke)
+            }
+        } finally {
+            next?.release()
+            current.storage.release()
         }
     }
 
     fun clear() {
-        model = null
+        replaceModel(null)
         synchronized(cacheLock) {
             generation.incrementAndGet()
             tileCache.evictAll()
@@ -200,29 +272,33 @@ internal class ShapeTileRenderer<T : Any>(
         isCancelled: () -> Boolean,
     ): ByteArray? {
         val generationAtStart = generation.get()
-        val m = model ?: return null
-        val z = request.z
-        if (z !in 0..MAX_ZOOM) return null
-        val n = 1 shl z
-        val x = ((request.x % n) + n) % n
-        val y = request.y
-        if (y !in 0 until n) return null
-        val ratio = request.pixelRatio.coerceIn(1, 3)
-        val key = cacheKey(z, x, y, ratio)
-        synchronized(cacheLock) { tileCache.get(key) }?.let { return it }
+        val m = acquireModel() ?: return null
+        try {
+            val z = request.z
+            if (z !in 0..MAX_ZOOM) return null
+            val n = 1 shl z
+            val x = ((request.x % n) + n) % n
+            val y = request.y
+            if (y !in 0 until n) return null
+            val ratio = request.pixelRatio.coerceIn(1, 3)
+            val key = cacheKey(z, x, y, ratio)
+            synchronized(cacheLock) { tileCache.get(key) }?.let { return it }
 
-        val bitmap = draw(m, x, y, z, ratio, isCancelled) ?: return null
-        val bytes =
-            try {
-                encode(bitmap)
-            } finally {
-                releaseScratch(bitmap)
+            val bitmap = draw(m, x, y, z, ratio, isCancelled) ?: return null
+            val bytes =
+                try {
+                    encode(bitmap)
+                } finally {
+                    releaseScratch(bitmap)
+                }
+            synchronized(cacheLock) {
+                // The shapes may have changed while this tile was drawn.
+                if (generation.get() == generationAtStart) tileCache.put(key, bytes)
             }
-        synchronized(cacheLock) {
-            // The shapes may have changed while this tile was drawn.
-            if (generation.get() == generationAtStart) tileCache.put(key, bytes)
+            return bytes
+        } finally {
+            m.storage.release()
         }
-        return bytes
     }
 
     /** The tile as a bitmap, or null when nothing of any shape is in it. For tests and [renderTile]. */
@@ -231,17 +307,23 @@ internal class ShapeTileRenderer<T : Any>(
         y: Int,
         z: Int,
         pixelRatio: Int = 1,
-    ): Bitmap? =
-        model?.let { draw(it, x, y, z, pixelRatio) { false } }?.let { scratch ->
-            try {
-                scratch.copy(Bitmap.Config.ARGB_8888, false)
-            } finally {
-                releaseScratch(scratch)
+    ): Bitmap? {
+        val current = acquireModel() ?: return null
+        return try {
+            draw(current, x, y, z, pixelRatio) { false }?.let { scratch ->
+                try {
+                    scratch.copy(Bitmap.Config.ARGB_8888, false)
+                } finally {
+                    releaseScratch(scratch)
+                }
             }
+        } finally {
+            current.storage.release()
         }
+    }
 
     private fun draw(
-        m: Model,
+        m: Model<T>,
         x: Int,
         y: Int,
         z: Int,
@@ -255,10 +337,9 @@ internal class ShapeTileRenderer<T : Any>(
         // close to the tile too, and draw them whole (the canvas cuts them), so
         // the tile next door draws the same line at the same place.
         val pad = m.maxStroke / 2.0 + 1.0
-        val bboxes = m.bboxes
         val candidates =
             m.index.query(
-                { bboxes[it] },
+                { index -> if (m.active?.get(index) == false) null else m.storage.bbox(index) },
                 (originX - pad) / scale,
                 (originY - pad) / scale,
                 (originX + tileSize + pad) / scale,
@@ -281,7 +362,7 @@ internal class ShapeTileRenderer<T : Any>(
     @Suppress("UNCHECKED_CAST")
     private fun drawInto(
         bitmap: Bitmap,
-        m: Model,
+        m: Model<T>,
         candidates: IntArray,
         originX: Double,
         originY: Double,
@@ -293,10 +374,28 @@ internal class ShapeTileRenderer<T : Any>(
         val canvas = Canvas(bitmap)
         val paints = Paints()
         val perZoom = perZoomOf(m, z)
+        // Subpixel circles are display representatives: keep the last visible
+        // circle at each world pixel. Never remove states or larger circles.
+        val lastDot = IntArray(if (painter.thinSubpixelOverlaps) tileSize * tileSize else 0)
+        if (painter.thinSubpixelOverlaps) {
+            for ((k, index) in candidates.withIndex()) {
+                if (k % CANCEL_CHECK_EVERY == 0 && isCancelled()) throw cancelled()
+                if (m.active != null && !m.active[index]) continue
+                val item = m.storage[index] ?: continue
+                if (!painter.isVisible(item)) continue
+                val slot = painter.subpixelSlot(item, scale, originX, originY, tileSize)
+                if (slot >= 0) lastDot[slot] = index + 1
+            }
+        }
         var drew = false
         for ((k, index) in candidates.withIndex()) {
             if (k % CANCEL_CHECK_EVERY == 0 && isCancelled()) throw cancelled()
-            val item = (m.items[index] ?: continue) as T
+            if (m.active != null && !m.active[index]) continue
+            val item = m.storage[index] ?: continue
+            if (painter.thinSubpixelOverlaps) {
+                val slot = painter.subpixelSlot(item, scale, originX, originY, tileSize)
+                if (slot == -1 || (slot >= 0 && lastDot[slot] != index + 1)) continue
+            }
             val shape = simplifiedAt(perZoom, index, item, scale)
             if (painter.draw(canvas, item, shape, originX, originY, r, paints)) drew = true
         }
@@ -305,17 +404,21 @@ internal class ShapeTileRenderer<T : Any>(
     }
 
     private fun perZoomOf(
-        m: Model,
+        m: Model<T>,
         z: Int,
     ): AtomicReferenceArray<Simplified?> =
-        synchronized(m.perZoom) {
-            // Access order: a lookup makes the zoom the most recent one.
-            m.perZoom[z] ?: AtomicReferenceArray<Simplified?>(m.items.size).also { created ->
-                m.perZoom[z] = created
-                val it = m.perZoom.keys.iterator()
-                while (m.perZoom.size > ZOOMS_KEPT && it.hasNext()) {
-                    it.next()
-                    it.remove()
+        if (!painter.cacheSimplifiedShapes) {
+            AtomicReferenceArray(0)
+        } else {
+            synchronized(m.perZoom) {
+                // Access order: a lookup makes the zoom the most recent one.
+                m.perZoom[z] ?: AtomicReferenceArray<Simplified?>(m.storage.size).also { created ->
+                    m.perZoom[z] = created
+                    val it = m.perZoom.keys.iterator()
+                    while (m.perZoom.size > ZOOMS_KEPT && it.hasNext()) {
+                        it.next()
+                        it.remove()
+                    }
                 }
             }
         }
@@ -326,6 +429,9 @@ internal class ShapeTileRenderer<T : Any>(
         item: T,
         scale: Double,
     ): Any {
+        // Dot and Arc are cheap projections of compact circle data. Caching
+        // them for every source circle at several zooms defeats raster tiling.
+        if (!painter.cacheSimplifiedShapes) return painter.simplify(item, scale)
         val cached = perZoom.get(index)
         if (cached != null && cached.source === item) return cached.shape
         val shape = painter.simplify(item, scale)
@@ -386,19 +492,6 @@ internal class ShapeTileRenderer<T : Any>(
         y: Int,
         ratio: Int,
     ): Long = (z.toLong() shl 56) or (ratio.toLong() shl 54) or (x.toLong() shl 27) or y.toLong()
-
-    @Suppress("UNCHECKED_CAST")
-    private fun bboxAt(
-        items: Array<Any?>,
-        i: Int,
-    ): DoubleArray? = (items[i] as T?)?.let(painter::bbox)
-
-    @Suppress("UNCHECKED_CAST")
-    private fun maxStrokeOf(items: Array<Any?>): Float {
-        var maxStroke = 0f
-        for (item in items) if (item != null) maxStroke = max(maxStroke, painter.strokeWidth(item as T))
-        return maxStroke
-    }
 
     /** Thrown when the map stops wanting a tile mid-draw: a failure it may retry, never an empty tile. */
     @InternalMapConductorApi

@@ -45,7 +45,8 @@ internal class ShapeTiler<S>(
             tiled = emptySet()
             states = emptyList()
         } else {
-            tiled = withContext(Dispatchers.Default) { tileable.mapTo(HashSet(tileable.size * 2), idOf) }
+            // Share the tile set's ID index instead of retaining a second hash set.
+            tiled = tileSet.ids()
             states = tileable
         }
         onTemplate(template, tileSet.tileSize)

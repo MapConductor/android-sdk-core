@@ -55,6 +55,7 @@ class LocalTileServer private constructor(
     private val running = AtomicBoolean(false)
     private val acceptThread = Thread { acceptLoop() }
     private val shedConnections = AtomicLong(0)
+    private val renderPermits = java.util.concurrent.Semaphore(MAX_CONCURRENT_RENDERS)
 
     // Bounded worker pool: excess connections beyond the queue capacity are
     // rejected and closed instead of spawning unbounded threads.
@@ -65,7 +66,12 @@ class LocalTileServer private constructor(
             WORKER_KEEP_ALIVE_SECONDS,
             TimeUnit.SECONDS,
             ArrayBlockingQueue(MAX_QUEUED_CONNECTIONS),
-            { runnable -> Thread(runnable).apply { isDaemon = true } },
+            { runnable ->
+                Thread({
+                    android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+                    runnable.run()
+                }, "MapConductorTileWorker").apply { isDaemon = true }
+            },
         ).apply { allowCoreThreadTimeOut(true) }
 
     @Volatile
@@ -265,6 +271,9 @@ class LocalTileServer private constructor(
                 val reader = BufferedReader(InputStreamReader(peek))
                 var handled = 0
                 while (handled < MAX_KEEP_ALIVE_REQUESTS) {
+                    // Idle keep-alive clients must not occupy all request
+                    // handlers while newer tiles wait in the connection queue.
+                    client.soTimeout = if (handled == 0) SOCKET_TIMEOUT_MS else KEEP_ALIVE_IDLE_TIMEOUT_MS
                     val request = readRequest(reader) ?: break
                     if (!request.valid) {
                         writeResponse(client, "400 Bad Request", "text/plain", "Bad request".toByteArray())
@@ -338,7 +347,19 @@ class LocalTileServer private constructor(
                         break
                     }
 
-                    val outcome = resolveTile(path) { clientGone(client, peek) }
+                    // Renderers check cancellation every few hundred shapes.
+                    // A socket read per check turns 72万 circles into seconds
+                    // of timeout waits. Poll the connection by elapsed time.
+                    var lastProbeNs = System.nanoTime()
+                    val cancelled = {
+                        if (Thread.currentThread().isInterrupted || client.isClosed) true
+                        else {
+                            val now = System.nanoTime()
+                            if (now - lastProbeNs < CANCELLATION_POLL_NS) false
+                            else { lastProbeNs = now; clientGone(client, peek) }
+                        }
+                    }
+                    val outcome = resolveTile(path, cancelled)
                     // A tile that was abandoned mid-render comes back from the
                     // provider looking empty, and the difference matters: an
                     // "empty" answer is a picture the map would cache. Nothing
@@ -570,10 +591,18 @@ class LocalTileServer private constructor(
             }
         val bytes =
             try {
-                provider.renderTile(
-                    TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
-                    isCancelled,
-                )
+                // Connection handling and idle sockets are separate from the
+                // memory-intensive bitmap/PNG work. Keep only two renders live.
+                while (!renderPermits.tryAcquire(16, TimeUnit.MILLISECONDS)) {
+                    if (isCancelled()) return TileOutcome.Failed
+                }
+                try {
+                    if (isCancelled()) return TileOutcome.Failed
+                    provider.renderTile(
+                        TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
+                        isCancelled,
+                    )
+                } finally { renderPermits.release() }
             } catch (error: Exception) {
                 Log.w(TAG, "Tile render failed route=$routeId z=$z x=$x y=$y", error)
                 return TileOutcome.Failed
@@ -767,13 +796,14 @@ class LocalTileServer private constructor(
         private const val FILES_PREFIX = "files"
         private const val MAX_KEEP_ALIVE_REQUESTS = 200
         private const val SOCKET_TIMEOUT_MS = 5000
+        private const val KEEP_ALIVE_IDLE_TIMEOUT_MS = 250
+        private const val CANCELLATION_POLL_NS = 50_000_000L
+        private const val MAX_CONCURRENT_RENDERS = 2
         private const val MAX_HEADER_COUNT = 64
         private const val MAX_LINE_LENGTH = 8192
 
-        // Tile rendering is CPU-bound (canvas + PNG encode), so more workers than
-        // cores adds contention, not throughput. The deep queue absorbs request
-        // bursts (e.g. ArcGIS fetching several LODs during a zoom animation)
-        // without shedding connections.
+        // Serve independent connections without letting idle keep-alives block
+        // the viewport. Bitmap/PNG concurrency is limited separately above.
         private const val MAX_WORKER_THREADS = 8
         private const val MAX_QUEUED_CONNECTIONS = 256
         private const val WORKER_KEEP_ALIVE_SECONDS = 60L

@@ -4,7 +4,9 @@ import com.mapconductor.core.OnCameraMoveHandler
 import com.mapconductor.core.OnMapEventHandler
 import com.mapconductor.core.OnMapInitializedHandler
 import com.mapconductor.core.circle.CircleCapableInterface
+import com.mapconductor.core.circle.CircleController
 import com.mapconductor.core.circle.CircleState
+import com.mapconductor.core.circle.CircleTiler
 import com.mapconductor.core.circle.OnCircleEventHandler
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
@@ -281,6 +283,10 @@ abstract class BaseMapViewController :
         overlayControllers
             .filterIsInstance<SlottedOverlayController<*, *>>()
             .filter { it.kind == kind }
+
+    /** The tilers of this map's circle controllers, for [com.mapconductor.core.circle.CircleOverlay]'s per-map options. */
+    internal fun circleTilers(): List<CircleTiler> =
+        overlayControllersOf(OverlayKind.Circle).mapNotNull { (it as? CircleController<*>)?.tiler }
 
     /** The tilers of this map's polyline controllers, for [com.mapconductor.core.polyline.PolylineOverlay]'s per-map options. */
     internal fun polylineTilers(): List<PolylineTiler> =

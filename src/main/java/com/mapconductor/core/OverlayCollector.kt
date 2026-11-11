@@ -10,6 +10,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -107,27 +108,27 @@ class OverlayCollector<T : ComponentState>(
      */
     private val listening = ConcurrentHashMap<String, T>()
 
-    /** Ids this collector started listening to because they appeared in [flow], not through [add]. */
-    private val listenedFromFlow = ConcurrentHashMap.newKeySet<String>()
+    /** Only direct adds waiting for their debounced membership publication. */
+    private val pendingAdds = ConcurrentHashMap.newKeySet<String>()
 
     init {
         scope.launch {
             addSharedFlow.debounceBatch(5.milliseconds, 100).collect { states ->
-                val newMap = flow.value.toMutableMap()
-                states.forEach { state ->
-                    newMap[state.id] = state
+                flow.update { current ->
+                    copyOverlayStates(current).apply {
+                        states.forEach { state -> this[state.id] = state }
+                    }
                 }
-                flow.value = newMap
             }
         }
 
         scope.launch {
             removeSharedFlow.debounceBatch(5.milliseconds, 300).collect { ids ->
-                val newMap = flow.value.toMutableMap()
-                ids.forEach { id ->
-                    newMap.remove(id)
+                flow.update { current ->
+                    copyOverlayStates(current).apply {
+                        ids.forEach { id -> remove(id) }
+                    }
                 }
-                flow.value = newMap
             }
         }
 
@@ -146,27 +147,29 @@ class OverlayCollector<T : ComponentState>(
         for ((id, state) in states) {
             if (listening[id] !== state) {
                 listen(state)
-                listenedFromFlow.add(id)
             }
+            pendingAdds.remove(id)
         }
         // Only stop what this path started: a state added through [add] may not
         // have reached [flow] yet (membership is debounced).
-        val iterator = listenedFromFlow.iterator()
-        while (iterator.hasNext()) {
-            val id = iterator.next()
-            if (id !in states) {
+        // The listener map already identifies every registered state. Keep a
+        // small exception set for pending direct adds rather than duplicating
+        // the IDs of an entire bulk collection in another concurrent hash set.
+        for (id in listening.keys) {
+            if (id !in states && id !in pendingAdds) {
                 unlisten(id)
-                iterator.remove()
             }
         }
     }
 
     override suspend fun add(state: T) {
+        pendingAdds.add(state.id)
         listen(state)
         addSharedFlow.emit(state)
     }
 
     override fun remove(id: String) {
+        pendingAdds.remove(id)
         unlisten(id)
         removeSharedFlow.tryEmit(id)
     }
@@ -194,7 +197,8 @@ class OverlayCollector<T : ComponentState>(
     }
 
     override fun replaceAll(states: List<T>) {
-        val next = states.associateBy { it.id }.toMutableMap()
+        val next = copyOverlayStates<T>(emptyMap())
+        for (state in states) next[state.id] = state
         for (id in listening.keys.toList()) {
             if (next[id] !== listening[id]) unlisten(id)
         }

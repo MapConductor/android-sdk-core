@@ -2,12 +2,15 @@ package com.mapconductor.core.shapetile
 
 import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.tileserver.LocalTileServer
+import java.util.BitSet
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -35,6 +38,8 @@ internal class ShapeTileSet<S, T : Any>(
     private val idOf: (S) -> String,
     private val zIndexOf: (S) -> Int,
     private val toTile: (S) -> T?,
+    private val canReuse: ((S, T) -> Boolean)? = null,
+    private val createStorage: (suspend (List<S>) -> ShapeTileStorage<T>?)? = null,
 ) {
     val routeId: String = "$routePrefix-${UUID.randomUUID().toString().take(8)}"
 
@@ -45,6 +50,43 @@ internal class ShapeTileSet<S, T : Any>(
 
     private val lock = Any()
     private var indexById: Map<String, Int> = emptyMap()
+    private var sourceStates: MutableList<S?> = mutableListOf()
+    private var sourceZ = IntArray(0)
+    private var active: BitSet? = null
+
+    fun ids(): Set<String> =
+        synchronized(lock) {
+            val mask = active ?: return@synchronized indexById.keys
+            val ids = indexById
+            object : AbstractSet<String>() {
+                override val size = mask.cardinality()
+
+                override fun contains(element: String): Boolean = ids[element]?.let { mask[it] } == true
+
+                override fun iterator(): Iterator<String> =
+                    ids.entries
+                        .asSequence()
+                        .filter { mask[it.value] }
+                        .map { it.key }
+                        .iterator()
+            }
+        }
+
+    fun source(id: String): S? =
+        synchronized(lock) {
+            indexById[id]?.takeIf { active?.get(it) != false }?.let { sourceStates[it] }
+        }
+
+    fun visitSources(action: (S) -> Unit) =
+        synchronized(lock) {
+            for ((index, state) in sourceStates.withIndex()) {
+                if (state != null &&
+                    active?.get(index) != false
+                ) {
+                    action(state)
+                }
+            }
+        }
 
     @Volatile
     private var version = 0
@@ -59,25 +101,92 @@ internal class ShapeTileSet<S, T : Any>(
      */
     suspend fun setShapes(states: List<S>): String {
         cancelPending()
-        val (shapes, ids) =
+        val ordered = withContext(Dispatchers.Default) { states.sortedBy(zIndexOf) }
+        // A filtered collection often refers to the same geometry. Keep the
+        // original slots, including temporarily hidden shapes, for re-enabling.
+        val reused =
             withContext(Dispatchers.Default) {
-                // Draw order is list order: zIndex, then the order given (sortedBy is stable).
-                val ordered = states.sortedBy(zIndexOf)
-                val ids = HashMap<String, Int>(ordered.size * 2)
-                ordered.forEachIndexed { index, state -> ids[idOf(state)] = index }
-                ordered.map(toTile) to ids
+                val context = currentCoroutineContext()
+                synchronized(lock) {
+                    val matches = canReuse
+                    if (!registered || matches == null) {
+                        false
+                    } else {
+                        val mask = BitSet(sourceStates.size)
+                        var previous = -1
+                        var checked = 0
+                        val reusable =
+                            ordered.all { state ->
+                                if (++checked % 4096 == 0) context.ensureActive()
+                                val index = indexById[idOf(state)]
+                                val item = index?.let(renderer::itemAt)
+                                val ok =
+                                    index != null &&
+                                        index > previous &&
+                                        item != null &&
+                                        sourceZ[index] == zIndexOf(state) &&
+                                        matches(state, item)
+                                if (ok) {
+                                    mask.set(index!!)
+                                    previous = index
+                                }
+                                ok
+                            }
+                        if (reusable) {
+                            // Cache geometry, not removed application states/handlers.
+                            for (index in sourceStates.indices) if (!mask[index]) sourceStates[index] = null
+                            for (state in ordered) sourceStates[indexById.getValue(idOf(state))] = state
+                            active = mask
+                            renderer.setActiveItems(mask)
+                            version++
+                        }
+                        reusable
+                    }
+                }
             }
-        synchronized(lock) {
-            renderer.setItems(shapes)
-            if (!registered) server.register(routeId, renderer)
-            indexById = ids
-            registered = true
-            version++
+        if (reused) return template()
+        var prepared: ShapeTileStorage<T>? = null
+        try {
+            val (shapes, ids, sources) =
+                withContext(Dispatchers.Default) {
+                    // Draw order is list order: zIndex, then the order given (sortedBy is stable).
+                    val ids = HashMap<String, Int>(ordered.size * 2)
+                    ordered.forEachIndexed { index, state -> ids[idOf(state)] = index }
+                    val sources: MutableList<S?> = ordered.toMutableList()
+                    prepared = createStorage?.invoke(ordered)
+                    Triple(if (prepared == null) ordered.map(toTile) else emptyList(), ids, sources)
+                }
+            withContext(Dispatchers.Default) {
+                val context = currentCoroutineContext()
+                synchronized(lock) {
+                    val storage = prepared
+                    prepared = null
+                    if (storage !=
+                        null
+                    ) {
+                        renderer.setStorage(storage) { context.ensureActive() }
+                    } else {
+                        renderer.setItems(shapes)
+                    }
+                    if (!registered) server.register(routeId, renderer)
+                    indexById = ids
+                    sourceStates = sources
+                    sourceZ = IntArray(ordered.size) { zIndexOf(ordered[it]) }
+                    active = null
+                    registered = true
+                    version++
+                }
+            }
+            return template()
+        } finally {
+            prepared?.release()
         }
-        return template()
     }
 
-    fun has(id: String): Boolean = synchronized(lock) { indexById.containsKey(id) }
+    fun has(id: String): Boolean =
+        synchronized(lock) {
+            indexById[id]?.let { active?.get(it) != false } == true
+        }
 
     /**
      * One shape changed in place. A change of zIndex reorders the list and
@@ -87,6 +196,7 @@ internal class ShapeTileSet<S, T : Any>(
         synchronized(lock) {
             val id = idOf(state)
             if (!indexById.containsKey(id)) return
+            sourceStates[indexById.getValue(id)] = state
             pending[id] = state
             scheduleFlushLocked()
         }
@@ -100,7 +210,14 @@ internal class ShapeTileSet<S, T : Any>(
     fun remove(id: String) {
         synchronized(lock) {
             val index = indexById[id] ?: return
+            sourceStates[index] = null
             indexById = indexById - id
+            active?.let { previous ->
+                val next = previous.clone() as BitSet
+                next.clear(index)
+                active = next
+                renderer.setActiveItems(next)
+            }
             pending.remove(id)
             pendingRemovals.add(index)
             scheduleFlushLocked()
@@ -127,6 +244,9 @@ internal class ShapeTileSet<S, T : Any>(
             if (registered) server.unregister(routeId)
             registered = false
             indexById = emptyMap()
+            sourceStates = mutableListOf()
+            sourceZ = IntArray(0)
+            active = null
             renderer.clear()
         }
     }
