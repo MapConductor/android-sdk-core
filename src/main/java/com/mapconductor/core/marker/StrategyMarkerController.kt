@@ -19,7 +19,8 @@ class StrategyMarkerController<ActualMarker>(
         MarkerEntityInterface<ActualMarker>,
     >,
     OnCameraChangeReceiverInterface,
-    MarkerEventHostInterface<ActualMarker> {
+    MarkerEventHostInterface<ActualMarker>,
+    MarkerDrawOrderReceiver {
     override val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
     override val zIndex: Int = 10
     private var mapCameraPosition: MapCameraPosition? = null
@@ -146,6 +147,10 @@ class StrategyMarkerController<ActualMarker>(
         val pending = pendingStates ?: return
         pendingStates = null
         add(pending)
+    }
+
+    override suspend fun onDrawOrderFrameChanged(frame: MarkerDrawOrder.Frame) {
+        semaphore.withPermit { renderer.onDrawOrderFrameChanged(frame, markerManager.allEntities()) }
     }
 
     override fun destroy() {

@@ -19,6 +19,9 @@ import com.mapconductor.core.map.MapDiagnostics
 import com.mapconductor.core.map.MapViewHolderInterface
 import com.mapconductor.core.marker.MarkerAnimationOverlayHost
 import com.mapconductor.core.marker.MarkerCapableInterface
+import com.mapconductor.core.marker.MarkerDrawOrder
+import com.mapconductor.core.marker.MarkerDrawOrderReceiver
+import com.mapconductor.core.marker.MarkerDrawOrderTracker
 import com.mapconductor.core.marker.MarkerState
 import com.mapconductor.core.marker.OnMarkerEventHandler
 import com.mapconductor.core.marker.StrategyMarkerController
@@ -54,6 +57,16 @@ abstract class BaseMapViewController :
     private var lastNotifiedCameraPosition: MapCameraPosition? = null
     abstract val mainCoroutine: CoroutineScope
     private val overlayControllers = CopyOnWriteArrayList<OverlayControllerInterface<*, *>>()
+
+    /**
+     * 同じ zIndex のマーカーを地図の向きに合わせて並べ直させる（画面で下ほど手前）。
+     * 回転が止まってから、登録されたマーカーのコントローラ全部へ一度だけ配る。
+     */
+    private val markerDrawOrder by lazy {
+        MarkerDrawOrderTracker(defaultCoroutine) { frame ->
+            overlayControllers.forEach { (it as? MarkerDrawOrderReceiver)?.onDrawOrderFrameChanged(frame) }
+        }
+    }
     protected var cameraMoveStartCallback: OnCameraMoveHandler? = null
     protected var cameraMoveCallback: OnCameraMoveHandler? = null
     protected var cameraMoveEndCallback: OnCameraMoveHandler? = null
@@ -153,6 +166,11 @@ abstract class BaseMapViewController :
     override fun registerOverlayController(controller: OverlayControllerInterface<*, *>) {
         if (overlayControllers.contains(controller)) return
         overlayControllers.add(controller)
+        // 地図が回った後に登録されたら、今の向きで並べ直させる。
+        val frame = markerDrawOrder.frame
+        if (controller is MarkerDrawOrderReceiver && frame != MarkerDrawOrder.Frame.NorthUp) {
+            defaultCoroutine.launch { controller.onDrawOrderFrameChanged(frame) }
+        }
         // 登録が初期カメラ確定より後になることがある（RN の拡張レンダラや遅延マウントの
         // クラスタリングなど）。ユーザー操作までカメライベントを出さないプロバイダ
         // （HERE）では次のイベントが永遠に来ず、「登録したのに一度も計算されない」型の
@@ -536,6 +554,7 @@ abstract class BaseMapViewController :
 
     protected suspend fun notifyMapCameraPosition(mapCameraPosition: MapCameraPosition) {
         lastNotifiedCameraPosition = mapCameraPosition
+        markerDrawOrder.onCameraChanged(mapCameraPosition)
         overlayControllers.forEach {
             if (it is OnCameraChangeReceiverInterface) {
                 it.onCameraChanged(mapCameraPosition)

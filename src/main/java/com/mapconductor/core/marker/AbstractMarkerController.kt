@@ -17,7 +17,8 @@ abstract class AbstractMarkerController<ActualMarker>(
         MarkerState,
         MarkerEntityInterface<ActualMarker>,
     >,
-    MarkerEventHostInterface<ActualMarker> {
+    MarkerEventHostInterface<ActualMarker>,
+    MarkerDrawOrderReceiver {
     override val zIndex: Int = 10
     val semaphore = Semaphore(1)
 
@@ -376,6 +377,10 @@ abstract class AbstractMarkerController<ActualMarker>(
     override fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = markerManager.getEntity(id)
 
     override fun has(id: String): Boolean = markerManager.hasEntity(id)
+
+    override suspend fun onDrawOrderFrameChanged(frame: MarkerDrawOrder.Frame) {
+        semaphore.withPermit { renderer.onDrawOrderFrameChanged(frame, markerManager.allEntities()) }
+    }
 }
 
 private const val MARKER_RENDER_BATCH_SIZE = 500
