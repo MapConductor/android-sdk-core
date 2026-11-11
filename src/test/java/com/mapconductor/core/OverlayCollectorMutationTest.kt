@@ -11,6 +11,7 @@ import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 
 /**
  * In-place changes to a collected state have to reach the update handler.
@@ -33,6 +34,44 @@ class OverlayCollectorMutationTest {
     }
 
     private val window = 5.milliseconds
+
+    @Test
+    fun bulkRemovalStopsListeningAndReinsertionRestoresIt() = runTest {
+        val collector = collector(StandardTestDispatcher(testScheduler))
+        val seen = mutableListOf<String>()
+        collector.setUpdateHandler { seen.add(it.label) }
+        val state = Thing("bulk", "before")
+        collector.flow.value = copyOverlayStates(mapOf(state.id to state))
+        advanceUntilIdle()
+        state.label = "visible"
+        advanceUntilIdle()
+        collector.flow.value = copyOverlayStates(emptyMap())
+        advanceUntilIdle()
+        state.label = "hidden"
+        advanceUntilIdle()
+        collector.flow.value = copyOverlayStates(mapOf(state.id to state))
+        advanceUntilIdle()
+        state.label = "restored"
+        advanceUntilIdle()
+        assertEquals(listOf("visible", "restored"), seen)
+    }
+
+    @Test
+    fun bulkPublicationKeepsPendingDirectAddsListening() = runTest {
+        val collector = collector(StandardTestDispatcher(testScheduler))
+        val seen = mutableListOf<String>()
+        collector.setUpdateHandler { seen.add(it.id) }
+        val pending = Thing("single", "before")
+        val bulk = Thing("bulk", "before")
+        runCurrent()
+        collector.add(pending)
+        collector.flow.value = copyOverlayStates(mapOf(bulk.id to bulk))
+        runCurrent() // Collect the bulk map before the direct add's debounce expires.
+        pending.label = "after"
+        advanceUntilIdle()
+        assertEquals(listOf("single"), seen)
+        assertEquals(setOf("single", "bulk"), collector.flow.value.keys)
+    }
 
     private fun collector(dispatcher: TestDispatcher) =
         OverlayCollector<Thing>(

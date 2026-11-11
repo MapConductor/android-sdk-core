@@ -49,28 +49,34 @@ internal class OverlayAddedTracker<T : ComponentState>(
         controller: Any,
         data: Collection<T>,
         isOnMap: (T) -> Boolean,
+        sourceIds: Set<String>? = null,
     ) {
         if (controller !== this.controller) {
             this.controller = controller
             onMap = emptySet()
         }
         val previous = onMap
-        val next = HashSet<String>(data.size * 2)
+        // A completed bulk composition can share its immutable generation's
+        // source-map keys. Allocate a new ID set only for partial admission.
+        val next = if (sourceIds == null) HashSet<String>(data.size * 2) else null
+        var missing: MutableSet<String>? = null
         var added: MutableList<T>? = null
         var checked = 0
         for (state in data) {
             if (++checked % CHECKS_PER_YIELD == 0) yield()
             val id = state.id
             if (id in previous) {
-                next.add(id)
+                next?.add(id)
             } else if (isOnMap(state)) {
-                next.add(id)
-                (added ?: ArrayList<T>().also { added = it }).add(state)
+                next?.add(id)
+                if (onAddedOf(state) != null) (added ?: ArrayList<T>().also { added = it }).add(state)
+            } else if (sourceIds != null) {
+                (missing ?: HashSet<String>().also { missing = it }).add(id)
             }
         }
         // Recorded and called without suspending, so a cancellation cannot
         // leave some of them called and the rest forgotten.
-        onMap = next
+        onMap = next ?: if (missing == null) sourceIds!! else sourceIds!!.filterTo(HashSet()) { it !in missing!! }
         added?.let(::notify)
     }
 

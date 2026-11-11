@@ -145,7 +145,7 @@ internal class PolygonGridIndex(
     private val cells: HashMap<Long, IntArray>,
     private val large: IntArray,
 ) {
-    private val grid = ShapeGridIndex(cells, large)
+    private var grid = ShapeGridIndex(cells, large)
 
     /**
      * The polygons whose bounding box meets the given box, each once, in
@@ -162,7 +162,7 @@ internal class PolygonGridIndex(
     companion object {
         fun build(polygons: Array<TilePolygon?>): PolygonGridIndex {
             val grid = ShapeGridIndex.build(polygons.size) { polygons[it]?.bbox }
-            return PolygonGridIndex(grid.cells, grid.large)
+            return PolygonGridIndex(grid.cells, grid.large).apply { this.grid = grid }
         }
     }
 }

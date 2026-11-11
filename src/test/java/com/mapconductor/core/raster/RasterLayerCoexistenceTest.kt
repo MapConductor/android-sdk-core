@@ -1,5 +1,6 @@
 package com.mapconductor.core.raster
 
+import com.mapconductor.core.circle.circleTileRasterLayerState
 import com.mapconductor.core.polygon.polygonTileRasterLayerState
 import com.mapconductor.core.polyline.polylineTileRasterLayerState
 import kotlinx.coroutines.CoroutineScope
@@ -9,8 +10,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * 1 枚の地図に載るラスターレイヤーは 4 系統ある。アプリの RasterLayer（add = composition）、
- * マーカータイル（marker-tile-*）、ポリゴンタイル（mc-polygon-tiles）、ポリラインタイル（mc-polyline-tiles）。
+ * 1 枚の地図に載るラスターレイヤーは 5 系統ある。アプリの RasterLayer（add = composition）、
+ * マーカータイル（marker-tile-*）、ポリゴンタイル（mc-polygon-tiles）、ポリラインタイル（mc-polyline-tiles）、
+ * 円のタイル（mc-circle-tiles）。
  *
  * js-sdk-core の `RasterLayerCoexistence.test.mjs`、ios-sdk の `RasterLayerCoexistenceTests` と
  * 1 対 1 で対応する。
@@ -59,31 +61,38 @@ class RasterLayerCoexistenceTest {
         )
 
     @Test
-    fun `アプリの RasterLayer・マーカータイル・ポリゴンタイル・ポリラインタイルは互いを消さない`() =
+    fun `アプリの RasterLayer・マーカータイル・ポリゴンタイル・ポリラインタイル・円のタイルは互いを消さない`() =
         runBlocking {
             val onMap = mutableSetOf<String>()
             val controller = Controller(Renderer(onMap))
             controller.add(listOf(layer("relief")))
             controller.upsert(polygonTileRasterLayerState("http://127.0.0.1/tiles/p/256/1/{z}/{x}/{y}.png"))
+            controller.upsert(circleTileRasterLayerState("http://127.0.0.1/tiles/c/256/1/{z}/{x}/{y}.png"))
             controller.upsert(polylineTileRasterLayerState("http://127.0.0.1/tiles/l/256/1/{z}/{x}/{y}.png"))
             controller.upsert(markerTiles(1))
-            assertEquals(listOf("marker-tile-m", "mc-polygon-tiles", "mc-polyline-tiles", "relief"), onMap.sorted())
+            val sdk = listOf("marker-tile-m", "mc-circle-tiles", "mc-polygon-tiles", "mc-polyline-tiles")
+            assertEquals(sdk + "relief", onMap.sorted())
 
             // アプリの RasterLayer が変わっても、SDK のタイルは残る
             controller.add(listOf(layer("photo")))
-            assertEquals(listOf("marker-tile-m", "mc-polygon-tiles", "mc-polyline-tiles", "photo"), onMap.sorted())
+            assertEquals(sdk + "photo", onMap.sorted())
 
             // マーカータイルの版が変わっても、ほかは残る
             controller.upsert(markerTiles(2))
-            assertEquals(listOf("marker-tile-m", "mc-polygon-tiles", "mc-polyline-tiles", "photo"), onMap.sorted())
+            assertEquals(sdk + "photo", onMap.sorted())
 
-            // ポリラインタイルの版が変わっても、ほかは残る
+            // ポリラインタイル・円のタイルの版が変わっても、ほかは残る
             controller.upsert(polylineTileRasterLayerState("http://127.0.0.1/tiles/l/256/2/{z}/{x}/{y}.png"))
-            assertEquals(listOf("marker-tile-m", "mc-polygon-tiles", "mc-polyline-tiles", "photo"), onMap.sorted())
+            controller.upsert(circleTileRasterLayerState("http://127.0.0.1/tiles/c/256/2/{z}/{x}/{y}.png"))
+            assertEquals(sdk + "photo", onMap.sorted())
 
             // マーカータイルとポリラインタイルを外しても、ほかは残る
             controller.removeById("marker-tile-m")
             controller.removeById("mc-polyline-tiles")
+            assertEquals(listOf("mc-circle-tiles", "mc-polygon-tiles", "photo"), onMap.sorted())
+
+            // 円のタイルを外しても、ほかは残る
+            controller.removeById("mc-circle-tiles")
             assertEquals(listOf("mc-polygon-tiles", "photo"), onMap.sorted())
         }
 }

@@ -36,16 +36,82 @@ class CircleState(
      */
     override val mutations = StateMutationSignal()
 
-    var center by mutations.notifying(center)
-    var clickable by mutations.notifying(clickable)
-    var radiusMeters by mutations.notifying(radiusMeters)
-    var geodesic by mutations.notifying(geodesic)
-    var strokeColor by mutations.notifying(strokeColor)
-    var strokeWidth by mutations.notifying(strokeWidth)
-    var fillColor by mutations.notifying(fillColor)
-    var extra by mutations.notifying(extra)
-    var zIndex by mutations.notifying<Int?>(zIndex)
-    var onClick by mutations.notifying(onClick)
+    // One Compose snapshot record per circle, rather than one per attribute.
+    private data class Values(
+        val center: GeoPointInterface,
+        val clickable: Boolean,
+        val radiusMeters: Double,
+        val geodesic: Boolean,
+        val strokeColor: Color,
+        val strokeWidth: Dp,
+        val fillColor: Color,
+        val extra: Serializable?,
+        val zIndex: Int?,
+        val onClick: OnCircleEventHandler?,
+        val revision: Long = 0,
+        val changedFields: Int = 0,
+    ) {
+        fun difference(other: Values): Int {
+            var mask = 0
+            if (center != other.center) mask = mask or (1 shl 0)
+            if (clickable != other.clickable) mask = mask or (1 shl 3)
+            if (radiusMeters != other.radiusMeters) mask = mask or (1 shl 1)
+            if (geodesic != other.geodesic) mask = mask or (1 shl 2)
+            if (strokeColor != other.strokeColor) mask = mask or (1 shl 4)
+            if (strokeWidth != other.strokeWidth) mask = mask or (1 shl 5)
+            if (fillColor != other.fillColor) mask = mask or (1 shl 6)
+            if (extra != other.extra) mask = mask or (1 shl 7)
+            if (zIndex != other.zIndex) mask = mask or (1 shl 8)
+            return mask
+        }
+    }
+    internal fun captureValues(): Any = values
+    internal fun changeMaskSince(snapshot: Any, sameState: Boolean): Int {
+        val applied = snapshot as Values
+        val current = values
+        if (current === applied) return 0
+        return if (sameState && current.revision != applied.revision) current.changedFields
+        else applied.difference(current)
+    }
+    internal fun snapshotFingerPrint(snapshot: Any): CircleFingerPrint = fingerPrint(snapshot as Values)
+    private var values by androidx.compose.runtime.mutableStateOf(Values(center, clickable, radiusMeters, geodesic, strokeColor, strokeWidth, fillColor, extra, zIndex, onClick))
+
+    private fun update(next: Values) {
+        if (values == next) return
+        values = next.copy(revision = values.revision + 1, changedFields = values.changedFields or values.difference(next))
+        mutations.notifyMutated()
+    }
+
+    var center: GeoPointInterface
+        get() = values.center
+        set(value) { update(values.copy(center = value)) }
+    var clickable: Boolean
+        get() = values.clickable
+        set(value) { update(values.copy(clickable = value)) }
+    var radiusMeters: Double
+        get() = values.radiusMeters
+        set(value) { update(values.copy(radiusMeters = value)) }
+    var geodesic: Boolean
+        get() = values.geodesic
+        set(value) { update(values.copy(geodesic = value)) }
+    var strokeColor: Color
+        get() = values.strokeColor
+        set(value) { update(values.copy(strokeColor = value)) }
+    var strokeWidth: Dp
+        get() = values.strokeWidth
+        set(value) { update(values.copy(strokeWidth = value)) }
+    var fillColor: Color
+        get() = values.fillColor
+        set(value) { update(values.copy(fillColor = value)) }
+    var extra: Serializable?
+        get() = values.extra
+        set(value) { update(values.copy(extra = value)) }
+    var zIndex: Int?
+        get() = values.zIndex
+        set(value) { update(values.copy(zIndex = value)) }
+    var onClick: OnCircleEventHandler?
+        get() = values.onClick
+        set(value) { update(values.copy(onClick = value)) }
 
     /**
      * Called once each time this circle goes from not being on the map to being on it:
@@ -120,18 +186,20 @@ class CircleState(
             31 * result + hashCode
         }
 
-    fun fingerPrint(): CircleFingerPrint =
+    fun fingerPrint(): CircleFingerPrint = fingerPrint(values)
+
+    private fun fingerPrint(snapshot: Values): CircleFingerPrint =
         CircleFingerPrint(
             id = this.id.hashCode(),
-            center = center.hashCode(),
-            radiusMeters = radiusMeters.hashCode(),
-            clickable = clickable.hashCode(),
-            geodesic = geodesic.hashCode(),
-            strokeColor = strokeColor.hashCode(),
-            strokeWidth = strokeWidth.hashCode(),
-            fillColor = fillColor.hashCode(),
-            zIndex = zIndex.hashCode(),
-            extra = extra?.hashCode() ?: 0,
+            center = snapshot.center.hashCode(),
+            radiusMeters = snapshot.radiusMeters.hashCode(),
+            clickable = snapshot.clickable.hashCode(),
+            geodesic = snapshot.geodesic.hashCode(),
+            strokeColor = snapshot.strokeColor.hashCode(),
+            strokeWidth = snapshot.strokeWidth.hashCode(),
+            fillColor = snapshot.fillColor.hashCode(),
+            zIndex = snapshot.zIndex.hashCode(),
+            extra = snapshot.extra?.hashCode() ?: 0,
         )
 
     fun copy(

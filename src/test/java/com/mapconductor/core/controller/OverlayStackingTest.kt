@@ -160,6 +160,62 @@ class ShapeTileStackingTest {
     }
 }
 
+/**
+ * 円のタイルはサークルの帯の一番下: ポリゴン（タイル・ネイティブとも）の上、ネイティブの円・
+ * ポリラインのタイル・マーカー（のタイル）の下。
+ */
+class CircleTileStackingTest {
+    private val polygonTile = OverlayStacking.Key(OverlayKind.Polygon, Int.MIN_VALUE)
+    private val circleTile = OverlayStacking.Key(OverlayKind.Circle, Int.MIN_VALUE)
+    private val polylineTile = OverlayStacking.Key(OverlayKind.Polyline, Int.MIN_VALUE)
+    private val markerTile = OverlayStacking.Key(OverlayKind.Marker, Int.MIN_VALUE)
+
+    @Test
+    fun `円のタイルはポリゴンの上、ネイティブの円・ポリラインのタイル・マーカーの下`() {
+        val keys =
+            listOf(
+                markerTile,
+                polylineTile,
+                OverlayStacking.Key(OverlayKind.Circle, -1_000_000),
+                circleTile,
+                OverlayStacking.Key(OverlayKind.Polygon, Int.MAX_VALUE),
+                polygonTile,
+            )
+        assertEquals(keys.reversed(), keys.sorted())
+    }
+
+    @Test
+    fun `flatZIndex でも同じ順`() {
+        val circleTileZ = OverlayStacking.flatZIndex(OverlayKind.Circle, Int.MIN_VALUE)
+        assertTrue(circleTileZ > OverlayStacking.flatZIndex(OverlayKind.Polygon, Int.MAX_VALUE))
+        assertTrue(circleTileZ > OverlayStacking.flatZIndex(OverlayKind.Polygon, Int.MIN_VALUE))
+        assertTrue(circleTileZ < OverlayStacking.flatZIndex(OverlayKind.Circle, -1_000))
+        assertTrue(circleTileZ < OverlayStacking.flatZIndex(OverlayKind.Polyline, Int.MIN_VALUE))
+        assertTrue(circleTileZ < OverlayStacking.flatZIndex(OverlayKind.Marker, Int.MIN_VALUE))
+    }
+
+    @Test
+    fun `GL 系の層の並びでは、ポリゴンのタイルの上、ネイティブの円とポリラインのタイルの下へ入る`() {
+        val stack = OverlayLayerStack()
+        stack.put("raster-layer-mc-polygon-tiles", polygonTile)
+        stack.put("circle-layer", OverlayStacking.Key(OverlayKind.Circle))
+        stack.put("raster-layer-mc-polyline-tiles", polylineTile)
+        stack.put("raster-layer-marker-tile-1", markerTile)
+        val layers =
+            listOf(
+                "water",
+                "raster-layer-mc-polygon-tiles",
+                "circle-layer",
+                "raster-layer-mc-polyline-tiles",
+                "raster-layer-marker-tile-1",
+            )
+        assertEquals("circle-layer", stack.beforeId(layers, circleTile))
+        // ネイティブの円が無ければポリラインのタイルの下
+        stack.remove("circle-layer")
+        assertEquals("raster-layer-mc-polyline-tiles", stack.beforeId(layers - "circle-layer", circleTile))
+    }
+}
+
 class OverlayLayerStackTest {
     @Test
     fun `台帳に無い層は無視し、スタイルを読み直しても同じ位置を返す`() {

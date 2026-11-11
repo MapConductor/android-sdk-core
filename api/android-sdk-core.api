@@ -95,7 +95,7 @@ public interface com.mapconductor.core.circle.CircleCapableInterface {
   public abstract void setOnCircleClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.circle.CircleEvent, kotlin.Unit>);
   public abstract boolean hasCircle(com.mapconductor.core.circle.CircleState);
 }
-public abstract class com.mapconductor.core.circle.CircleController<ActualCircle> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.circle.CircleState, com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>> {
+public abstract class com.mapconductor.core.circle.CircleController<ActualCircle> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.circle.CircleState, com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>>, com.mapconductor.core.controller.OnCameraChangeReceiverInterface {
   public com.mapconductor.core.circle.CircleController(com.mapconductor.core.circle.CircleManagerInterface<ActualCircle>, com.mapconductor.core.circle.CircleOverlayRendererInterface<ActualCircle>);
   public final com.mapconductor.core.circle.CircleManagerInterface<ActualCircle> getCircleManager();
   public com.mapconductor.core.circle.CircleOverlayRendererInterface<ActualCircle> getRenderer();
@@ -103,11 +103,14 @@ public abstract class com.mapconductor.core.circle.CircleController<ActualCircle
   public final kotlinx.coroutines.sync.Semaphore getSemaphore();
   public final kotlin.jvm.functions.Function1<com.mapconductor.core.circle.CircleEvent, kotlin.Unit> getClickListener();
   public final void setClickListener(kotlin.jvm.functions.Function1<? super com.mapconductor.core.circle.CircleEvent, kotlin.Unit>);
+  public final com.mapconductor.core.circle.CircleTiler getTiler();
+  public final void setTiler(com.mapconductor.core.circle.CircleTiler);
   public final void dispatchClick(com.mapconductor.core.circle.CircleEvent);
   public java.lang.Object add(java.util.List<com.mapconductor.core.circle.CircleState>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public java.lang.Object update(com.mapconductor.core.circle.CircleState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> find(com.mapconductor.core.features.GeoPointInterface);
+  public java.lang.Object onCameraChanged(com.mapconductor.core.map.MapCameraPosition, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void destroy();
   public boolean has(java.lang.String);
   public com.mapconductor.core.controller.OverlayKind getKind();
@@ -165,14 +168,17 @@ public final class com.mapconductor.core.circle.CircleKt {
 }
 public final class com.mapconductor.core.circle.CircleManager<ActualCircle> implements com.mapconductor.core.circle.CircleManagerInterface<ActualCircle> {
   public com.mapconductor.core.circle.CircleManager();
+  public boolean setTiledSource(com.mapconductor.core.circle.CircleTiler);
   public com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> getEntity(java.lang.String);
   public boolean hasEntity(java.lang.String);
   public com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> removeEntity(java.lang.String);
   public void registerEntity(com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>);
   public final void updateEntity(com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>);
+  public java.util.List<com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>> nativeEntities();
   public java.util.List<com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>> allEntities();
   public void clear();
   public com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> find(com.mapconductor.core.features.GeoPointInterface);
+  public com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> find(com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.map.MapCameraPosition);
 }
 public interface com.mapconductor.core.circle.CircleManagerInterface<ActualCircle> {
   public abstract void registerEntity(com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>);
@@ -180,13 +186,23 @@ public interface com.mapconductor.core.circle.CircleManagerInterface<ActualCircl
   public abstract com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> getEntity(java.lang.String);
   public abstract boolean hasEntity(java.lang.String);
   public abstract java.util.List<com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>> allEntities();
+  public default java.util.List<com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>> nativeEntities();
+  public default boolean setTiledSource(com.mapconductor.core.circle.CircleTiler);
   public abstract void clear();
   public abstract com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> find(com.mapconductor.core.features.GeoPointInterface);
+  public default com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> find(com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.map.MapCameraPosition);
+}
+public final class com.mapconductor.core.circle.CircleManagerInterface$DefaultImpls {
+  public static <ActualCircle> java.util.List<com.mapconductor.core.circle.CircleEntityInterface<ActualCircle>> nativeEntities(com.mapconductor.core.circle.CircleManagerInterface<ActualCircle>);
+  public static <ActualCircle> boolean setTiledSource(com.mapconductor.core.circle.CircleManagerInterface<ActualCircle>, com.mapconductor.core.circle.CircleTiler);
+  public static <ActualCircle> com.mapconductor.core.circle.CircleEntityInterface<ActualCircle> find(com.mapconductor.core.circle.CircleManagerInterface<ActualCircle>, com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.map.MapCameraPosition);
 }
 public final class com.mapconductor.core.circle.CircleOverlay implements com.mapconductor.core.map.MapOverlayInterface<com.mapconductor.core.circle.CircleState> {
-  public com.mapconductor.core.circle.CircleOverlay(kotlinx.coroutines.flow.StateFlow<? extends java.util.Map<java.lang.String, com.mapconductor.core.circle.CircleState>>);
+  public com.mapconductor.core.circle.CircleOverlay(kotlinx.coroutines.flow.StateFlow<? extends java.util.Map<java.lang.String, com.mapconductor.core.circle.CircleState>>, kotlinx.coroutines.flow.StateFlow<com.mapconductor.core.circle.CircleTilingOptions>);
+  public com.mapconductor.core.circle.CircleOverlay(kotlinx.coroutines.flow.StateFlow, kotlinx.coroutines.flow.StateFlow, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public kotlinx.coroutines.flow.StateFlow<java.util.Map<java.lang.String, com.mapconductor.core.circle.CircleState>> getFlow();
   public java.lang.Object render(java.util.Map<java.lang.String, com.mapconductor.core.circle.CircleState>, com.mapconductor.core.controller.MapViewControllerInterface, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public com.mapconductor.core.circle.CircleOverlay(kotlinx.coroutines.flow.StateFlow<? extends java.util.Map<java.lang.String, com.mapconductor.core.circle.CircleState>>);
 }
 public interface com.mapconductor.core.circle.CircleOverlayRendererInterface<ActualCircle> {
   public abstract java.lang.Object onAdd(java.util.List<? extends com.mapconductor.core.circle.CircleOverlayRendererInterface$AddParamsInterface>, kotlin.coroutines.Continuation<? super java.util.List<? extends ActualCircle>>);
@@ -235,6 +251,95 @@ public final class com.mapconductor.core.circle.CircleState implements com.mapco
   public int hashCode();
   public com.mapconductor.core.circle.CircleState(com.mapconductor.core.features.GeoPointInterface, double, boolean, boolean, long, float, long, java.lang.String, java.lang.Integer, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
   public com.mapconductor.core.circle.CircleState(com.mapconductor.core.features.GeoPointInterface, double, boolean, boolean, long, float, long, java.lang.String, java.lang.Integer, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
+}
+final class com.mapconductor.core.circle.CircleState$Values {
+  public final com.mapconductor.core.features.GeoPointInterface getCenter();
+  public final boolean getClickable();
+  public final double getRadiusMeters();
+  public final boolean getGeodesic();
+  public final long getStrokeColor-0d7_KjU();
+  public final float getStrokeWidth-D9Ej5fM();
+  public final long getFillColor-0d7_KjU();
+  public final java.io.Serializable getExtra();
+  public final java.lang.Integer getZIndex();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.circle.CircleEvent, kotlin.Unit> getOnClick();
+  public final long getRevision();
+  public final int getChangedFields();
+  public final int difference(com.mapconductor.core.circle.CircleState$Values);
+  public final com.mapconductor.core.features.GeoPointInterface component1();
+  public final boolean component2();
+  public final double component3();
+  public final boolean component4();
+  public final long component5-0d7_KjU();
+  public final float component6-D9Ej5fM();
+  public final long component7-0d7_KjU();
+  public final java.io.Serializable component8();
+  public final java.lang.Integer component9();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.circle.CircleEvent, kotlin.Unit> component10();
+  public final long component11();
+  public final int component12();
+  public final com.mapconductor.core.circle.CircleState$Values copy-Zc45R8w(com.mapconductor.core.features.GeoPointInterface, boolean, double, boolean, long, float, long, java.io.Serializable, java.lang.Integer, kotlin.jvm.functions.Function1<? super com.mapconductor.core.circle.CircleEvent, kotlin.Unit>, long, int);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
+public final class com.mapconductor.core.circle.CircleTileSet {
+  public static final com.mapconductor.core.circle.CircleTileSet$Companion Companion;
+  public com.mapconductor.core.circle.CircleTileSet(com.mapconductor.core.tileserver.LocalTileServer, kotlinx.coroutines.CoroutineScope);
+  public com.mapconductor.core.circle.CircleTileSet(com.mapconductor.core.tileserver.LocalTileServer, kotlinx.coroutines.CoroutineScope, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final java.lang.String getRouteId();
+  public final kotlin.jvm.functions.Function2<java.lang.String, kotlin.coroutines.Continuation<? super kotlin.Unit>, java.lang.Object> getOnTemplateChanged();
+  public final void setOnTemplateChanged(kotlin.jvm.functions.Function2<? super java.lang.String, ? super kotlin.coroutines.Continuation<? super kotlin.Unit>, ? extends java.lang.Object>);
+  public final int getTileSize();
+  public final java.lang.Object setCircles(java.util.List<com.mapconductor.core.circle.CircleState>, kotlin.coroutines.Continuation<? super java.lang.String>);
+  public final boolean has(java.lang.String);
+  public final void update(com.mapconductor.core.circle.CircleState);
+  public final void remove(java.lang.String);
+  public final java.lang.String template();
+  public final void dispose();
+  public com.mapconductor.core.circle.CircleTileSet();
+}
+public final class com.mapconductor.core.circle.CircleTileSet$Companion {
+  public final boolean canTile(com.mapconductor.core.circle.CircleState);
+}
+public final class com.mapconductor.core.circle.CircleTiler {
+  public com.mapconductor.core.circle.CircleTiler(com.mapconductor.core.circle.CircleTilingOptions);
+  public com.mapconductor.core.circle.CircleTiler(com.mapconductor.core.circle.CircleTilingOptions, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final com.mapconductor.core.circle.CircleTilingOptions getOptions();
+  public final void setOptions(com.mapconductor.core.circle.CircleTilingOptions);
+  public final kotlin.jvm.functions.Function3<java.lang.String, java.lang.Integer, kotlin.coroutines.Continuation<? super kotlin.Unit>, java.lang.Object> getOnTemplate();
+  public final void setOnTemplate(kotlin.jvm.functions.Function3<? super java.lang.String, ? super java.lang.Integer, ? super kotlin.coroutines.Continuation<? super kotlin.Unit>, ? extends java.lang.Object>);
+  public final java.lang.Object route(java.util.List<com.mapconductor.core.circle.CircleState>, kotlin.coroutines.Continuation<? super java.util.Set<java.lang.String>>);
+  public final java.util.List<com.mapconductor.core.circle.CircleState> tiledStates();
+  public final boolean isTiled(java.lang.String);
+  public final void update(com.mapconductor.core.circle.CircleState);
+  public final void remove(java.lang.String);
+  public final void dispose();
+  public final java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public com.mapconductor.core.circle.CircleTiler();
+}
+public final class com.mapconductor.core.circle.CircleTilerKt {
+  public static final java.lang.String CIRCLE_TILE_LAYER_ID;
+  public static final com.mapconductor.core.raster.RasterLayerState circleTileRasterLayerState(java.lang.String, int);
+}
+public final class com.mapconductor.core.circle.CircleTilingOptions {
+  public static final com.mapconductor.core.circle.CircleTilingOptions$Companion Companion;
+  public com.mapconductor.core.circle.CircleTilingOptions(boolean, int);
+  public com.mapconductor.core.circle.CircleTilingOptions(boolean, int, int, kotlin.jvm.internal.DefaultConstructorMarker);
+  public final boolean getEnabled();
+  public final int getMinCircleCount();
+  public final boolean shouldUseTiles(int);
+  public final boolean component1();
+  public final int component2();
+  public final com.mapconductor.core.circle.CircleTilingOptions copy(boolean, int);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+  public com.mapconductor.core.circle.CircleTilingOptions();
+}
+public final class com.mapconductor.core.circle.CircleTilingOptions$Companion {
+  public final com.mapconductor.core.circle.CircleTilingOptions getDefault();
+  public final com.mapconductor.core.circle.CircleTilingOptions getDisabled();
 }
 public abstract class com.mapconductor.core.controller.BaseMapViewController implements com.mapconductor.core.controller.MapViewControllerInterface,com.mapconductor.core.marker.MarkerCapableInterface,com.mapconductor.core.polyline.PolylineCapableInterface,com.mapconductor.core.polygon.PolygonCapableInterface,com.mapconductor.core.circle.CircleCapableInterface,com.mapconductor.core.groundimage.GroundImageCapableInterface,com.mapconductor.core.raster.RasterLayerCapableInterface {
   public static final double ZOOM_EPS;
@@ -3034,6 +3139,12 @@ public final class com.mapconductor.core.raster.TileScheme extends java.lang.Enu
   public static com.mapconductor.core.raster.TileScheme[] values();
   public static com.mapconductor.core.raster.TileScheme valueOf(java.lang.String);
   public static kotlin.enums.EnumEntries<com.mapconductor.core.raster.TileScheme> getEntries();
+}
+public final class com.mapconductor.core.shapetile.ShapeTileRenderer$Painter$DefaultImpls {
+  public static <T> boolean getCacheSimplifiedShapes(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>);
+  public static <T> boolean getThinSubpixelOverlaps(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>);
+  public static <T> boolean isVisible(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>, T);
+  public static <T> int subpixelSlot(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>, T, double, double, double, int);
 }
 public final class com.mapconductor.core.spherical.CalculateMetersPerPixelKt {
   public static final double calculateMetersPerPixel(double, double, double);
