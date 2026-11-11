@@ -430,7 +430,10 @@ class MarkerTileRenderer<ActualMarker>(
                 } else {
                     markerManager.findMarkersInBounds(extended)
                 }
-            return found.filter { it.tiling }
+            // 後に描いたものが上に残る（間引きでも各マス目の最後が勝つ）。描く順を
+            // [MarkerDrawOrder] にそろえる: zIndex が大きいほど、同じなら南・西ほど上。
+            // 索引の列挙順に任せると、ネイティブのマーカーと前後が食い違う。
+            return found.filter { it.tiling }.sortedBy { MarkerDrawOrder.of(it.state.zIndex, it.state.position) }
         }
 
         // First query uses a conservative padding (in dp) so we capture markers slightly outside
