@@ -28,6 +28,20 @@ interface MapCameraPositionInterface {
     val tilt: Double
     val paddings: MapPaddingsInterface?
     val visibleRegion: VisibleRegion?
+
+    /**
+     * 描画しているカメラの**縦方向**の視野角（度）。今の地図の大きさでの値。
+     *
+     * 地図SDKごとに違う（MapLibre 系は約 37°、Google Maps は約 25° など）。値は
+     * 各プロバイダが持ち、コアは固定値を持たない。
+     *
+     * - `0.0`: tilt を遠近なしで描いている（傾きをエミュレートしているプロバイダ）
+     * - `null`: 分からない、または地図を傾けられない
+     *
+     * [visibleRegion] と同じく**読み取り専用**: カメラを読んだときに入り、
+     * カメラを動かすときには使われない。
+     */
+    val fov: Double? get() = null
 }
 
 class MapCameraPosition(
@@ -37,6 +51,7 @@ class MapCameraPosition(
     tilt: Double? = null,
     override val paddings: MapPaddingsInterface? = MapPaddings.Companion.Zeros,
     override val visibleRegion: VisibleRegion? = null,
+    override val fov: Double? = null,
 ) : MapCameraPositionInterface {
     override val position: GeoPoint = GeoPoint.from(position)
 
@@ -79,6 +94,7 @@ class MapCameraPosition(
             tilt = givenTilt ?: current.tilt,
             paddings = paddings,
             visibleRegion = visibleRegion,
+            fov = fov,
         )
     }
 
@@ -96,6 +112,7 @@ class MapCameraPosition(
         tilt: Double? = this.givenTilt,
         paddings: MapPaddingsInterface? = this.paddings,
         visibleRegion: VisibleRegion? = this.visibleRegion,
+        fov: Double? = this.fov,
     ) = MapCameraPosition(
         position = position ?: this.position,
         zoom = zoom ?: this.givenZoom,
@@ -103,6 +120,7 @@ class MapCameraPosition(
         tilt = tilt ?: this.givenTilt,
         paddings = paddings ?: this.paddings,
         visibleRegion = visibleRegion ?: this.visibleRegion,
+        fov = fov ?: this.fov,
     )
 
     private fun zoomEquals(other: MapCameraPositionInterface): Boolean {
