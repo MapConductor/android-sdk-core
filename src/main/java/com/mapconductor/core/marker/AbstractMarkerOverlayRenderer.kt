@@ -45,6 +45,30 @@ abstract class AbstractMarkerOverlayRenderer<
      */
     open val supportsAnimationOverlay: Boolean = false
 
+    /** 同じ zIndex のマーカーを並べる向き（[onDrawOrderFrameChanged] で変わる）。 */
+    var drawOrderFrame: MarkerDrawOrder.Frame = MarkerDrawOrder.Frame.NorthUp
+        private set
+
+    /** [drawOrderFrame] で並べたときの描く順。大きいほど手前。 */
+    fun drawOrderOf(state: MarkerState): Double = MarkerDrawOrder.of(state.zIndex, state.position, drawOrderFrame)
+
+    /** [drawOrderOf] の整数版。 */
+    fun drawOrderIntOf(state: MarkerState): Int = MarkerDrawOrder.ofInt(state.zIndex, state.position, drawOrderFrame)
+
+    override suspend fun onDrawOrderFrameChanged(
+        frame: MarkerDrawOrder.Frame,
+        entities: List<MarkerEntityInterface<ActualMarker>>,
+    ) {
+        drawOrderFrame = frame
+        applyDrawOrder(entities)
+    }
+
+    /**
+     * [drawOrderFrame] が変わったので、[entities] の描く順を付け直す。
+     * 既定は何もしない（北が上の順のまま）。
+     */
+    protected open suspend fun applyDrawOrder(entities: List<MarkerEntityInterface<ActualMarker>>) = Unit
+
     /** Hide/show the native marker while the overlay animation runs. */
     open fun setMarkerVisible(
         markerEntity: MarkerEntityInterface<ActualMarker>,

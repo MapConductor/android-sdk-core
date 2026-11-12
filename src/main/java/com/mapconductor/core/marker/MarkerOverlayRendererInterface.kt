@@ -51,4 +51,16 @@ interface MarkerOverlayRendererInterface<ActualMarker> {
      * ドラッグ層を持つプロバイダがここで層を描き直す。
      */
     fun onDragPositionChanged(position: GeoPointInterface) = Unit
+
+    /**
+     * 地図が回って、同じ zIndex のマーカーを並べる向きが変わった。
+     *
+     * [frame] を覚えておき、以後のマーカーも [MarkerDrawOrder] にこれを渡して並べる。
+     * [entities] は今ある全マーカー。ネイティブの描く順を付け直す。**既定は何もしない**
+     * （北が上の順のまま）。
+     */
+    suspend fun onDrawOrderFrameChanged(
+        frame: MarkerDrawOrder.Frame,
+        entities: List<MarkerEntityInterface<ActualMarker>>,
+    ) = Unit
 }

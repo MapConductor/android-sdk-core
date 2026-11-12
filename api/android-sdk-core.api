@@ -303,6 +303,9 @@ public final class com.mapconductor.core.circle.CircleTileSet$Companion {
   public final boolean canTile(com.mapconductor.core.circle.CircleState);
 }
 public final class com.mapconductor.core.circle.CircleTiler {
+  public static final double MAX_LATITUDE;
+  public static final double TAP_STROKE_SLACK_PX;
+  public static final double TAP_SLACK_METERS;
   public com.mapconductor.core.circle.CircleTiler(com.mapconductor.core.circle.CircleTilingOptions);
   public com.mapconductor.core.circle.CircleTiler(com.mapconductor.core.circle.CircleTilingOptions, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final com.mapconductor.core.circle.CircleTilingOptions getOptions();
@@ -317,6 +320,8 @@ public final class com.mapconductor.core.circle.CircleTiler {
   public final void dispose();
   public final java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public com.mapconductor.core.circle.CircleTiler();
+}
+final class com.mapconductor.core.circle.CircleTiler$Companion {
 }
 public final class com.mapconductor.core.circle.CircleTilerKt {
   public static final java.lang.String CIRCLE_TILE_LAYER_ID;
@@ -1227,10 +1232,16 @@ public interface com.mapconductor.core.map.MapViewHolderInterface<ActualMapView,
   public abstract androidx.compose.ui.geometry.Offset toScreenOffset-x-9fifI(com.mapconductor.core.features.GeoPointInterface);
   public default java.lang.Object fromScreenOffset-3MmeM6k(long, kotlin.coroutines.Continuation<? super com.mapconductor.core.features.GeoPoint>);
   public default com.mapconductor.core.features.GeoPoint fromScreenOffsetSync-k-4lQ0M(long);
+  public default com.mapconductor.core.projection.MapCoordinateSystem getCoordinateSystem();
+  public default com.mapconductor.core.projection.ProjectedPoint toProjectedPoint(com.mapconductor.core.features.GeoPointInterface);
+  public default com.mapconductor.core.features.GeoPoint fromProjectedPoint(com.mapconductor.core.projection.ProjectedPoint);
 }
 public final class com.mapconductor.core.map.MapViewHolderInterface$DefaultImpls {
   public static <ActualMapView, ActualMap> java.lang.Object fromScreenOffset-3MmeM6k(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, long, kotlin.coroutines.Continuation<? super com.mapconductor.core.features.GeoPoint>);
   public static <ActualMapView, ActualMap> com.mapconductor.core.features.GeoPoint fromScreenOffsetSync-k-4lQ0M(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, long);
+  public static <ActualMapView, ActualMap> com.mapconductor.core.projection.MapCoordinateSystem getCoordinateSystem(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>);
+  public static <ActualMapView, ActualMap> com.mapconductor.core.projection.ProjectedPoint toProjectedPoint(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, com.mapconductor.core.features.GeoPointInterface);
+  public static <ActualMapView, ActualMap> com.mapconductor.core.features.GeoPoint fromProjectedPoint(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, com.mapconductor.core.projection.ProjectedPoint);
 }
 public abstract class com.mapconductor.core.map.MapViewHolderStoreBaseAsync<TMapView, TMap, TOptions> extends com.mapconductor.core.map.StaticHolder<com.mapconductor.core.map.MapViewHolderInterface<TMapView, TMap>> {
   public com.mapconductor.core.map.MapViewHolderStoreBaseAsync();
@@ -1585,7 +1596,7 @@ final class com.mapconductor.core.marker.AbstractDefaultIcon$PinBounds {
   public final float getTop();
   public final float getBottom();
 }
-public abstract class com.mapconductor.core.marker.AbstractMarkerController<ActualMarker> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.marker.MarkerState, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, com.mapconductor.core.marker.MarkerEventHostInterface<ActualMarker> {
+public abstract class com.mapconductor.core.marker.AbstractMarkerController<ActualMarker> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.marker.MarkerState, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, com.mapconductor.core.marker.MarkerEventHostInterface<ActualMarker>, com.mapconductor.core.marker.MarkerDrawOrderReceiver {
   public com.mapconductor.core.marker.AbstractMarkerController(com.mapconductor.core.marker.MarkerManager<ActualMarker>, com.mapconductor.core.marker.MarkerOverlayRendererInterface<ActualMarker>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>);
   public com.mapconductor.core.marker.AbstractMarkerController(com.mapconductor.core.marker.MarkerManager, com.mapconductor.core.marker.MarkerOverlayRendererInterface, kotlin.jvm.functions.Function1, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public com.mapconductor.core.marker.MarkerManager<ActualMarker> getMarkerManager();
@@ -1621,6 +1632,7 @@ public abstract class com.mapconductor.core.marker.AbstractMarkerController<Actu
   public com.mapconductor.core.controller.OverlayHit resolveTap(com.mapconductor.core.features.GeoPointInterface);
   public com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> getEntity(java.lang.String);
   public boolean has(java.lang.String);
+  public java.lang.Object onDrawOrderFrameChanged(com.mapconductor.core.marker.MarkerDrawOrder$Frame, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void setClickListenerAny(java.lang.Object);
   public java.lang.Object update(java.lang.Object, kotlin.coroutines.Continuation);
   public java.lang.Object find(com.mapconductor.core.features.GeoPointInterface);
@@ -1650,6 +1662,11 @@ public abstract class com.mapconductor.core.marker.AbstractMarkerOverlayRenderer
   public final com.mapconductor.core.marker.MarkerAnimationOverlayHost getAnimationOverlayHost();
   public final void setAnimationOverlayHost(com.mapconductor.core.marker.MarkerAnimationOverlayHost);
   public boolean getSupportsAnimationOverlay();
+  public final com.mapconductor.core.marker.MarkerDrawOrder$Frame getDrawOrderFrame();
+  public final double drawOrderOf(com.mapconductor.core.marker.MarkerState);
+  public final int drawOrderIntOf(com.mapconductor.core.marker.MarkerState);
+  public java.lang.Object onDrawOrderFrameChanged(com.mapconductor.core.marker.MarkerDrawOrder$Frame, java.util.List<? extends com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  protected java.lang.Object applyDrawOrder(java.util.List<? extends com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void setMarkerVisible(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>, boolean);
   public abstract void setMarkerPosition(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>, com.mapconductor.core.features.GeoPoint);
   public java.lang.Object onAnimate(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -1810,6 +1827,21 @@ public final class com.mapconductor.core.marker.MarkerCollector implements com.m
   public java.lang.Object add(com.mapconductor.core.ComponentState, kotlin.coroutines.Continuation);
   public com.mapconductor.core.marker.MarkerCollector(long, kotlinx.coroutines.CoroutineScope, kotlin.jvm.internal.DefaultConstructorMarker);
 }
+public final class com.mapconductor.core.marker.MarkerDrawOrder$Frame {
+  public static final com.mapconductor.core.marker.MarkerDrawOrder$Frame$Companion Companion;
+  public final double getHeadingDegrees();
+  public final double getOriginLongitude();
+  public final boolean differsEnoughFrom(com.mapconductor.core.marker.MarkerDrawOrder$Frame);
+  public final double component1();
+  public final double component2();
+  public final com.mapconductor.core.marker.MarkerDrawOrder$Frame copy(double, double);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
+public final class com.mapconductor.core.marker.MarkerDrawOrder$Frame$Companion {
+  public final com.mapconductor.core.marker.MarkerDrawOrder$Frame getNorthUp();
+}
 public final class com.mapconductor.core.marker.MarkerEntity<ActualMarker> implements com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> {
   public com.mapconductor.core.marker.MarkerEntity(ActualMarker, com.mapconductor.core.marker.MarkerState, boolean, boolean, boolean);
   public com.mapconductor.core.marker.MarkerEntity(java.lang.Object, com.mapconductor.core.marker.MarkerState, boolean, boolean, boolean, int, kotlin.jvm.internal.DefaultConstructorMarker);
@@ -1947,6 +1979,7 @@ public interface com.mapconductor.core.marker.MarkerOverlayRendererInterface<Act
   public abstract java.lang.Object onPostProcess(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public default void onDragSelectionChanged(com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
   public default void onDragPositionChanged(com.mapconductor.core.features.GeoPointInterface);
+  public default java.lang.Object onDrawOrderFrameChanged(com.mapconductor.core.marker.MarkerDrawOrder$Frame, java.util.List<? extends com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
 }
 public interface com.mapconductor.core.marker.MarkerOverlayRendererInterface$AddParamsInterface {
   public abstract com.mapconductor.core.marker.MarkerState getState();
@@ -1960,6 +1993,7 @@ public interface com.mapconductor.core.marker.MarkerOverlayRendererInterface$Cha
 public final class com.mapconductor.core.marker.MarkerOverlayRendererInterface$DefaultImpls {
   public static <ActualMarker> void onDragSelectionChanged(com.mapconductor.core.marker.MarkerOverlayRendererInterface<ActualMarker>, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>);
   public static <ActualMarker> void onDragPositionChanged(com.mapconductor.core.marker.MarkerOverlayRendererInterface<ActualMarker>, com.mapconductor.core.features.GeoPointInterface);
+  public static <ActualMarker> java.lang.Object onDrawOrderFrameChanged(com.mapconductor.core.marker.MarkerOverlayRendererInterface<ActualMarker>, com.mapconductor.core.marker.MarkerDrawOrder$Frame, java.util.List<? extends com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, kotlin.coroutines.Continuation<? super kotlin.Unit>);
 }
 public interface com.mapconductor.core.marker.MarkerRenderingStrategyInterface<ActualMarker> {
   public abstract com.mapconductor.core.marker.MarkerManager<ActualMarker> getMarkerManager();
@@ -2152,7 +2186,7 @@ public final class com.mapconductor.core.marker.PointD {
   public int hashCode();
   public boolean equals(java.lang.Object);
 }
-public final class com.mapconductor.core.marker.StrategyMarkerController<ActualMarker> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.marker.MarkerState, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, com.mapconductor.core.controller.OnCameraChangeReceiverInterface, com.mapconductor.core.marker.MarkerEventHostInterface<ActualMarker> {
+public final class com.mapconductor.core.marker.StrategyMarkerController<ActualMarker> implements com.mapconductor.core.controller.SlottedOverlayController<com.mapconductor.core.marker.MarkerState, com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker>>, com.mapconductor.core.controller.OnCameraChangeReceiverInterface, com.mapconductor.core.marker.MarkerEventHostInterface<ActualMarker>, com.mapconductor.core.marker.MarkerDrawOrderReceiver {
   public com.mapconductor.core.marker.StrategyMarkerController(com.mapconductor.core.marker.MarkerRenderingStrategyInterface<ActualMarker>, com.mapconductor.core.marker.MarkerOverlayRendererInterface<ActualMarker>);
   public com.mapconductor.core.marker.MarkerOverlayRendererInterface<ActualMarker> getRenderer();
   public com.mapconductor.core.marker.MarkerManager<ActualMarker> getMarkerManager();
@@ -2181,6 +2215,7 @@ public final class com.mapconductor.core.marker.StrategyMarkerController<ActualM
   public com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> getEntity(java.lang.String);
   public com.mapconductor.core.marker.MarkerEntityInterface<ActualMarker> find(com.mapconductor.core.features.GeoPointInterface);
   public java.lang.Object onCameraChanged(com.mapconductor.core.map.MapCameraPosition, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  public java.lang.Object onDrawOrderFrameChanged(com.mapconductor.core.marker.MarkerDrawOrder$Frame, kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public void destroy();
   public com.mapconductor.core.controller.OverlayKind getKind();
   public com.mapconductor.core.controller.OverlayHit resolveTap(com.mapconductor.core.features.GeoPointInterface);
@@ -2855,6 +2890,22 @@ public final class com.mapconductor.core.projection.Earth {
   public static final double SEMI_MINOR_AXIS_METERS;
   public static final double ECCENTRICITY_SQUARED;
 }
+public final class com.mapconductor.core.projection.MapCoordinateSystem {
+  public static final com.mapconductor.core.projection.MapCoordinateSystem$Companion Companion;
+  public com.mapconductor.core.projection.MapCoordinateSystem(java.lang.String, com.mapconductor.core.projection.ProjectedUnit);
+  public final java.lang.String getCode();
+  public final com.mapconductor.core.projection.ProjectedUnit getUnit();
+  public final java.lang.String component1();
+  public final com.mapconductor.core.projection.ProjectedUnit component2();
+  public final com.mapconductor.core.projection.MapCoordinateSystem copy(java.lang.String, com.mapconductor.core.projection.ProjectedUnit);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
+public final class com.mapconductor.core.projection.MapCoordinateSystem$Companion {
+  public final com.mapconductor.core.projection.MapCoordinateSystem getWebMercator();
+  public final com.mapconductor.core.projection.MapCoordinateSystem getWGS84();
+}
 public final class com.mapconductor.core.projection.ProjectedPoint {
   public com.mapconductor.core.projection.ProjectedPoint(double, double);
   public final double getX();
@@ -2865,6 +2916,14 @@ public final class com.mapconductor.core.projection.ProjectedPoint {
   public java.lang.String toString();
   public int hashCode();
   public boolean equals(java.lang.Object);
+}
+public final class com.mapconductor.core.projection.ProjectedUnit extends java.lang.Enum<com.mapconductor.core.projection.ProjectedUnit> {
+  public static final com.mapconductor.core.projection.ProjectedUnit Meters;
+  public static final com.mapconductor.core.projection.ProjectedUnit Degrees;
+  public static final com.mapconductor.core.projection.ProjectedUnit Other;
+  public static com.mapconductor.core.projection.ProjectedUnit[] values();
+  public static com.mapconductor.core.projection.ProjectedUnit valueOf(java.lang.String);
+  public static kotlin.enums.EnumEntries<com.mapconductor.core.projection.ProjectedUnit> getEntries();
 }
 public interface com.mapconductor.core.projection.ProjectionInterface {
   public abstract com.mapconductor.core.projection.ProjectedPoint project(com.mapconductor.core.features.GeoPointInterface);
