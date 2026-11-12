@@ -2953,7 +2953,9 @@ public final class com.mapconductor.core.projection.WebMercatorKt {
 public final class com.mapconductor.core.projection.WebMercatorScreenProjection {
   public static final com.mapconductor.core.projection.WebMercatorScreenProjection INSTANCE;
   public final androidx.compose.ui.geometry.Offset toScreenOffset-broig7I(com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.map.MapCameraPosition, float, float);
+  public final androidx.compose.ui.geometry.Offset toScreenOffset-17k57fo(com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.map.MapCameraPosition, float, float, java.lang.Double);
   public final com.mapconductor.core.features.GeoPoint fromScreenOffset-M_7yMNQ(long, com.mapconductor.core.map.MapCameraPosition, float, float);
+  public final com.mapconductor.core.features.GeoPoint fromScreenOffset-ULxng0E(long, com.mapconductor.core.map.MapCameraPosition, float, float, java.lang.Double);
 }
 final class com.mapconductor.core.projection.WebMercatorScreenProjection$Normalized {
   public final double getX();
