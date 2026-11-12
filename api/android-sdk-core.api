@@ -303,6 +303,9 @@ public final class com.mapconductor.core.circle.CircleTileSet$Companion {
   public final boolean canTile(com.mapconductor.core.circle.CircleState);
 }
 public final class com.mapconductor.core.circle.CircleTiler {
+  public static final double MAX_LATITUDE;
+  public static final double TAP_STROKE_SLACK_PX;
+  public static final double TAP_SLACK_METERS;
   public com.mapconductor.core.circle.CircleTiler(com.mapconductor.core.circle.CircleTilingOptions);
   public com.mapconductor.core.circle.CircleTiler(com.mapconductor.core.circle.CircleTilingOptions, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public final com.mapconductor.core.circle.CircleTilingOptions getOptions();
@@ -317,6 +320,8 @@ public final class com.mapconductor.core.circle.CircleTiler {
   public final void dispose();
   public final java.lang.Object clear(kotlin.coroutines.Continuation<? super kotlin.Unit>);
   public com.mapconductor.core.circle.CircleTiler();
+}
+final class com.mapconductor.core.circle.CircleTiler$Companion {
 }
 public final class com.mapconductor.core.circle.CircleTilerKt {
   public static final java.lang.String CIRCLE_TILE_LAYER_ID;
@@ -1222,10 +1227,16 @@ public interface com.mapconductor.core.map.MapViewHolderInterface<ActualMapView,
   public abstract androidx.compose.ui.geometry.Offset toScreenOffset-x-9fifI(com.mapconductor.core.features.GeoPointInterface);
   public default java.lang.Object fromScreenOffset-3MmeM6k(long, kotlin.coroutines.Continuation<? super com.mapconductor.core.features.GeoPoint>);
   public default com.mapconductor.core.features.GeoPoint fromScreenOffsetSync-k-4lQ0M(long);
+  public default com.mapconductor.core.projection.MapCoordinateSystem getCoordinateSystem();
+  public default com.mapconductor.core.projection.ProjectedPoint toProjectedPoint(com.mapconductor.core.features.GeoPointInterface);
+  public default com.mapconductor.core.features.GeoPoint fromProjectedPoint(com.mapconductor.core.projection.ProjectedPoint);
 }
 public final class com.mapconductor.core.map.MapViewHolderInterface$DefaultImpls {
   public static <ActualMapView, ActualMap> java.lang.Object fromScreenOffset-3MmeM6k(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, long, kotlin.coroutines.Continuation<? super com.mapconductor.core.features.GeoPoint>);
   public static <ActualMapView, ActualMap> com.mapconductor.core.features.GeoPoint fromScreenOffsetSync-k-4lQ0M(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, long);
+  public static <ActualMapView, ActualMap> com.mapconductor.core.projection.MapCoordinateSystem getCoordinateSystem(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>);
+  public static <ActualMapView, ActualMap> com.mapconductor.core.projection.ProjectedPoint toProjectedPoint(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, com.mapconductor.core.features.GeoPointInterface);
+  public static <ActualMapView, ActualMap> com.mapconductor.core.features.GeoPoint fromProjectedPoint(com.mapconductor.core.map.MapViewHolderInterface<ActualMapView, ActualMap>, com.mapconductor.core.projection.ProjectedPoint);
 }
 public abstract class com.mapconductor.core.map.MapViewHolderStoreBaseAsync<TMapView, TMap, TOptions> extends com.mapconductor.core.map.StaticHolder<com.mapconductor.core.map.MapViewHolderInterface<TMapView, TMap>> {
   public com.mapconductor.core.map.MapViewHolderStoreBaseAsync();
@@ -2850,6 +2861,22 @@ public final class com.mapconductor.core.projection.Earth {
   public static final double SEMI_MINOR_AXIS_METERS;
   public static final double ECCENTRICITY_SQUARED;
 }
+public final class com.mapconductor.core.projection.MapCoordinateSystem {
+  public static final com.mapconductor.core.projection.MapCoordinateSystem$Companion Companion;
+  public com.mapconductor.core.projection.MapCoordinateSystem(java.lang.String, com.mapconductor.core.projection.ProjectedUnit);
+  public final java.lang.String getCode();
+  public final com.mapconductor.core.projection.ProjectedUnit getUnit();
+  public final java.lang.String component1();
+  public final com.mapconductor.core.projection.ProjectedUnit component2();
+  public final com.mapconductor.core.projection.MapCoordinateSystem copy(java.lang.String, com.mapconductor.core.projection.ProjectedUnit);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
+public final class com.mapconductor.core.projection.MapCoordinateSystem$Companion {
+  public final com.mapconductor.core.projection.MapCoordinateSystem getWebMercator();
+  public final com.mapconductor.core.projection.MapCoordinateSystem getWGS84();
+}
 public final class com.mapconductor.core.projection.ProjectedPoint {
   public com.mapconductor.core.projection.ProjectedPoint(double, double);
   public final double getX();
@@ -2860,6 +2887,14 @@ public final class com.mapconductor.core.projection.ProjectedPoint {
   public java.lang.String toString();
   public int hashCode();
   public boolean equals(java.lang.Object);
+}
+public final class com.mapconductor.core.projection.ProjectedUnit extends java.lang.Enum<com.mapconductor.core.projection.ProjectedUnit> {
+  public static final com.mapconductor.core.projection.ProjectedUnit Meters;
+  public static final com.mapconductor.core.projection.ProjectedUnit Degrees;
+  public static final com.mapconductor.core.projection.ProjectedUnit Other;
+  public static com.mapconductor.core.projection.ProjectedUnit[] values();
+  public static com.mapconductor.core.projection.ProjectedUnit valueOf(java.lang.String);
+  public static kotlin.enums.EnumEntries<com.mapconductor.core.projection.ProjectedUnit> getEntries();
 }
 public interface com.mapconductor.core.projection.ProjectionInterface {
   public abstract com.mapconductor.core.projection.ProjectedPoint project(com.mapconductor.core.features.GeoPointInterface);
