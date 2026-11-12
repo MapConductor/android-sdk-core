@@ -1117,15 +1117,22 @@ public final class com.mapconductor.core.map.MapOverlayRegistry {
 }
 public class com.mapconductor.core.map.MapPaddings implements com.mapconductor.core.map.MapPaddingsInterface {
   public static final com.mapconductor.core.map.MapPaddings$Companion Companion;
+  public com.mapconductor.core.map.MapPaddings(java.lang.Double, java.lang.Double, java.lang.Double, java.lang.Double);
+  public com.mapconductor.core.map.MapPaddings(java.lang.Double, java.lang.Double, java.lang.Double, java.lang.Double, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public com.mapconductor.core.map.MapPaddings(double, double, double, double);
-  public com.mapconductor.core.map.MapPaddings(double, double, double, double, int, kotlin.jvm.internal.DefaultConstructorMarker);
   public double getTop();
   public double getLeft();
   public double getBottom();
   public double getRight();
-  public com.mapconductor.core.map.MapPaddings(double, double, double);
-  public com.mapconductor.core.map.MapPaddings(double, double);
-  public com.mapconductor.core.map.MapPaddings(double);
+  public final boolean isTopSpecified();
+  public final boolean isLeftSpecified();
+  public final boolean isBottomSpecified();
+  public final boolean isRightSpecified();
+  public final boolean isFullySpecified();
+  public final com.mapconductor.core.map.MapPaddings resolvedOnto(com.mapconductor.core.map.MapPaddingsInterface);
+  public com.mapconductor.core.map.MapPaddings(java.lang.Double, java.lang.Double, java.lang.Double);
+  public com.mapconductor.core.map.MapPaddings(java.lang.Double, java.lang.Double);
+  public com.mapconductor.core.map.MapPaddings(java.lang.Double);
   public com.mapconductor.core.map.MapPaddings();
 }
 public final class com.mapconductor.core.map.MapPaddings$Companion {

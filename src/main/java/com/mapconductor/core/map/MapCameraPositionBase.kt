@@ -81,18 +81,21 @@ class MapCameraPosition(
     val isTiltSpecified: Boolean get() = givenTilt != null
 
     /**
-     * 未指定の `zoom` / `bearing` / `tilt` を [current] の値で埋めたカメラを返す。
+     * 未指定の `zoom` / `bearing` / `tilt` と、[paddings] の省略した辺を [current] の値で
+     * 埋めたカメラを返す。
      *
-     * 明示されたプロパティは、0 であってもそのまま使う。
+     * 明示されたプロパティは、0 であってもそのまま使う。余白は辺ごとに埋める
+     * （[MapPaddings.resolvedOnto]）。
      */
     fun resolvedOnto(current: MapCameraPositionInterface): MapCameraPosition {
-        if (isZoomSpecified && isBearingSpecified && isTiltSpecified) return this
+        val partialPaddings = (paddings as? MapPaddings)?.takeUnless { it.isFullySpecified }
+        if (isZoomSpecified && isBearingSpecified && isTiltSpecified && partialPaddings == null) return this
         return MapCameraPosition(
             position = position,
             zoom = givenZoom ?: current.zoom,
             bearing = givenBearing ?: current.bearing,
             tilt = givenTilt ?: current.tilt,
-            paddings = paddings,
+            paddings = partialPaddings?.resolvedOnto(current.paddings) ?: paddings,
             visibleRegion = visibleRegion,
             fov = fov,
         )
