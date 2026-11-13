@@ -99,6 +99,7 @@ interface MapViewStateInterface<ActualMapDesignType> {
 abstract class MapViewState<ActualMapDesignType>(
     initialCameraPosition: MapCameraPosition = MapCameraPosition.Default,
     private val optimisticCameraUpdate: Boolean = false,
+    paddings: MapPaddings = MapPaddings.Zeros,
 ) : MapViewStateInterface<ActualMapDesignType> {
     /** @see MapViewStateInterface.serviceRegistry */
     override val serviceRegistry: MutableMapServiceRegistry = MutableMapServiceRegistry()
@@ -148,6 +149,23 @@ abstract class MapViewState<ActualMapDesignType>(
     }
 
     /**
+     * 破棄した [controller] を手放す。地図が壊されたあとで呼ぶ。
+     *
+     * state は地図より長生きする（アプリが保持し、プロバイダを切り替えても残る）。
+     * ここで手放さないと、state が最後のコントローラ（とその全オーバーレイ）を
+     * 抱えたままになる。Compose では `MapViewBase` が地図をコンポジションから
+     * 外したときに呼ぶので、プロバイダが呼ぶ必要はない。
+     *
+     * その間に別のコントローラが接続されていれば何もしない（新しい地図を
+     * 古い地図の後始末で切り離さないため）。
+     */
+    fun detachController(controller: MapViewControllerInterface) {
+        if (this.attachedMapController === controller) {
+            this.attachedMapController = null
+        }
+    }
+
+    /**
      * 地図から通知された現在のカメラを保持する（地図を動かさない）。
      *
      * プロバイダの `updateCameraPosition` から呼ぶ。カメラを**動かしたい**ときは
@@ -168,22 +186,25 @@ abstract class MapViewState<ActualMapDesignType>(
         cameraPosition: MapCameraPosition,
         durationMillis: Long?,
     ) {
+        // 明示されたプロパティは 0 でもそのまま使い、未指定のものだけ現在のカメラから
+        // 引き継ぐ。`MapCameraPosition(position = ...)` なら位置だけが動く。
+        val resolved = cameraPosition.resolvedOnto(_cameraPosition)
         val ctrl = attachedMapController
         if (ctrl == null) {
             // まだ地図が無い。接続時に attachController がこの位置へ移動する。
-            _cameraPosition = cameraPosition
+            _cameraPosition = resolved
             return
         }
         if (optimisticCameraUpdate) {
-            _cameraPosition = cameraPosition
+            _cameraPosition = resolved
         }
         // 引数は既に MapCameraPosition なので、プロバイダごとの
         // `MapCameraPosition.Companion.from` は恒等変換になる（どの実装も
         // `is MapCameraPosition -> position` で素通しする）。ここでは呼ばない。
         if (durationMillis == null || durationMillis == 0L) {
-            ctrl.moveCamera(cameraPosition)
+            ctrl.moveCamera(resolved)
         } else {
-            ctrl.animateCamera(cameraPosition, durationMillis)
+            ctrl.animateCamera(resolved, durationMillis)
         }
     }
 

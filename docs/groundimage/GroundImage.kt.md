@@ -20,6 +20,26 @@ class GroundImageState(
 ) : ComponentState
 ```
 
+The image can also be given as a URL:
+
+```kotlin
+GroundImageState(
+    bounds: GeoRectBounds,
+    imageUrl: String,
+    opacity: Float = 1.0f,
+    tileSize: Int = GroundImageTileProvider.DEFAULT_TILE_SIZE,
+    clickable: Boolean = true,
+    id: String? = null,
+    extra: Serializable? = null,
+    onClick: OnGroundImageEventHandler? = null,
+)
+```
+
+The SDK downloads the image (http, https, file or data URLs; http(s) needs the app's
+`android.permission.INTERNET`). Until it arrives `image` is a transparent placeholder; once it
+arrives `image` becomes the loaded image and the overlay is redrawn. If the image cannot be loaded
+the overlay stays transparent and a warning is logged once.
+
 #### Parameters
 
 - `bounds`
@@ -29,6 +49,9 @@ class GroundImageState(
 - `image`
     - Type: `Drawable`
     - Description: The `Drawable` resource to be displayed as the overlay.
+- `imageUrl`
+    - Type: `String`
+    - Description: The URL of the image to load, instead of `image`. See above.
 - `opacity`
     - Type: `Float`
     - Description: The opacity of the image, ranging from `0.0f` (fully transparent) to `1.0f`
@@ -62,7 +85,11 @@ after initialization to dynamically update the ground image on the map.
     - Description: The geographical area the image covers.
 - `image`
     - Type: `Drawable`
-    - Description: The image `Drawable` to display.
+    - Description: The image `Drawable` to display. Setting it clears `imageUrl`.
+- `imageUrl`
+    - Type: `String?`
+    - Description: The URL the image is loaded from, or `null` if the image was given as a
+      `Drawable`. Setting it loads that image; a result for an earlier URL is ignored.
 - `opacity`
     - Type: `Float`
     - Description: The opacity of the image.

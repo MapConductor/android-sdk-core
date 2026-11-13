@@ -1,5 +1,6 @@
 package com.mapconductor.core.marker
 
+import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.controller.OnCameraChangeReceiverInterface
 import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
@@ -18,7 +19,8 @@ class StrategyMarkerController<ActualMarker>(
         MarkerEntityInterface<ActualMarker>,
     >,
     OnCameraChangeReceiverInterface,
-    MarkerEventHostInterface<ActualMarker> {
+    MarkerEventHostInterface<ActualMarker>,
+    MarkerDrawOrderReceiver {
     override val markerManager: MarkerManager<ActualMarker> = strategy.markerManager
     override val zIndex: Int = 10
     private var mapCameraPosition: MapCameraPosition? = null
@@ -104,22 +106,36 @@ class StrategyMarkerController<ActualMarker>(
         }
     }
 
+    /**
+     * 他の 5 種類・[AbstractMarkerController] の clear() と同じく
+     * 「onRemove(全部) → 空にする → onPostProcess」の順に呼ぶ。
+     *
+     * 以前は strategy.clear() で manager を空にするだけだった。GL 系の描画担当は
+     * onRemove では地図に触らず onPostProcess で manager から描き直すので、
+     * 呼ばないと clear() の後もマーカーが地図に残る。onRemove はアイコン等の
+     * 描画側の資源を返すため。空にするのは strategy.clear() のままにして、
+     * ストラテジ固有の後片付け（クラスタの状態など）を保つ。
+     * add / update と同じ permit の中で行い、ストラテジの処理と交錯させない。
+     */
     override suspend fun clear() {
-        strategy.clear()
+        semaphore.withPermit {
+            val entities = markerManager.allEntities()
+            if (entities.isNotEmpty()) renderer.onRemove(entities)
+            strategy.clear()
+            // 最初のカメラ待ちで保留していたものも消す。残すと次のカメラで描かれてしまう。
+            pendingStates = null
+            renderer.onPostProcess()
+        }
     }
 
     override fun getEntity(id: String): MarkerEntityInterface<ActualMarker>? = strategy.markerManager.getEntity(id)
 
+    @OptIn(InternalMapConductorApi::class)
     override fun find(position: GeoPointInterface): MarkerEntityInterface<ActualMarker>? {
-        val nearest = strategy.markerManager.findNearest(position) ?: return null
-        val touchScreen = renderer.holder.toScreenOffset(position) ?: return null
-        val markerScreen = renderer.holder.toScreenOffset(nearest.state.position) ?: return null
-
-        return if (MarkerHitTest.hitsIcon(touchScreen, markerScreen, nearest.state)) {
-            nearest
-        } else {
-            null
-        }
+        val holder = renderer.holder
+        val touchScreen = holder.toScreenOffset(position) ?: return null
+        val bounds = MarkerHitPick.searchBounds(position, touchScreen, holder::toScreenOffset) ?: return null
+        return MarkerHitPick.pick(touchScreen, strategy.markerManager.findMarkersInBounds(bounds), holder::toScreenOffset)
     }
 
     override suspend fun onCameraChanged(mapCameraPosition: MapCameraPosition) {
@@ -131,6 +147,10 @@ class StrategyMarkerController<ActualMarker>(
         val pending = pendingStates ?: return
         pendingStates = null
         add(pending)
+    }
+
+    override suspend fun onDrawOrderFrameChanged(frame: MarkerDrawOrder.Frame) {
+        semaphore.withPermit { renderer.onDrawOrderFrameChanged(frame, markerManager.allEntities()) }
     }
 
     override fun destroy() {

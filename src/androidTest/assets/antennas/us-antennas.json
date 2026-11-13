@@ -1,0 +1,16 @@
+{
+  "source": "https://data.fcc.gov/download/pub/uls/complete/r_tower.zip",
+  "source_sha256": "fe21a1ac2ac9b168172a17dd8bf21560727c1b833305092aec8bfc7598cc4ab5",
+  "file_sha256": "73790a6249002a52083e7cfb359092f71d05b4e91ea1667ee840bcd83f636185",
+  "count": 141979,
+  "bytes": 2271672,
+  "receiver_height_m": 1.5,
+  "earth_radius_m": 6378137,
+  "min_radius_m": 11693.874125711327,
+  "max_radius_m": 93860.22110994058,
+  "excluded": {
+    "registration": 4
+  },
+  "filter": "RA archive_flag_code=C, status_code=C, empty date_dismantled; CO coordinate_type=T; unique registration number; 0 < overall_height_above_ground <= 1000 m",
+  "format": "MCCA + u32 count + count*(f32 latitude, f32 longitude, f32 height_m, u32 registration); little endian"
+}

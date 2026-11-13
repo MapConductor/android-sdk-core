@@ -1,6 +1,7 @@
 package com.mapconductor.core.marker
 
 import androidx.compose.ui.geometry.Offset
+import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.ResourceProvider
 import com.mapconductor.settings.Settings
 
@@ -28,9 +29,10 @@ object MarkerHitTest {
      * アンカーは「アイコン内のどこがマーカー位置に一致するか」を 0..1 で表す。例えば
      * ピン形状の既定アンカー `(0.5, 1.0)` なら、矩形はアンカー点から上方向へ広がる。
      *
-     * アイコンは正方形のキャンバスに描かれる前提で、`iconSize`（dp）× `scale` を
-     * 画面密度でピクセルへ換算して使う。
+     * `iconSize`（dp）× `scale` を画面密度でピクセルへ換算し、既定アイコンでラベルの分だけ
+     * ビットマップが広いときは [MarkerIconExtent] の倍率を掛けて使う。
      */
+    @OptIn(InternalMapConductorApi::class)
     fun hitsIcon(
         touchScreen: Offset,
         markerScreen: Offset,
@@ -40,12 +42,13 @@ object MarkerHitTest {
     ): Boolean {
         val icon = state.icon ?: defaultIcon
         val iconSizePx = icon.iconSize.value.toDouble() * icon.scale.toDouble() * density
+        val extent = MarkerIconExtent.ratio(icon)
 
         return hitsIconRect(
             dx = (touchScreen.x - markerScreen.x).toDouble(),
             dy = (touchScreen.y - markerScreen.y).toDouble(),
-            iconWidthPx = iconSizePx,
-            iconHeightPx = iconSizePx,
+            iconWidthPx = iconSizePx * extent.width,
+            iconHeightPx = iconSizePx * extent.height,
             anchorX = icon.anchor.x.toDouble(),
             anchorY = icon.anchor.y.toDouble(),
             tolerancePx =

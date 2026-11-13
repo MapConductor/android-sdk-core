@@ -16,7 +16,10 @@ class ExampleInstrumentedTest {
     @Test
     fun useAppContext() {
         // Context of the app under test.
+        // A library module has no app of its own, so the instrumentation runs
+        // in a test app whose package carries the `.test` suffix. The
+        // template's assertion has never been true here.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.mapconductor.core", appContext.packageName)
+        assertEquals("com.mapconductor.core.test", appContext.packageName)
     }
 }

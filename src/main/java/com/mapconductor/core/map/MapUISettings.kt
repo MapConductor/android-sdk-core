@@ -19,6 +19,7 @@ data class MapUISettings(
     val rotateGesture: Boolean = true,
     /** Tilt the map (change pitch). */
     val tiltGesture: Boolean = true,
+    val paddings: MapPaddings = MapPaddings.Zeros,
 ) {
     companion object {
         /** All gestures enabled — the default. */
@@ -31,6 +32,7 @@ data class MapUISettings(
                 zoomGesture = false,
                 rotateGesture = false,
                 tiltGesture = false,
+                paddings = MapPaddings.Zeros,
             )
     }
 }

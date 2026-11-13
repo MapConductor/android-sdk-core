@@ -41,8 +41,9 @@ spatial querying capabilities.
 
 `MarkerManager` is designed to handle a large number of markers on a map. It employs a performance
 optimization strategy: for small datasets (fewer than `minMarkerCount`), it uses simple brute-force
-searches. For larger datasets, it automatically creates and uses a spatial index (`HexCellRegistry`)
-to perform fast spatial queries like finding the nearest marker or markers within a specific area.
+searches. For larger datasets, it automatically creates and uses a spatial index (a lat/lng grid,
+`MarkerGridIndex`) to perform fast spatial queries like finding the nearest marker or markers within
+a specific area.
 
 This lazy initialization of the spatial index saves memory for use cases with a small number of
 markers. All operations that modify or access the internal collections are thread-safe.
@@ -63,7 +64,8 @@ open class MarkerManager<ActualMarker>(
 
 - `geocell`
     - Type: `HexGeocellInterface`
-    - Description: The hexagonal geocelling system to use for the spatial index.
+    - Description: The hexagonal geocelling system. Exposed to subclasses; the spatial index itself
+      is a lat/lng grid and does not use it.
 - `minMarkerCount`
     - Type: `Int`
     - Description: The threshold for creating the spatial index. Spatial queries will use the index
@@ -315,23 +317,3 @@ open fun metersPerPixel(
 
 #### Returns
 The calculated distance in meters.
-
-### `findByIdPrefix`
-Searches the spatial index for `HexCell`s that match a given ID prefix.
-
-> **Note:** This method will only return results if the spatial index has been initialized (i.e.,
-when the entity count has exceeded `minMarkerCount`). Otherwise, it returns an empty list.
-
-#### Signature
-```kotlin
-open fun findByIdPrefix(prefix: String): List<HexCell>
-```
-
-#### Parameters
-- `prefix`
-    - Type: `String`
-    - Description: The `HexCell` ID prefix to search for.
-
-#### Returns
-A `List` of matching `HexCell`s, or an empty list if the index is not active or no matches are
-found.

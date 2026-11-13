@@ -1,17 +1,23 @@
 package com.mapconductor.core.groundimage
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import com.mapconductor.core.ComponentState
+import com.mapconductor.core.RemoteImageLoader
+import com.mapconductor.core.StateMutationSignal
+import com.mapconductor.core.UrlImageDrawable
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoRectBounds
 import java.io.Serializable
 import android.graphics.drawable.Drawable
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
 
+/**
+ * 地図に貼る画像。
+ *
+ * 画像は `Drawable` で渡すか、[imageUrl]（http / https / file / data）で渡す。URL のときは
+ * SDK が読み、読み終えるまでは透明、読み終えたら [image] がその画像に替わって描き直される。
+ * http(s) にはアプリの `android.permission.INTERNET` が要る。react-sdk の `imageUrl` と同じ。
+ */
 class GroundImageState(
     bounds: GeoRectBounds,
     image: Drawable,
@@ -21,14 +27,50 @@ class GroundImageState(
     id: String? = null,
     extra: Serializable? = null,
     onClick: OnGroundImageEventHandler? = null,
+    onAdded: OnGroundImageAddedHandler? = null,
 ) : ComponentState {
     override val id = (id ?: generateId(bounds, image, opacity, tileSize, clickable, extra)).toString()
 
+    /**
+     * Writes to the fields below are announced here rather than discovered by
+     * reading them all back. See [StateMutationSignal].
+     */
+    override val mutations = StateMutationSignal()
+
 //    var bounds by StateFlowDelegate(bounds)
-    var bounds by mutableStateOf(bounds)
-    var image by mutableStateOf(image)
-    var opacity by mutableStateOf(opacity)
-    var tileSize by mutableStateOf(tileSize)
+    var bounds by mutations.notifying(bounds)
+    private val currentImage = mutations.notifying(image)
+    private val currentImageUrl = mutations.notifying<String?>(null)
+
+    /** 描く画像。書き換えると [imageUrl] は null になる。 */
+    var image: Drawable
+        get() = currentImage.value
+        set(value) {
+            currentImageUrl.value = null
+            currentImage.value = value
+        }
+
+    /**
+     * 画像の URL。`Drawable` で作ったか、[image] を書き換えたなら null。
+     *
+     * 書き換えると、読み終えるまで [image] は透明になり、読み終えたらその画像になる。
+     * 読めなかったときは透明のまま。読み終える前にまた書き換えたら、古い方の結果は捨てる。
+     */
+    var imageUrl: String?
+        get() = currentImageUrl.value
+        set(value) {
+            currentImageUrl.value = value
+            if (value == null) return
+            currentImage.value = UrlImageDrawable(value, null)
+            RemoteImageLoader.load(value) { bitmap ->
+                if (bitmap != null && currentImageUrl.value == value) {
+                    currentImage.value = UrlImageDrawable(value, bitmap)
+                }
+            }
+        }
+    var opacity by mutations.notifying(opacity)
+
+    var tileSize by mutations.notifying(tileSize)
 
     /**
      * タップを受け取るか。`false` ならこのグラウンドイメージはタップに対して透過し、
@@ -38,9 +80,95 @@ class GroundImageState(
      * 行うため、どのプロバイダでも同じ挙動になる。描画には影響しないので
      * [fingerPrint] には含めない（含めると値を変えるたびにタイルが作り直される）。
      */
-    var clickable by mutableStateOf(clickable)
-    var extra by mutableStateOf(extra)
-    var onClick by mutableStateOf(onClick)
+    var clickable by mutations.notifying(clickable)
+    var extra by mutations.notifying(extra)
+    var onClick by mutations.notifying(onClick)
+
+    /**
+     * Called once each time this ground image goes from not being on the map to being on it:
+     * after the map SDK's object for it has been created, or, when it is drawn in tiles,
+     * after the URL template of those tiles has been handed to the map as a raster layer
+     * (the tile images may still be loading then). Not called for an in-place change,
+     * nor when it moves between native drawing and tiles while staying on the map;
+     * called again if it is removed and added again. Clearing or destroying the map calls
+     * nothing.
+     *
+     * Runs on the main thread once the map has finished adding the overlays it was given.
+     * A callback that throws is logged and does not stop the other overlays' callbacks.
+     *
+     * Like `onClick`, it is not part of the id, fingerprint, equality or hash: replacing
+     * it redraws nothing. If the same state is shown on two maps, each map calls it.
+     */
+    var onAdded: OnGroundImageAddedHandler? = onAdded
+
+    /** [imageUrl] の画像を貼る。読み終えるまでは透明。ほかの引数は `Drawable` を渡すコンストラクタと同じ。 */
+    constructor(
+        bounds: GeoRectBounds,
+        imageUrl: String,
+        opacity: Float = 1.0f,
+        tileSize: Int = GroundImageTileProvider.DEFAULT_TILE_SIZE,
+        clickable: Boolean = true,
+        id: String? = null,
+        extra: Serializable? = null,
+        onClick: OnGroundImageEventHandler? = null,
+        onAdded: OnGroundImageAddedHandler? = null,
+    ) : this(
+        bounds = bounds,
+        image = UrlImageDrawable(imageUrl, null),
+        opacity = opacity,
+        tileSize = tileSize,
+        clickable = clickable,
+        id = id,
+        extra = extra,
+        onClick = onClick,
+        onAdded = onAdded,
+    ) {
+        this.imageUrl = imageUrl
+    }
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    constructor(
+        bounds: GeoRectBounds,
+        image: Drawable,
+        opacity: Float = 1.0f,
+        tileSize: Int = GroundImageTileProvider.DEFAULT_TILE_SIZE,
+        clickable: Boolean = true,
+        id: String? = null,
+        extra: Serializable? = null,
+        onClick: OnGroundImageEventHandler? = null,
+    ) : this(
+        bounds,
+        image,
+        opacity,
+        tileSize,
+        clickable,
+        id,
+        extra,
+        onClick,
+        null,
+    )
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    constructor(
+        bounds: GeoRectBounds,
+        imageUrl: String,
+        opacity: Float = 1.0f,
+        tileSize: Int = GroundImageTileProvider.DEFAULT_TILE_SIZE,
+        clickable: Boolean = true,
+        id: String? = null,
+        extra: Serializable? = null,
+        onClick: OnGroundImageEventHandler? = null,
+    ) : this(
+        bounds,
+        imageUrl,
+        opacity,
+        tileSize,
+        clickable,
+        id,
+        extra,
+        onClick,
+        null,
+    )
 
     fun fingerPrint(): GroundImageFingerPrint =
         GroundImageFingerPrint(
@@ -51,11 +179,6 @@ class GroundImageState(
             tileSize = tileSize.hashCode(),
             extra = extra?.hashCode() ?: 0,
         )
-
-    fun asFlow(): Flow<GroundImageFingerPrint> =
-        snapshotFlow {
-            fingerPrint()
-        }.distinctUntilChanged()
 
     private fun generateId(
         bounds: GeoRectBounds,
@@ -84,8 +207,24 @@ class GroundImageState(
         id: String? = this.id,
         extra: Serializable? = this.extra,
         onClick: OnGroundImageEventHandler? = this.onClick,
-    ): GroundImageState =
-        GroundImageState(
+        onAdded: OnGroundImageAddedHandler? = this.onAdded,
+    ): GroundImageState {
+        // 画像を差し替えないなら URL ごと引き継ぐ（読み込み中でも、届いたら写る）。
+        val url = imageUrl
+        if (url != null && image === this.image) {
+            return GroundImageState(
+                bounds = bounds,
+                imageUrl = url,
+                opacity = opacity,
+                tileSize = tileSize,
+                clickable = clickable,
+                id = id,
+                extra = extra,
+                onClick = onClick,
+                onAdded = onAdded,
+            )
+        }
+        return GroundImageState(
             bounds = bounds,
             image = image,
             opacity = opacity,
@@ -94,6 +233,31 @@ class GroundImageState(
             id = id,
             extra = extra,
             onClick = onClick,
+            onAdded = onAdded,
+        )
+    }
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    fun copy(
+        bounds: GeoRectBounds = this.bounds,
+        image: Drawable = this.image,
+        opacity: Float = this.opacity,
+        tileSize: Int = this.tileSize,
+        clickable: Boolean = this.clickable,
+        id: String? = this.id,
+        extra: Serializable? = this.extra,
+        onClick: OnGroundImageEventHandler? = this.onClick,
+    ): GroundImageState =
+        copy(
+            bounds,
+            image,
+            opacity,
+            tileSize,
+            clickable,
+            id,
+            extra,
+            onClick,
+            onAdded,
         )
 
     override fun equals(other: Any?): Boolean = (other as? GroundImageState)?.hashCode() == this.hashCode()
@@ -120,3 +284,6 @@ class GroundImageEvent(
 }
 
 typealias OnGroundImageEventHandler = (GroundImageEvent) -> Unit
+
+/** Receives the state whose ground image was just added to the map. See [GroundImageState.onAdded]. */
+typealias OnGroundImageAddedHandler = (GroundImageState) -> Unit

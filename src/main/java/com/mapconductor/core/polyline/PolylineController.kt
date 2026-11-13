@@ -6,8 +6,10 @@ import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
 import com.mapconductor.core.map.MapCameraPosition
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 
 abstract class PolylineController<ActualPolyline>(
     val polylineManager: PolylineManagerInterface<ActualPolyline>,
@@ -23,6 +25,15 @@ abstract class PolylineController<ActualPolyline>(
 
     var clickListener: OnPolylineEventHandler? = null
 
+    /**
+     * Set by a provider that can show polyline tiles (see [PolylineTiler]).
+     * Polylines it tiles stay in [polylineManager], for taps, with no native
+     * overlay: their entity's `polyline` is null and the renderer never sees
+     * them. A renderer that redraws from the manager must skip those.
+     */
+    var tiler: PolylineTiler? = null
+    private var tiledIds: Set<String> = emptySet()
+
     fun dispatchClick(event: PolylineEvent) {
         // 配送座標の wrap は PolylineEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)
@@ -31,15 +42,25 @@ abstract class PolylineController<ActualPolyline>(
 
     override suspend fun add(data: List<PolylineState>) {
         semaphore.withPermit {
+            val wasTiled = tiledIds
+            val tiled = tiler?.route(data) ?: emptySet()
+            tiledIds = tiled
+            val native = if (tiled.isEmpty()) data else data.filter { it.id !in tiled }
             val modifiedEntities = mutableListOf<PolylineEntityInterface<ActualPolyline>>()
-            val previous = polylineManager.allEntities().map { it.state.id }.toMutableSet()
+            // Only natively drawn polylines are diffed against the renderer.
+            val previous =
+                polylineManager
+                    .allEntities()
+                    .map { it.state.id }
+                    .filterTo(mutableSetOf()) { it !in wasTiled }
             val added = mutableListOf<PolylineOverlayRendererInterface.AddParamsInterface>()
             val updated = mutableListOf<PolylineOverlayRendererInterface.ChangeParamsInterface<ActualPolyline>>()
             val removed = mutableListOf<PolylineEntityInterface<ActualPolyline>>()
 
-            data.forEach { state ->
+            native.forEach { state ->
                 if (previous.contains(state.id)) {
-                    val prevEntity = polylineManager.getEntity(state.id)!!
+                    // Gone only if destroy() cleared the manager meanwhile; nothing left to update.
+                    val prevEntity = polylineManager.getEntity(state.id) ?: return@withPermit
                     if (state.fingerPrint() == prevEntity.fingerPrint) {
                         // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
                         polylineManager.registerEntity(PolylineEntity(state = state, polyline = prevEntity.polyline))
@@ -111,13 +132,64 @@ abstract class PolylineController<ActualPolyline>(
                 }
             }
 
+            // Tiled polylines: kept for taps, nothing native. Those that left
+            // the tiles and the list are forgotten; those that left the tiles
+            // for native drawing were added above.
+            if (wasTiled.isNotEmpty()) {
+                val nativeIds = native.mapTo(HashSet()) { it.id }
+                for (id in wasTiled) {
+                    if (id !in tiled && id !in nativeIds) polylineManager.removeEntity(id)
+                }
+            }
+            if (tiled.isNotEmpty()) {
+                val tiledStates = tiler!!.tiledStates()
+                withContext(Dispatchers.Default) {
+                    for (state in tiledStates) {
+                        polylineManager.registerEntity(PolylineEntity(polyline = inTiles(), state = state))
+                    }
+                }
+            }
+
             renderer.onPostProcess()
         }
     }
 
+    /** What a tiled polyline's entity holds instead of a native polyline. */
+    @Suppress("UNCHECKED_CAST")
+    private fun inTiles(): ActualPolyline = null as ActualPolyline
+
     override suspend fun update(state: PolylineState) {
         semaphore.withPermit {
             val prevEntity = polylineManager.getEntity(state.id) ?: return
+            if (state.id in tiledIds) {
+                if (PolylineTileSet.canTile(state)) {
+                    polylineManager.registerEntity(PolylineEntity(polyline = prevEntity.polyline, state = state))
+                    tiler?.update(state)
+                    return
+                }
+                // No longer drawable in a tile (geodesic, half the world wide, or
+                // under 2 points): the map SDK draws it from now on. Still on the
+                // map, so this is not an add. Whether the rest stay in tiles is
+                // left to the next add(), which decides tiling for the whole list.
+                tiledIds = tiledIds - state.id
+                tiler?.remove(state.id)
+                val polylines =
+                    renderer.onAdd(
+                        listOf(
+                            object : PolylineOverlayRendererInterface.AddParamsInterface {
+                                override val state: PolylineState = state
+                            },
+                        ),
+                    )
+                val polyline = polylines.firstOrNull()
+                if (polyline != null) {
+                    polylineManager.registerEntity(PolylineEntity(polyline = polyline, state = state))
+                } else {
+                    polylineManager.removeEntity(state.id)
+                }
+                renderer.onPostProcess()
+                return
+            }
             val currentFinger = state.fingerPrint()
             val prevFinger = prevEntity.fingerPrint
             if (currentFinger == prevFinger) {
@@ -151,10 +223,16 @@ abstract class PolylineController<ActualPolyline>(
 
     override suspend fun clear() {
         semaphore.withPermit {
-            val entities: List<PolylineEntityInterface<ActualPolyline>> = polylineManager.allEntities()
+            val tiled = tiledIds
+            tiledIds = emptySet()
+            tiler?.clear()
+            val entities: List<PolylineEntityInterface<ActualPolyline>> =
+                polylineManager.allEntities().filter { it.state.id !in tiled }
             renderer.onRemove(entities)
-            renderer.onPostProcess()
+            // manager を空にしてから onPostProcess を呼ぶ。GL 系の描画担当は remove では何もせず、
+            // onPostProcess で manager の全部を描き直すので、逆の順だと clear() 後も地図に残る。
             polylineManager.clear()
+            renderer.onPostProcess()
         }
     }
 
@@ -169,7 +247,12 @@ abstract class PolylineController<ActualPolyline>(
     }
 
     override fun destroy() {
-        // No native resources to clean up for polylines
+        // The tile server outlives the map; without this its route keeps every
+        // tiled polyline (and the renderer's copies of them) alive.
+        tiler?.dispose()
+        // A destroyed controller can still be referenced (by its map controller,
+        // or a state that has not let go yet); without this it keeps every entity.
+        polylineManager.clear()
     }
 
     override fun has(id: String): Boolean = polylineManager.hasEntity(id)

@@ -4,7 +4,9 @@ import com.mapconductor.core.OnCameraMoveHandler
 import com.mapconductor.core.OnMapEventHandler
 import com.mapconductor.core.OnMapInitializedHandler
 import com.mapconductor.core.circle.CircleCapableInterface
+import com.mapconductor.core.circle.CircleController
 import com.mapconductor.core.circle.CircleState
+import com.mapconductor.core.circle.CircleTiler
 import com.mapconductor.core.circle.OnCircleEventHandler
 import com.mapconductor.core.features.GeoPoint
 import com.mapconductor.core.features.GeoPointInterface
@@ -13,18 +15,26 @@ import com.mapconductor.core.groundimage.GroundImageState
 import com.mapconductor.core.groundimage.OnGroundImageEventHandler
 import com.mapconductor.core.map.CameraRestriction
 import com.mapconductor.core.map.MapCameraPosition
+import com.mapconductor.core.map.MapDiagnostics
 import com.mapconductor.core.map.MapViewHolderInterface
 import com.mapconductor.core.marker.MarkerAnimationOverlayHost
 import com.mapconductor.core.marker.MarkerCapableInterface
+import com.mapconductor.core.marker.MarkerDrawOrder
+import com.mapconductor.core.marker.MarkerDrawOrderReceiver
+import com.mapconductor.core.marker.MarkerDrawOrderTracker
 import com.mapconductor.core.marker.MarkerState
 import com.mapconductor.core.marker.OnMarkerEventHandler
+import com.mapconductor.core.marker.StrategyMarkerController
 import com.mapconductor.core.polygon.OnPolygonEventHandler
 import com.mapconductor.core.polygon.PolygonCapableInterface
 import com.mapconductor.core.polygon.PolygonState
 import com.mapconductor.core.polyline.OnPolylineEventHandler
 import com.mapconductor.core.polyline.PolylineCapableInterface
+import com.mapconductor.core.polyline.PolylineController
 import com.mapconductor.core.polyline.PolylineState
+import com.mapconductor.core.polyline.PolylineTiler
 import com.mapconductor.core.raster.RasterLayerCapableInterface
+import com.mapconductor.core.raster.RasterLayerController
 import com.mapconductor.core.raster.RasterLayerState
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.abs
@@ -47,6 +57,16 @@ abstract class BaseMapViewController :
     private var lastNotifiedCameraPosition: MapCameraPosition? = null
     abstract val mainCoroutine: CoroutineScope
     private val overlayControllers = CopyOnWriteArrayList<OverlayControllerInterface<*, *>>()
+
+    /**
+     * 同じ zIndex のマーカーを地図の向きに合わせて並べ直させる（画面で下ほど手前）。
+     * 回転が止まってから、登録されたマーカーのコントローラ全部へ一度だけ配る。
+     */
+    private val markerDrawOrder by lazy {
+        MarkerDrawOrderTracker(defaultCoroutine) { frame ->
+            overlayControllers.forEach { (it as? MarkerDrawOrderReceiver)?.onDrawOrderFrameChanged(frame) }
+        }
+    }
     protected var cameraMoveStartCallback: OnCameraMoveHandler? = null
     protected var cameraMoveCallback: OnCameraMoveHandler? = null
     protected var cameraMoveEndCallback: OnCameraMoveHandler? = null
@@ -146,6 +166,11 @@ abstract class BaseMapViewController :
     override fun registerOverlayController(controller: OverlayControllerInterface<*, *>) {
         if (overlayControllers.contains(controller)) return
         overlayControllers.add(controller)
+        // 地図が回った後に登録されたら、今の向きで並べ直させる。
+        val frame = markerDrawOrder.frame
+        if (controller is MarkerDrawOrderReceiver && frame != MarkerDrawOrder.Frame.NorthUp) {
+            defaultCoroutine.launch { controller.onDrawOrderFrameChanged(frame) }
+        }
         // 登録が初期カメラ確定より後になることがある（RN の拡張レンダラや遅延マウントの
         // クラスタリングなど）。ユーザー操作までカメライベントを出さないプロバイダ
         // （HERE）では次のイベントが永遠に来ず、「登録したのに一度も計算されない」型の
@@ -154,6 +179,21 @@ abstract class BaseMapViewController :
         if (controller is OnCameraChangeReceiverInterface) {
             defaultCoroutine.launch { controller.onCameraChanged(camera) }
         }
+    }
+
+    /**
+     * 登録されている [StrategyMarkerController]（クラスタリングなどの Strategy で描くマーカー）を
+     * すべて clear する。各プロバイダの `clearOverlays()` から呼ぶ。
+     *
+     * Strategy のコントローラはプロバイダが持つものではなく、拡張モジュール
+     * （android-marker-clustering の MarkerRenderingGroup など）が
+     * [registerOverlayController] で登録していくもの。プロバイダの `clearOverlays()` は
+     * 自分のフィールドのコントローラしか知らないので、ここで登録簿から拾う。
+     *
+     * 他の種類（ヒートマップのようにカメラだけ購読するもの）は消さない。
+     */
+    protected suspend fun clearStrategyMarkerControllers() {
+        overlayControllers.filterIsInstance<StrategyMarkerController<*>>().forEach { it.clear() }
     }
 
     // ── タップのカスケード ──────────────────────────────────────────────
@@ -262,11 +302,24 @@ abstract class BaseMapViewController :
             .filterIsInstance<SlottedOverlayController<*, *>>()
             .filter { it.kind == kind }
 
-    /** [kind] のいずれかのコントローラがこの id を持っているか。`hasXxx` の既定実装。 */
+    /** The tilers of this map's circle controllers, for [com.mapconductor.core.circle.CircleOverlay]'s per-map options. */
+    internal fun circleTilers(): List<CircleTiler> =
+        overlayControllersOf(OverlayKind.Circle).mapNotNull { (it as? CircleController<*>)?.tiler }
+
+    /** The tilers of this map's polyline controllers, for [com.mapconductor.core.polyline.PolylineOverlay]'s per-map options. */
+    internal fun polylineTilers(): List<PolylineTiler> =
+        overlayControllersOf(OverlayKind.Polyline).mapNotNull { (it as? PolylineController<*>)?.tiler }
+
+    /**
+     * [kind] のいずれかのコントローラがこの id を持っているか。`hasXxx` の既定実装。
+     *
+     * 一覧を作らずに直接なめる。composition のたびに全オーバーレイについて呼ばれる
+     * （`onAdded` の判定）ので、1 回ごとに 2 本のリストを作ると 10 万件で数百 ms になる。
+     */
     protected fun hasOverlay(
         kind: OverlayKind,
         id: String,
-    ): Boolean = overlayControllersOf(kind).any { it.has(id) }
+    ): Boolean = overlayControllers.any { it is SlottedOverlayController<*, *> && it.kind == kind && it.has(id) }
 
     // Marker
     override suspend fun compositionMarkers(data: List<MarkerState>) {
@@ -376,6 +429,105 @@ abstract class BaseMapViewController :
 
     override fun hasRasterLayer(state: RasterLayerState): Boolean = hasOverlay(OverlayKind.RasterLayer, state.id)
 
+    /**
+     * Adds or replaces a raster layer that is **not** part of the content
+     * block.
+     *
+     * `compositionRasterLayers` replaces the whole set with what the
+     * composition declared, so anything mounted from outside it would be
+     * swept away on the next recomposition. [RasterLayerController.upsert]
+     * keeps its ids out of that sweep, and this is how the two callers that
+     * need it get there: marker tiling, and a [MapViewStyle] on a backend
+     * that cannot draw a vector style and has to be handed tiles rendered
+     * from one.
+     *
+     * Provider-agnostic on purpose. The raster controller is already
+     * registered as an overlay controller by every provider, so this needs
+     * nothing per provider -- which is the difference between a seam that
+     * works on eleven backends and one that is wired on three.
+     */
+    open fun mountRasterLayer(state: RasterLayerState) {
+        val controllers = rasterLayerControllers()
+        if (controllers.isEmpty()) {
+            noRasterMount(state.id)
+            return
+        }
+        mainCoroutine.launch { controllers.forEach { it.upsert(state) } }
+    }
+
+    /** Takes off what [mountRasterLayer] put on. A layer that is not there is not an error. */
+    open fun unmountRasterLayer(id: String) {
+        val controllers = rasterLayerControllers()
+        if (controllers.isEmpty()) return
+        mainCoroutine.launch { controllers.forEach { it.removeById(id) } }
+    }
+
+    /**
+     * Says so when a provider has nowhere to mount one.
+     *
+     * Most providers reach their tiles through a [RasterLayerController]
+     * registered as an overlay controller, and get [mountRasterLayer] for
+     * free. TomTom and Longdo compose rasters into their own style instead
+     * and have no such controller, so they override the pair. A provider
+     * that does neither would otherwise show an empty map and say nothing,
+     * which is the failure this whole design is built against.
+     */
+    private fun noRasterMount(id: String) {
+        MapDiagnostics.sink.log(
+            "raster layer $id was not mounted: this provider registers no RasterLayerController " +
+                "and does not override mountRasterLayer",
+        )
+    }
+
+    private fun rasterLayerControllers(): List<RasterLayerController<*>> =
+        overlayControllersOf(OverlayKind.RasterLayer).filterIsInstance<RasterLayerController<*>>()
+
+    private val styleLoadedListeners = CopyOnWriteArrayList<() -> Unit>()
+
+    /**
+     * Runs [block] every time this map finishes loading a style document,
+     * and once now if it already has one.
+     *
+     * Everything a [MapViewStyle] put on a live renderer -- paint
+     * properties, a layer it added -- is gone when that renderer loads a
+     * document again, for any reason: the app switching basemap, a design
+     * change, the provider rebuilding its view. This is how it goes back on,
+     * and it is a registry rather than one listener because both the
+     * mutation store and the style installation need to hear it.
+     *
+     * A provider that has no such thing (Google Maps, MapKit, HERE...) never
+     * calls [notifyStyleLoaded], and a style installed on it is one that was
+     * rasterised into tiles -- which survives a basemap change by itself.
+     *
+     * @return the ticket to stop listening.
+     */
+    fun addStyleLoadedListener(block: () -> Unit): () -> Unit {
+        styleLoadedListeners.add(block)
+        if (styleLoaded) block()
+        return { styleLoadedListeners.remove(block) }
+    }
+
+    /**
+     * Called by the provider once the map has a style up **and** the
+     * overlays are back on it.
+     *
+     * Not when the load starts, and not before the provider has put its own
+     * layers back: a listener that patches a style mid-rebuild patches
+     * something that is about to be replaced.
+     */
+    protected fun notifyStyleLoaded() {
+        styleLoaded = true
+        styleLoadedListeners.forEach { it() }
+    }
+
+    /**
+     * Whether a style document is up now.
+     *
+     * Sticky, like [mapInitialized] and for the same reason: a provider can
+     * finish loading before anything has asked to be told about it.
+     */
+    private var styleLoaded = false
+
     fun setMapInitializedListener(listener: OnMapInitializedHandler?) {
         this.mapInitializedCallback = listener
         deliverMapInitializedCallbackIfReady()
@@ -402,6 +554,7 @@ abstract class BaseMapViewController :
 
     protected suspend fun notifyMapCameraPosition(mapCameraPosition: MapCameraPosition) {
         lastNotifiedCameraPosition = mapCameraPosition
+        markerDrawOrder.onCameraChanged(mapCameraPosition)
         overlayControllers.forEach {
             if (it is OnCameraChangeReceiverInterface) {
                 it.onCameraChanged(mapCameraPosition)

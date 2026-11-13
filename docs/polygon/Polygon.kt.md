@@ -42,7 +42,7 @@ The `PolygonState` is initialized with the following parameters:
     - Description: The color of the polygon's outline.
 - `strokeWidth`
     - Type: `Dp`
-    - Default: `2.dp`
+    - Default: `1.dp`
     - Description: The width of the polygon's outline.
 - `fillColor`
     - Type: `Color`

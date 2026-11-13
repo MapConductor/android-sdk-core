@@ -1,30 +1,28 @@
 package com.mapconductor.core.polygon
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mapconductor.core.ComponentState
+import com.mapconductor.core.StateMutationSignal
 import com.mapconductor.core.features.GeoPointInterface
 import java.io.Serializable
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
 
 class PolygonState(
     points: List<GeoPointInterface>,
     holes: List<List<GeoPointInterface>> = emptyList(),
     id: String? = null,
     strokeColor: Color = Color.Black,
-    strokeWidth: Dp = 2.dp,
+    strokeWidth: Dp = 1.dp,
     fillColor: Color = Color.Transparent,
     geodesic: Boolean = false,
     clickable: Boolean = true,
     zIndex: Int = 0,
     extra: Serializable? = null,
     onClick: OnPolygonEventHandler? = null,
+    onAdded: OnPolygonAddedHandler? = null,
 ) : ComponentState {
     override val id =
         (
@@ -41,10 +39,17 @@ class PolygonState(
                 ),
             )
         ).toString()
-    var strokeColor by mutableStateOf(strokeColor)
-    var strokeWidth by mutableStateOf(strokeWidth)
-    var fillColor by mutableStateOf(fillColor)
-    var geodesic by mutableStateOf(geodesic)
+
+    /**
+     * Writes to the fields below are announced here rather than discovered by
+     * reading them all back. See [StateMutationSignal].
+     */
+    override val mutations = StateMutationSignal()
+
+    var strokeColor by mutations.notifying(strokeColor)
+    var strokeWidth by mutations.notifying(strokeWidth)
+    var fillColor by mutations.notifying(fillColor)
+    var geodesic by mutations.notifying(geodesic)
 
     /**
      * タップを受け取るか。`false` ならこのポリゴンはタップに対して透過し、
@@ -54,12 +59,77 @@ class PolygonState(
      * どのプロバイダでも同じ挙動になる。描画には影響しないので [fingerPrint] には
      * 含めない（含めると値を変えるたびにオーバーレイが作り直される）。
      */
-    var clickable by mutableStateOf(clickable)
-    var zIndex by mutableStateOf(zIndex)
-    var points by mutableStateOf<List<GeoPointInterface>>(points)
-    var holes by mutableStateOf<List<List<GeoPointInterface>>>(holes)
-    var extra by mutableStateOf(extra)
-    var onClick by mutableStateOf(onClick)
+    var clickable by mutations.notifying(clickable)
+    var zIndex by mutations.notifying(zIndex)
+
+    /**
+     * 外周の頂点。
+     *
+     * state が見ているのはこのプロパティへの代入だけ。渡したリストをその場で書き換えても
+     * 描き直されない（`mutableStateListOf` を渡して `add` / `set` する使い方は効かない）。
+     * 形を変えるときは新しいリストを代入する:
+     *
+     * ```
+     * polygonState.points = polygonState.points.toMutableList().apply { this[i] = moved }
+     * ```
+     *
+     * 内容の等しいリストの代入は無視される。その場で書き換えた同じリストを代入し直しても、
+     * 前の値と同じものなので何も起きない。
+     */
+    var points by mutations.notifying<List<GeoPointInterface>>(points)
+
+    /**
+     * 穴（内周）の頂点。[points] と同じく、変えるときは新しいリストを代入する。
+     * 内側のリストをその場で書き換えても描き直されない。
+     */
+    var holes by mutations.notifying<List<List<GeoPointInterface>>>(holes)
+    var extra by mutations.notifying(extra)
+    var onClick by mutations.notifying(onClick)
+
+    /**
+     * Called once each time this polygon goes from not being on the map to being on it:
+     * after the map SDK's object for it has been created, or, when it is drawn in tiles,
+     * after the URL template of those tiles has been handed to the map as a raster layer
+     * (the tile images may still be loading then). Not called for an in-place change,
+     * nor when it moves between native drawing and tiles while staying on the map;
+     * called again if it is removed and added again. Clearing or destroying the map calls
+     * nothing.
+     *
+     * Runs on the main thread once the map has finished adding the overlays it was given.
+     * A callback that throws is logged and does not stop the other overlays' callbacks.
+     *
+     * Like `onClick`, it is not part of the id, fingerprint, equality or hash: replacing
+     * it redraws nothing. If the same state is shown on two maps, each map calls it.
+     */
+    var onAdded: OnPolygonAddedHandler? = onAdded
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    constructor(
+        points: List<GeoPointInterface>,
+        holes: List<List<GeoPointInterface>> = emptyList(),
+        id: String? = null,
+        strokeColor: Color = Color.Black,
+        strokeWidth: Dp = 1.dp,
+        fillColor: Color = Color.Transparent,
+        geodesic: Boolean = false,
+        clickable: Boolean = true,
+        zIndex: Int = 0,
+        extra: Serializable? = null,
+        onClick: OnPolygonEventHandler? = null,
+    ) : this(
+        points,
+        holes,
+        id,
+        strokeColor,
+        strokeWidth,
+        fillColor,
+        geodesic,
+        clickable,
+        zIndex,
+        extra,
+        onClick,
+        null,
+    )
 
     private fun polygonId(hashCodes: List<Int>): Int =
         hashCodes.reduce { result, hashCode ->
@@ -125,6 +195,7 @@ class PolygonState(
         zIndex: Int = this.zIndex,
         extra: Serializable? = this.extra,
         onClick: OnPolygonEventHandler? = this.onClick,
+        onAdded: OnPolygonAddedHandler? = this.onAdded,
     ): PolygonState =
         PolygonState(
             points = points,
@@ -138,9 +209,37 @@ class PolygonState(
             zIndex = zIndex,
             extra = extra,
             onClick = onClick,
+            onAdded = onAdded,
         )
 
-    fun asFlow(): Flow<PolygonFingerPrint> = snapshotFlow { fingerPrint() }.distinctUntilChanged()
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    fun copy(
+        points: List<GeoPointInterface> = this.points,
+        holes: List<List<GeoPointInterface>> = this.holes,
+        id: String? = this.id,
+        strokeColor: Color = this.strokeColor,
+        strokeWidth: Dp = this.strokeWidth,
+        fillColor: Color = this.fillColor,
+        geodesic: Boolean = this.geodesic,
+        clickable: Boolean = this.clickable,
+        zIndex: Int = this.zIndex,
+        extra: Serializable? = this.extra,
+        onClick: OnPolygonEventHandler? = this.onClick,
+    ): PolygonState =
+        copy(
+            points,
+            holes,
+            id,
+            strokeColor,
+            strokeWidth,
+            fillColor,
+            geodesic,
+            clickable,
+            zIndex,
+            extra,
+            onClick,
+            onAdded,
+        )
 }
 
 data class PolygonFingerPrint(
@@ -165,3 +264,6 @@ class PolygonEvent(
 }
 
 typealias OnPolygonEventHandler = (PolygonEvent) -> Unit
+
+/** Receives the state whose polygon was just added to the map. See [PolygonState.onAdded]. */
+typealias OnPolygonAddedHandler = (PolygonState) -> Unit

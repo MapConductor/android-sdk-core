@@ -57,7 +57,26 @@ object MarkerIngestionEngine {
                     // with the manager or bust the tile cache — that would force every visible
                     // tile to be redrawn for a no-op update.
                     val unchanged = wasTiled && prevEntity.fingerPrint == state.fingerPrint()
-                    if (!unchanged) {
+                    if (unchanged) {
+                        // Nothing to redraw — but the caller may have handed us a *new*
+                        // MarkerState instance with the same look and newer handlers. The
+                        // id is a hash of the look and does not include them, and a click
+                        // is dispatched from the entity's state, so an entity left holding
+                        // the previous instance keeps calling the previous onClick.
+                        // js-sdk-core does the same thing here; ios-sdk re-registers
+                        // unconditionally and never had the hole.
+                        if (prevEntity.state !== state) {
+                            markerManager.updateEntity(
+                                MarkerEntity(
+                                    marker = prevEntity.marker,
+                                    state = state,
+                                    visible = prevEntity.visible,
+                                    isRendered = prevEntity.isRendered,
+                                    tiling = true,
+                                ),
+                            )
+                        }
+                    } else {
                         if (!wasTiled) {
                             prevEntity.marker?.let { removedActualMarkers.add(prevEntity) }
                             tiledMarkerIds.add(state.id)

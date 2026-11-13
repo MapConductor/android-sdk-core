@@ -4,8 +4,10 @@ import com.mapconductor.core.controller.OverlayHit
 import com.mapconductor.core.controller.OverlayKind
 import com.mapconductor.core.controller.SlottedOverlayController
 import com.mapconductor.core.features.GeoPointInterface
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 
 abstract class PolygonController<ActualPolygon>(
     val polygonManager: PolygonManagerInterface<ActualPolygon>,
@@ -19,6 +21,15 @@ abstract class PolygonController<ActualPolygon>(
 
     var clickListener: OnPolygonEventHandler? = null
 
+    /**
+     * Set by a provider that can show polygon tiles (see [PolygonTiler]).
+     * Polygons it tiles stay in [polygonManager], for taps, with no native
+     * overlay: their entity's `polygon` is null and the renderer never sees
+     * them.
+     */
+    var tiler: PolygonTiler? = null
+    private var tiledIds: Set<String> = emptySet()
+
     fun dispatchClick(event: PolygonEvent) {
         // 配送座標の wrap は PolygonEvent の生成時に一元化済み。
         event.state.onClick?.invoke(event)
@@ -27,15 +38,26 @@ abstract class PolygonController<ActualPolygon>(
 
     override suspend fun add(data: List<PolygonState>) {
         semaphore.withPermit {
+            val wasTiled = tiledIds
+            val tiled = tiler?.route(data) ?: emptySet()
+            tiledIds = tiled
+            val native = if (tiled.isEmpty()) data else data.filter { it.id !in tiled }
             val modifiedEntities = mutableListOf<PolygonEntityInterface<ActualPolygon>>()
-            val previous = polygonManager.allEntities().map { it.state.id }.toMutableSet()
+            // Native handles remain authoritative after a cancelled transition:
+            // route() may already have switched the IDs to tiles before removal finishes.
+            val previous =
+                polygonManager
+                    .allEntities()
+                    .filter { it.polygon != null }
+                    .mapTo(mutableSetOf()) { it.state.id }
             val added = mutableListOf<PolygonOverlayRendererInterface.AddParamsInterface>()
             val updated = mutableListOf<PolygonOverlayRendererInterface.ChangeParamsInterface<ActualPolygon>>()
             val removed = mutableListOf<PolygonEntityInterface<ActualPolygon>>()
 
-            data.forEach { state ->
+            native.forEach { state ->
                 if (previous.contains(state.id)) {
-                    val prevEntity = polygonManager.getEntity(state.id)!!
+                    // Gone only if destroy() cleared the manager meanwhile; nothing left to update.
+                    val prevEntity = polygonManager.getEntity(state.id) ?: return@withPermit
                     if (state.fingerPrint() == prevEntity.fingerPrint) {
                         // 描画結果が不変なら renderer を呼ばず最新の state だけ採用する（react-sdk と同じ）。
                         polygonManager.registerEntity(PolygonEntity(state = state, polygon = prevEntity.polygon))
@@ -110,13 +132,68 @@ abstract class PolygonController<ActualPolygon>(
                 }
             }
 
+            // Tiled polygons: kept for taps, nothing native. Those that left
+            // the tiles and the list are forgotten; those that left the tiles
+            // for native drawing were added above.
+            if (wasTiled.isNotEmpty()) {
+                val nativeIds = native.mapTo(HashSet()) { it.id }
+                for (id in wasTiled) {
+                    if (id !in tiled && id !in nativeIds) polygonManager.removeEntity(id)
+                }
+            }
+            if (tiled.isNotEmpty()) {
+                val tiledStates = tiler!!.tiledStates()
+                withContext(Dispatchers.Default) {
+                    for (state in tiledStates) {
+                        polygonManager.registerEntity(PolygonEntity(polygon = inTiles(), state = state))
+                    }
+                }
+            }
+
             renderer.onPostProcess()
         }
     }
 
+    /** What a tiled polygon's entity holds instead of a native polygon. */
+    @Suppress("UNCHECKED_CAST")
+    private fun inTiles(): ActualPolygon = null as ActualPolygon
+
     override suspend fun update(state: PolygonState) {
         semaphore.withPermit {
             val prevEntity = polygonManager.getEntity(state.id) ?: return
+            if (state.id in tiledIds) {
+                if (PolygonTileSet.canTile(state)) {
+                    if (state.zIndex != prevEntity.fingerPrint.zIndex) {
+                        tiler?.reorder(state)
+                    } else {
+                        tiler?.update(state)
+                    }
+                    polygonManager.registerEntity(PolygonEntity(polygon = prevEntity.polygon, state = state))
+                    return
+                }
+                // No longer drawable in a tile (geodesic, half the world wide, or
+                // under 3 points): the map SDK draws it from now on. Still on the
+                // map, so this is not an add. Whether the rest stay in tiles is
+                // left to the next add(), which decides tiling for the whole list.
+                tiledIds = tiledIds - state.id
+                tiler?.remove(state.id)
+                val polygons =
+                    renderer.onAdd(
+                        listOf(
+                            object : PolygonOverlayRendererInterface.AddParamsInterface {
+                                override val state: PolygonState = state
+                            },
+                        ),
+                    )
+                val polygon = polygons.firstOrNull()
+                if (polygon != null) {
+                    polygonManager.registerEntity(PolygonEntity(polygon = polygon, state = state))
+                } else {
+                    polygonManager.removeEntity(state.id)
+                }
+                renderer.onPostProcess()
+                return
+            }
             val currentFinger = state.fingerPrint()
             val prevFinger = prevEntity.fingerPrint
             if (currentFinger == prevFinger) {
@@ -151,9 +228,15 @@ abstract class PolygonController<ActualPolygon>(
 
     override suspend fun clear() {
         semaphore.withPermit {
-            val entities: List<PolygonEntityInterface<ActualPolygon>> = polygonManager.allEntities()
+            tiledIds = emptySet()
+            tiler?.clear()
+            val entities: List<PolygonEntityInterface<ActualPolygon>> =
+                polygonManager.allEntities().filter { it.polygon != null }
             renderer.onRemove(entities)
+            // manager を空にしてから onPostProcess を呼ぶ。GL 系の描画担当は remove では何もせず、
+            // onPostProcess で manager の全部を描き直すので、逆の順だと clear() 後も地図に残る。
             polygonManager.clear()
+            renderer.onPostProcess()
         }
     }
 
@@ -162,7 +245,12 @@ abstract class PolygonController<ActualPolygon>(
             .find(position)
 
     override fun destroy() {
-        // No native resources to clean up for polygons
+        // The tile server outlives the map; without this its route keeps every
+        // tiled polygon (and the renderer's copies of them) alive.
+        tiler?.dispose()
+        // A destroyed controller can still be referenced (by its map controller,
+        // or a state that has not let go yet); without this it keeps every entity.
+        polygonManager.clear()
     }
 
     override fun has(id: String): Boolean = polygonManager.hasEntity(id)

@@ -18,10 +18,44 @@ class LocalTileServer private constructor(
     forceNoStoreCache: Boolean,
 ) {
     private val providers = ConcurrentHashMap<String, TileProviderInterface>()
+
+    /**
+     * ルートごとの「このレベルは透明でよい」判定。
+     *
+     * ArcGIS の 3D ビューは画面のレベルより上の全レベルも要求し、画面のレベルが
+     * 載れば一枚も描かない。要求ごとのフックを持たない Android の
+     * `WebTiledLayer` では、ここで provider を呼ぶ前に透明を返すのが唯一の手。
+     * 透明は `no-store` で返す。ArcGIS 側のキャッシュは別で、それは呼び手が
+     * レイヤーを作り直して捨てる。
+     */
+    private val levelGates = ConcurrentHashMap<String, (Int) -> Boolean>()
+
+    /**
+     * Whole documents served by id, beside the tiles: a style JSON that a
+     * vector-capable map is to read directly, for one. Served `no-store` --
+     * the id changes when the content does, so there is nothing to revalidate,
+     * and a map holding on to a stale document is harder to notice than one
+     * refetching a small one.
+     */
+    private val documents = ConcurrentHashMap<String, Document>()
+
+    /**
+     * Directories served by route, for a map that reads its style's tiles,
+     * glyphs and sprite straight from the device: an offline package. A path
+     * that is not in the directory is offered to the route's fallback, which
+     * is how "online" and "offline" differ for the same package -- online,
+     * the fallback fetches upstream; offline, there is none, and the map is
+     * told there is no such tile.
+     */
+    private val fileRoutes = ConcurrentHashMap<String, FileRoute>()
+
+    /** Requests dropped because the map had stopped waiting for them. */
+    private val abandoned = AtomicLong()
     private val loggedRoutes = ConcurrentHashMap.newKeySet<String>()
     private val running = AtomicBoolean(false)
     private val acceptThread = Thread { acceptLoop() }
     private val shedConnections = AtomicLong(0)
+    private val renderPermits = java.util.concurrent.Semaphore(MAX_CONCURRENT_RENDERS)
 
     // Bounded worker pool: excess connections beyond the queue capacity are
     // rejected and closed instead of spawning unbounded threads.
@@ -32,7 +66,12 @@ class LocalTileServer private constructor(
             WORKER_KEEP_ALIVE_SECONDS,
             TimeUnit.SECONDS,
             ArrayBlockingQueue(MAX_QUEUED_CONNECTIONS),
-            { runnable -> Thread(runnable).apply { isDaemon = true } },
+            { runnable ->
+                Thread({
+                    android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+                    runnable.run()
+                }, "MapConductorTileWorker").apply { isDaemon = true }
+            },
         ).apply { allowCoreThreadTimeOut(true) }
 
     @Volatile
@@ -53,7 +92,63 @@ class LocalTileServer private constructor(
 
     fun unregister(routeId: String) {
         providers.remove(routeId)
+        levelGates.remove(routeId)
     }
+
+    /**
+     * [gate] が true を返すレベルの要求は、provider を呼ばずに透明タイルで答える。
+     * null で解除。
+     */
+    fun setLevelGate(
+        routeId: String,
+        gate: ((level: Int) -> Boolean)?,
+    ) {
+        if (gate == null) levelGates.remove(routeId) else levelGates[routeId] = gate
+    }
+
+    /**
+     * Serves [body] at [documentUrl] until [unregisterDocument].
+     *
+     * [id] must be URL-safe as given; it is matched against the request path
+     * verbatim.
+     */
+    fun registerDocument(
+        id: String,
+        contentType: String,
+        body: ByteArray,
+    ) {
+        documents[id] = Document(contentType, body)
+    }
+
+    fun unregisterDocument(id: String) {
+        documents.remove(id)
+    }
+
+    fun documentUrl(id: String): String = "$baseUrl/$DOCS_PREFIX/$id"
+
+    /**
+     * Serves the files under [directory] at [filesUrl]`/<relative path>`.
+     *
+     * The content type follows the extension (`.mvt`, `.pbf`, `.json`,
+     * `.png`); a file is served as immutable, since a package does not change
+     * under a map. A path with no file is answered by [fallback] -- served
+     * `no-store`, so what came from upstream is not mistaken for the package
+     * -- or, when that is null or answers null, with 404, which the map takes
+     * as "no such tile" and does not retry.
+     */
+    fun registerFiles(
+        routeId: String,
+        directory: java.io.File,
+        fallback: ((relativePath: String) -> ByteArray?)? = null,
+    ) {
+        fileRoutes[routeId] = FileRoute(directory, fallback)
+    }
+
+    fun unregisterFiles(routeId: String) {
+        fileRoutes.remove(routeId)
+    }
+
+    fun filesUrl(routeId: String): String = "$baseUrl/$FILES_PREFIX/$routeId"
 
     fun urlTemplate(
         routeId: String,
@@ -75,6 +170,30 @@ class LocalTileServer private constructor(
         tileSize: Int,
         cacheKey: String,
     ): String = "$baseUrl/tiles/$routeId/$tileSize/{z}/{x}/{y}.png?v=$cacheKey"
+
+    /**
+     * Draws the tile a local URL names, in this process, without the HTTP hop.
+     *
+     * A map SDK that fetches through its own network stack may refuse to
+     * while the device reports no connectivity -- HERE will not even ask
+     * 127.0.0.1 -- so its layer hands the request here instead. Same
+     * providers, same answers: the bytes of a drawn tile, a transparent tile
+     * where the provider has nothing, and null when the route is unknown or
+     * the render failed, which the caller reports as a failure the map may
+     * retry. The URL is one this server's own templates produced.
+     */
+    fun renderLocalTile(
+        url: String,
+        isCancelled: () -> Boolean = { false },
+    ): ByteArray? {
+        if (!url.startsWith("$baseUrl/")) return null
+        val path = url.removePrefix("$baseUrl/").substringBefore('?')
+        return when (val outcome = resolveTile(path, isCancelled)) {
+            is TileOutcome.Tile -> outcome.body
+            is TileOutcome.Empty -> TransparentTilePng.bytes(outcome.pixelSize)
+            TileOutcome.NotFound, TileOutcome.Failed -> null
+        }
+    }
 
     /**
      * Whether the server is accepting connections. A stopped server cannot be
@@ -118,6 +237,13 @@ class LocalTileServer private constructor(
                 continue
             }
             try {
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(
+                        TAG,
+                        "accepted a connection; workers busy=${clientExecutor.activeCount} " +
+                            "queued=${clientExecutor.queue.size}",
+                    )
+                }
                 clientExecutor.execute { handleClient(socket) }
             } catch (_: RejectedExecutionException) {
                 // Saturated: shed the connection; the map SDK will retry the tile.
@@ -138,10 +264,16 @@ class LocalTileServer private constructor(
     private fun handleClient(socket: Socket) {
         socket.use { client ->
             try {
-                client.soTimeout = 5000
-                val reader = BufferedReader(InputStreamReader(client.getInputStream()))
+                client.soTimeout = SOCKET_TIMEOUT_MS
+                // Unbuffered on purpose: the liveness check reads a byte from
+                // here, and a buffer between the two would hide it.
+                val peek = java.io.PushbackInputStream(client.getInputStream(), 1)
+                val reader = BufferedReader(InputStreamReader(peek))
                 var handled = 0
                 while (handled < MAX_KEEP_ALIVE_REQUESTS) {
+                    // Idle keep-alive clients must not occupy all request
+                    // handlers while newer tiles wait in the connection queue.
+                    client.soTimeout = if (handled == 0) SOCKET_TIMEOUT_MS else KEEP_ALIVE_IDLE_TIMEOUT_MS
                     val request = readRequest(reader) ?: break
                     if (!request.valid) {
                         writeResponse(client, "400 Bad Request", "text/plain", "Bad request".toByteArray())
@@ -166,21 +298,112 @@ class LocalTileServer private constructor(
                         break
                     }
 
-                    val tileResponse = resolveTile(path)
+                    if (path.startsWith("$DOCS_PREFIX/")) {
+                        val document = documents[path.removePrefix("$DOCS_PREFIX/")]
+                        val ok =
+                            if (document == null) {
+                                writeResponse(
+                                    client,
+                                    "404 Not Found",
+                                    "text/plain",
+                                    "Not found".toByteArray(),
+                                    keepAlive = keepAlive,
+                                    extraHeaders = cacheHeaders(NO_STORE_CACHE_CONTROL),
+                                )
+                            } else {
+                                writeResponse(
+                                    client,
+                                    "200 OK",
+                                    document.contentType,
+                                    document.body,
+                                    keepAlive = keepAlive,
+                                    extraHeaders = cacheHeaders(NO_STORE_CACHE_CONTROL),
+                                )
+                            }
+                        if (!ok) break
+                        handled += 1
+                        if (!keepAlive) break
+                        continue
+                    }
+
+                    if (path.startsWith("$FILES_PREFIX/")) {
+                        val ok = serveFile(client, path.removePrefix("$FILES_PREFIX/"), keepAlive)
+                        if (!ok) break
+                        handled += 1
+                        if (!keepAlive) break
+                        continue
+                    }
+
+                    // The map may have moved on since this request was
+                    // queued -- a pinch or a fling abandons whole screens of
+                    // tiles -- and drawing one it no longer wants puts it in
+                    // front of the tiles it does. Rendering is where the time
+                    // goes, so the cheapest thing that helps is not starting.
+                    if (clientGone(client, peek)) {
+                        val total = abandoned.incrementAndGet()
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "Gone before we started: $path (total=$total)")
+                        }
+                        break
+                    }
+
+                    // Renderers check cancellation every few hundred shapes.
+                    // A socket read per check turns 72万 circles into seconds
+                    // of timeout waits. Poll the connection by elapsed time.
+                    var lastProbeNs = System.nanoTime()
+                    val cancelled = {
+                        if (Thread.currentThread().isInterrupted || client.isClosed) true
+                        else {
+                            val now = System.nanoTime()
+                            if (now - lastProbeNs < CANCELLATION_POLL_NS) false
+                            else { lastProbeNs = now; clientGone(client, peek) }
+                        }
+                    }
+                    val outcome = resolveTile(path, cancelled)
+                    // A tile that was abandoned mid-render comes back from the
+                    // provider looking empty, and the difference matters: an
+                    // "empty" answer is a picture the map would cache. Nothing
+                    // is answered at all -- the connection simply ends, which
+                    // the map reads as a failure it may retry.
+                    val fromProvider = outcome is TileOutcome.Empty || outcome is TileOutcome.Failed
+                    if (fromProvider && clientGone(client, peek)) {
+                        val total = abandoned.incrementAndGet()
+                        if (Log.isLoggable(TAG, Log.DEBUG)) {
+                            Log.d(TAG, "Abandoned mid-render, no answer sent: $path (total=$total)")
+                        }
+                        break
+                    }
                     val status: String
                     val contentType: String
                     val body: ByteArray
                     val headers: Map<String, String>
-                    if (tileResponse == null) {
-                        status = "404 Not Found"
-                        contentType = "text/plain"
-                        body = "Not found".toByteArray()
-                        headers = cacheHeaders(NO_STORE_CACHE_CONTROL)
-                    } else {
-                        status = "200 OK"
-                        contentType = "image/png"
-                        body = tileResponse.body
-                        headers = cacheHeaders(tileResponse.cacheControl)
+                    when (outcome) {
+                        TileOutcome.NotFound -> {
+                            status = "404 Not Found"
+                            contentType = "text/plain"
+                            body = "Not found".toByteArray()
+                            headers = cacheHeaders(NO_STORE_CACHE_CONTROL)
+                        }
+                        TileOutcome.Failed -> {
+                            // 503: the map will retry. If these repeat for the
+                            // same path, the provider is the place to look.
+                            status = "503 Service Unavailable"
+                            contentType = "text/plain"
+                            body = "Tile render failed".toByteArray()
+                            headers = cacheHeaders(NO_STORE_CACHE_CONTROL) + ("Retry-After" to "1")
+                        }
+                        is TileOutcome.Empty -> {
+                            status = "200 OK"
+                            contentType = "image/png"
+                            body = TransparentTilePng.bytes(outcome.pixelSize)
+                            headers = cacheHeaders(outcome.cacheControl)
+                        }
+                        is TileOutcome.Tile -> {
+                            status = "200 OK"
+                            contentType = "image/png"
+                            body = outcome.body
+                            headers = cacheHeaders(outcome.cacheControl)
+                        }
                     }
 
                     val ok =
@@ -302,8 +525,51 @@ class LocalTileServer private constructor(
         }
     }
 
-    private fun resolveTile(path: String): TileResponse? {
-        val key = parseTileKey(path) ?: return null
+    /**
+     * Whether the other end has gone away.
+     *
+     * There is no portable way to ask a socket whether the peer is still
+     * there, so this asks the only question a socket does answer: is there
+     * anything to read. A closed connection reads end-of-stream at once; a
+     * live idle one times out, which is the answer we want.
+     *
+     * The first version sent a byte of urgent data instead, which fails on a
+     * dead connection and is discarded by any client that does not ask for it.
+     * That is true of every HTTP client, and it is still a byte pushed into a
+     * live connection at a moment of its choosing -- a poor thing to do to a
+     * stream we also have to parse. Reading cannot corrupt anything, and the
+     * byte is pushed back for the parser when there is one.
+     */
+    private fun clientGone(
+        client: Socket,
+        peek: java.io.PushbackInputStream,
+    ): Boolean {
+        if (client.isClosed || !client.isConnected) return true
+        val timeout = runCatching { client.soTimeout }.getOrDefault(SOCKET_TIMEOUT_MS)
+        return try {
+            client.soTimeout = 1
+            val byte = peek.read()
+            if (byte == -1) {
+                true
+            } else {
+                // A pipelined request, which is the parser's business.
+                peek.unread(byte)
+                false
+            }
+        } catch (_: java.net.SocketTimeoutException) {
+            false
+        } catch (_: java.io.IOException) {
+            true
+        } finally {
+            runCatching { client.soTimeout = timeout }
+        }
+    }
+
+    private fun resolveTile(
+        path: String,
+        isCancelled: () -> Boolean,
+    ): TileOutcome {
+        val key = parseTileKey(path) ?: return TileOutcome.NotFound
         val routeId = key.routeId
         val z = key.z
         val x = key.x
@@ -313,18 +579,35 @@ class LocalTileServer private constructor(
             Log.d("LocalTileServer", "First tile request route=$routeId tileSize=${key.tileSize} z=$z x=$x y=$y")
         }
 
-        val provider = providers[routeId] ?: return null
-        val bytes =
-            provider.renderTile(
-                TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
-            ) ?: return null
+        val provider = providers[routeId] ?: return TileOutcome.NotFound
+        levelGates[routeId]?.let { gate ->
+            if (gate(z)) return TileOutcome.Empty(key.tileSize * key.pixelRatio, NO_STORE_CACHE_CONTROL)
+        }
         val cacheControl =
             if (forceNoStoreCache) {
                 NO_STORE_CACHE_CONTROL
             } else {
                 LONG_CACHE_CONTROL
             }
-        return TileResponse(bytes, cacheControl)
+        val bytes =
+            try {
+                // Connection handling and idle sockets are separate from the
+                // memory-intensive bitmap/PNG work. Keep only two renders live.
+                while (!renderPermits.tryAcquire(16, TimeUnit.MILLISECONDS)) {
+                    if (isCancelled()) return TileOutcome.Failed
+                }
+                try {
+                    if (isCancelled()) return TileOutcome.Failed
+                    provider.renderTile(
+                        TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
+                        isCancelled,
+                    )
+                } finally { renderPermits.release() }
+            } catch (error: Exception) {
+                Log.w(TAG, "Tile render failed route=$routeId z=$z x=$x y=$y", error)
+                return TileOutcome.Failed
+            } ?: return TileOutcome.Empty(key.tileSize * key.pixelRatio, cacheControl)
+        return TileOutcome.Tile(bytes, cacheControl)
     }
 
     private fun parseTileKey(path: String): TileKey? {
@@ -349,6 +632,68 @@ class LocalTileServer private constructor(
             pixelRatio = tileCoordinate.pixelRatio,
         )
     }
+
+    /** `<routeId>/<relative path>` under the files prefix. */
+    private fun serveFile(
+        client: Socket,
+        routePath: String,
+        keepAlive: Boolean,
+    ): Boolean {
+        val routeId = routePath.substringBefore('/')
+        val relative =
+            runCatching { java.net.URLDecoder.decode(routePath.substringAfter('/', ""), "UTF-8") }
+                .getOrDefault("")
+        val route = fileRoutes[routeId]
+        // No escaping the directory, whatever the request says.
+        val safe = relative.isNotEmpty() && relative.split('/').none { it == ".." || it.isEmpty() }
+        val file = if (route != null && safe) java.io.File(route.directory, relative) else null
+        if (file != null && file.isFile) {
+            return writeResponse(
+                client,
+                "200 OK",
+                contentTypeFor(relative),
+                file.readBytes(),
+                keepAlive = keepAlive,
+                extraHeaders = cacheHeaders(LONG_CACHE_CONTROL),
+            )
+        }
+        val fetched =
+            if (route?.fallback != null && safe) {
+                runCatching { route.fallback.invoke(relative) }
+                    .onFailure { Log.w(TAG, "file fallback failed: $relative", it) }
+                    .getOrNull()
+            } else {
+                null
+            }
+        return if (fetched != null) {
+            writeResponse(
+                client,
+                "200 OK",
+                contentTypeFor(relative),
+                fetched,
+                keepAlive = keepAlive,
+                extraHeaders = cacheHeaders(NO_STORE_CACHE_CONTROL),
+            )
+        } else {
+            writeResponse(
+                client,
+                "404 Not Found",
+                "text/plain",
+                "Not found".toByteArray(),
+                keepAlive = keepAlive,
+                extraHeaders = cacheHeaders(NO_STORE_CACHE_CONTROL),
+            )
+        }
+    }
+
+    private fun contentTypeFor(path: String): String =
+        when (path.substringAfterLast('.', "").lowercase()) {
+            "mvt" -> "application/vnd.mapbox-vector-tile"
+            "pbf" -> "application/x-protobuf"
+            "json" -> "application/json"
+            "png" -> "image/png"
+            else -> "application/octet-stream"
+        }
 
     private fun cacheHeaders(cacheControl: String): Map<String, String> =
         mapOf(
@@ -401,9 +746,39 @@ class LocalTileServer private constructor(
         val valid: Boolean,
     )
 
-    private data class TileResponse(
+    /**
+     * What a request resolved to. The distinctions matter because map SDKs
+     * remember the answers differently: 404 is taken as permanent, so it is
+     * reserved for requests that name nothing — a bad path, an unregistered
+     * route. A provider with nothing to draw gets a transparent picture (an
+     * empty spot is a real answer, cacheable and later replaced when the data
+     * version moves the URL), and a provider that threw gets a 503 the map
+     * knows to retry.
+     */
+    private sealed interface TileOutcome {
+        class Tile(
+            val body: ByteArray,
+            val cacheControl: String,
+        ) : TileOutcome
+
+        class Empty(
+            val pixelSize: Int,
+            val cacheControl: String,
+        ) : TileOutcome
+
+        object NotFound : TileOutcome
+
+        object Failed : TileOutcome
+    }
+
+    private class Document(
+        val contentType: String,
         val body: ByteArray,
-        val cacheControl: String,
+    )
+
+    private class FileRoute(
+        val directory: java.io.File,
+        val fallback: ((String) -> ByteArray?)?,
     )
 
     private data class TileKey(
@@ -417,14 +792,18 @@ class LocalTileServer private constructor(
 
     companion object {
         private const val TAG = "LocalTileServer"
+        private const val DOCS_PREFIX = "docs"
+        private const val FILES_PREFIX = "files"
         private const val MAX_KEEP_ALIVE_REQUESTS = 200
+        private const val SOCKET_TIMEOUT_MS = 5000
+        private const val KEEP_ALIVE_IDLE_TIMEOUT_MS = 250
+        private const val CANCELLATION_POLL_NS = 50_000_000L
+        private const val MAX_CONCURRENT_RENDERS = 2
         private const val MAX_HEADER_COUNT = 64
         private const val MAX_LINE_LENGTH = 8192
 
-        // Tile rendering is CPU-bound (canvas + PNG encode), so more workers than
-        // cores adds contention, not throughput. The deep queue absorbs request
-        // bursts (e.g. ArcGIS fetching several LODs during a zoom animation)
-        // without shedding connections.
+        // Serve independent connections without letting idle keep-alives block
+        // the viewport. Bitmap/PNG concurrency is limited separately above.
         private const val MAX_WORKER_THREADS = 8
         private const val MAX_QUEUED_CONNECTIONS = 256
         private const val WORKER_KEEP_ALIVE_SECONDS = 60L

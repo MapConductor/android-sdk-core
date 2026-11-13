@@ -258,4 +258,31 @@ class MapViewStateBaseTest {
         assertTrue(controller.moved.isEmpty())
         assertNull(state.getMapViewHolder())
     }
+
+    @Test
+    fun `破棄したコントローラを渡すと手放す`() {
+        // アプリが state を持ち続けても、壊した地図のコントローラ（と全オーバーレイ）を
+        // 抱えたままにしない。
+        val controller = FakeController()
+        val state = TestState().apply { attach(controller) }
+
+        state.detachController(controller)
+
+        assertNull(state.getMapViewHolder())
+    }
+
+    @Test
+    fun `別のコントローラが接続済みなら古いものを渡しても外さない`() {
+        val old = FakeController()
+        val current = FakeController()
+        val state = TestState().apply { attach(old) }
+        state.attach(current)
+
+        state.detachController(old)
+
+        assertSame(current.holder, state.getMapViewHolder())
+        current.moved.clear()
+        state.moveCameraTo(cameraAt(1.0, 2.0), durationMillis = 0)
+        assertEquals(1, current.moved.size)
+    }
 }

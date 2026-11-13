@@ -172,8 +172,9 @@ object Spherical {
     /**
      * Returns the signed area of a closed path in square meters.
      * The signed area may be used to determine the orientation of the path.
-     * Positive values indicate counter-clockwise orientation,
-     * negative values indicate clockwise orientation.
+     * Positive values indicate clockwise orientation,
+     * negative values indicate counter-clockwise orientation
+     * (as seen on a north-up map, e.g. SW -> NW -> NE -> SE is clockwise and positive).
      *
      * @param path List of GeoPointInterface locations defining the closed path
      * @return Signed area in square meters

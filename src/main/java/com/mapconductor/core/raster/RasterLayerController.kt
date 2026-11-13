@@ -236,8 +236,41 @@ abstract class RasterLayerController<ActualLayer : Any>(
                 upsertedIds.clear()
                 val entities: List<RasterLayerEntityInterface<ActualLayer>> = rasterLayerManager.allEntities()
                 renderer.onRemove(entities)
-                renderer.onPostProcess()
+                // manager を空にしてから onPostProcess を呼ぶ。GL 系の描画担当は remove では何もせず、
+                // onPostProcess で manager の全部を描き直すので、逆の順だと clear() 後も地図に残る。
                 rasterLayerManager.clear()
+                renderer.onPostProcess()
+            }
+        }
+    }
+
+    /**
+     * Re-adds every registered layer after the style was replaced, which drops
+     * the sources and layers the SDK added.
+     *
+     * It runs under the same lock as add/update/upsert/clear, so it reads the
+     * manager only after any change in progress has registered its entity. Read
+     * outside the lock, a change between renderer.onChange() and registerEntity()
+     * would be re-applied with its old source or opacity (react-sdk hit this:
+     * MapConductor/js-sdk-core#15).
+     *
+     * Entities are not registered again: the providers that call this build
+     * their handles from the layer id, so the registered ones stay valid on the
+     * new style.
+     */
+    open suspend fun reapplyStyle() {
+        withContext(renderer.coroutine.coroutineContext) {
+            semaphore.withPermit {
+                val states = rasterLayerManager.allEntities().map { it.state }
+                if (states.isEmpty()) return@withPermit
+                renderer.onAdd(
+                    states.map { state ->
+                        object : RasterLayerOverlayRendererInterface.AddParamsInterface {
+                            override val state: RasterLayerState = state
+                        }
+                    },
+                )
+                renderer.onPostProcess()
             }
         }
     }
@@ -251,7 +284,9 @@ abstract class RasterLayerController<ActualLayer : Any>(
     }
 
     override fun destroy() {
-        // No native resources to clean up
+        // A destroyed controller can still be referenced (by its map controller,
+        // or a state that has not let go yet); without this it keeps every entity.
+        rasterLayerManager.clear()
     }
 
     override fun has(id: String): Boolean = rasterLayerManager.hasEntity(id)

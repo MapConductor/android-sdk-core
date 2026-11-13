@@ -1,12 +1,9 @@
 package com.mapconductor.core.raster
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import com.mapconductor.core.ComponentState
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
+import com.mapconductor.core.StateMutationSignal
 
 class RasterLayerState(
     source: RasterLayerSource,
@@ -17,6 +14,7 @@ class RasterLayerState(
     debug: Boolean = false,
     id: String? = null,
     extraHeaders: Map<String, String>? = null,
+    onAdded: OnRasterLayerAddedHandler? = null,
 ) : ComponentState {
     override val id =
         (
@@ -31,13 +29,63 @@ class RasterLayerState(
             )
         ).toString()
 
-    var source by mutableStateOf(source)
-    var opacity by mutableStateOf(opacity)
-    var visible by mutableStateOf(visible)
-    var zIndex by mutableStateOf(zIndex)
-    var userAgent by mutableStateOf(userAgent)
-    var debug by mutableStateOf(debug)
-    var extraHeaders by mutableStateOf(extraHeaders)
+    /**
+     * Writes to the fields below are announced here rather than discovered by
+     * reading them all back. See [StateMutationSignal].
+     */
+    override val mutations = StateMutationSignal()
+
+    var source by mutations.notifying(source)
+    var opacity by mutations.notifying(opacity)
+    var visible by mutations.notifying(visible)
+    var zIndex by mutations.notifying(zIndex)
+    var userAgent by mutations.notifying(userAgent)
+    var debug by mutations.notifying(debug)
+
+    /**
+     * タイル要求に足すヘッダー。変えるときは新しい Map を代入する。渡した Map をその場で
+     * 書き換えても state には伝わらず、内容の等しい Map の代入は無視される。
+     */
+    var extraHeaders by mutations.notifying(extraHeaders)
+
+    /**
+     * Called once each time this raster layer goes from not being on the map to being on it:
+     * after the map SDK's object for it has been created, or, when it is drawn in tiles,
+     * after the URL template of those tiles has been handed to the map as a raster layer
+     * (the tile images may still be loading then). Not called for an in-place change,
+     * nor when it moves between native drawing and tiles while staying on the map;
+     * called again if it is removed and added again. Clearing or destroying the map calls
+     * nothing.
+     *
+     * Runs on the main thread once the map has finished adding the overlays it was given.
+     * A callback that throws is logged and does not stop the other overlays' callbacks.
+     *
+     * Like `onClick`, it is not part of the id, fingerprint, equality or hash: replacing
+     * it redraws nothing. If the same state is shown on two maps, each map calls it.
+     */
+    var onAdded: OnRasterLayerAddedHandler? = onAdded
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    constructor(
+        source: RasterLayerSource,
+        opacity: Float = 1.0f,
+        visible: Boolean = true,
+        zIndex: Int = 0,
+        userAgent: String = DEFAULT_USER_AGENT,
+        debug: Boolean = false,
+        id: String? = null,
+        extraHeaders: Map<String, String>? = null,
+    ) : this(
+        source,
+        opacity,
+        visible,
+        zIndex,
+        userAgent,
+        debug,
+        id,
+        extraHeaders,
+        null,
+    )
 
     private fun rasterLayerId(hashCodes: List<Int>): Int =
         hashCodes.reduce { result, hashCode ->
@@ -69,6 +117,7 @@ class RasterLayerState(
         userAgent: String = this.userAgent,
         id: String? = this.id,
         extraHeaders: Map<String, String>? = this.extraHeaders,
+        onAdded: OnRasterLayerAddedHandler? = this.onAdded,
     ): RasterLayerState =
         RasterLayerState(
             source = source,
@@ -79,6 +128,30 @@ class RasterLayerState(
             debug = debug,
             id = id,
             extraHeaders = extraHeaders,
+            onAdded = onAdded,
+        )
+
+    @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
+    fun copy(
+        source: RasterLayerSource = this.source,
+        opacity: Float = this.opacity,
+        visible: Boolean = this.visible,
+        zIndex: Int = this.zIndex,
+        debug: Boolean = this.debug,
+        userAgent: String = this.userAgent,
+        id: String? = this.id,
+        extraHeaders: Map<String, String>? = this.extraHeaders,
+    ): RasterLayerState =
+        copy(
+            source,
+            opacity,
+            visible,
+            zIndex,
+            debug,
+            userAgent,
+            id,
+            extraHeaders,
+            onAdded,
         )
 
     fun fingerPrint(): RasterLayerFingerPrint =
@@ -92,10 +165,6 @@ class RasterLayerState(
             debug = debug.hashCode(),
             extra = extraHeaders?.hashCode() ?: 0,
         )
-
-    fun asFlow(): Flow<RasterLayerFingerPrint> =
-        snapshotFlow { fingerPrint() }
-            .distinctUntilChanged()
 
     companion object {
         /**
@@ -127,3 +196,6 @@ data class RasterLayerEvent(
 )
 
 typealias OnRasterLayerEventHandler = (RasterLayerEvent) -> Unit
+
+/** Receives the state whose layer was just added to the map. See [RasterLayerState.onAdded]. */
+typealias OnRasterLayerAddedHandler = (RasterLayerState) -> Unit

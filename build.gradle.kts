@@ -60,7 +60,16 @@ android {
     }
 }
 
+// 自分で宣言したドライバー実装点（@InternalMapConductorApi）を、core 自身の
+// 状態クラスが使う（各 ComponentState が StateMutationSignal を持つ）。
+kotlin {
+    compilerOptions {
+        optIn.add("com.mapconductor.core.InternalMapConductorApi")
+    }
+}
+
 dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.5.2")
     // Make Compose dependencies implementation instead of compileOnly for proper runtime support
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
@@ -75,6 +84,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.common.java8)
 
     testImplementation(libs.junit)
+    // OverlayCollectorMutationTest drives the collector's debounce on a virtual
+    // clock; without it the test source set does not compile.
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
