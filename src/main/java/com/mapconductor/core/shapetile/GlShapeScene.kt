@@ -23,9 +23,11 @@ import kotlin.math.sqrt
  *   one point per ring, +1 front / -1 back), then the outline as segment quads
  *   plus vertex discs written to the stencil and covered once -- a translucent
  *   outline is not painted twice where its joins overlap, as with `drawPath`.
- * - **Polylines**: each its own stencil number (1..255), drawn where the stencil
- *   is not that number and setting it, so a line is painted once and lines stack
- *   in order. GLES has no stencil export, so each line is its own draw call.
+ * - **Polylines**: each its own depth, nearer for each later line, drawn with
+ *   `GL_LESS`: a line's own overlapping triangles are at one depth and paint
+ *   once, a later line passes over an earlier one, and all of them are one draw
+ *   call. (ios-sdk-core does this with stencil numbers written by the fragment
+ *   shader; GLES cannot write the stencil from a shader.)
  *
  * Shapes are drawn in the order added. Circles of a circle tile go in one
  * instanced draw ([orderedCircles]), which keeps their order by itself; other
@@ -55,6 +57,10 @@ internal class GlShapeScene(
         fun add(value: Float) {
             if (size == data.size) data = data.copyOf(max(16, data.size * 2))
             data[size++] = value
+        }
+
+        fun clear() {
+            size = 0
         }
 
         fun add2(
@@ -94,14 +100,17 @@ internal class GlShapeScene(
     val circles = Floats()
     val batches = ArrayList<Batch>()
 
-    /** Polyline triangles: `x, y` per vertex. */
+    /** Polyline triangles: `x, y, depth` per vertex. */
     val lineVertices = Floats()
 
-    /** Per line: first vertex, vertex count, stencil number (1..255). */
-    val lines = IntList()
+    /** Per polyline vertex: premultiplied RGBA bytes, `r` lowest. */
+    val lineColors = IntList()
 
-    /** Per line: premultiplied `r, g, b, a`. */
-    val lineColors = Floats(256)
+    /** Polylines recorded. */
+    var lineCount = 0
+        private set
+
+    private val lineScratch = Floats()
 
     val isEmpty: Boolean
         get() = fillCovers.size == 0 && strokeCovers.size == 0 && circles.size == 0 && lineVertices.size == 0
@@ -115,7 +124,6 @@ internal class GlShapeScene(
     private var circleStart = 0
     private var strokeStart = 0
     private var strokeCoverStart = 0
-    private var lineCount = 0
 
     /** A circle (kind 0) or a pixel rectangle (kind 1); see [circles]. */
     fun addCircle(
@@ -189,9 +197,9 @@ internal class GlShapeScene(
         strokeWidth: Float,
     ) {
         if (points.size < 4) return
-        val start = lineVertices.size / 2
-        strokeGeometry(points, closed = false, halfWidth = strokeWidth / 2f, out = lineVertices)
-        endLine(start, color)
+        lineScratch.clear()
+        strokeGeometry(points, closed = false, halfWidth = strokeWidth / 2f, out = lineScratch)
+        endLine(color)
     }
 
     /** A polyline that collapsed to one point: a disc of [radius] round [x], [y]. */
@@ -201,9 +209,9 @@ internal class GlShapeScene(
         radius: Float,
         color: Int,
     ) {
-        val start = lineVertices.size / 2
-        disc(x, y, radius, lineVertices)
-        endLine(start, color)
+        lineScratch.clear()
+        disc(x, y, radius, lineScratch)
+        endLine(color)
     }
 
     /** Closes the last batch; the scene is complete. */
@@ -212,17 +220,20 @@ internal class GlShapeScene(
         return this
     }
 
-    private fun endLine(
-        start: Int,
-        color: Int,
-    ) {
-        val count = lineVertices.size / 2 - start
+    /** Moves the line in [lineScratch] into [lineVertices] at the next depth. */
+    private fun endLine(color: Int) {
+        val count = lineScratch.size / 2
         if (count == 0) return
-        lines.add(start)
-        lines.add(count)
-        lines.add(lineCount % 255 + 1)
         lineCount++
-        addColor(lineColors, color)
+        // Nearer for each later line; 2^-22 apart is several steps of a 24-bit depth.
+        val depth = 1f - lineCount / 4_194_304f
+        val packed = packColor(color)
+        val points = lineScratch.data
+        for (v in 0 until count) {
+            lineVertices.add2(points[v * 2], points[v * 2 + 1])
+            lineVertices.add(depth)
+            lineColors.add(packed)
+        }
     }
 
     private fun close() {
@@ -291,6 +302,13 @@ internal class GlShapeScene(
     companion object {
         const val COVER_FLOATS = 8
         const val CIRCLE_FLOATS = 13
+
+        /** Premultiplied RGBA bytes of an ARGB colour, `r` in the lowest byte. */
+        fun packColor(argb: Int): Int {
+            val a = argb ushr 24
+            fun channel(shift: Int) = (((argb shr shift) and 0xFF) * a + 127) / 255
+            return channel(16) or (channel(8) shl 8) or (channel(0) shl 16) or (a shl 24)
+        }
 
         /** Premultiplied `r, g, b, a` of an ARGB colour. */
         fun addColor(

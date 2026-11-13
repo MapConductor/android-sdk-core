@@ -133,7 +133,14 @@ internal object GlShapeRasterizer {
         private val circleProgram: Int
         private val pathProgram: Int
         private val coverProgram: Int
-        private val buffers = IntArray(7)
+        private val lineProgram: Int
+        private val buffers = IntArray(8)
+        private val pathExtentAt: Int
+        private val coverExtentAt: Int
+        private val circleExtentAt: Int
+        private val lineExtentAt: Int
+        /** Direct buffers for uploads, grown as needed and kept. */
+        private var uploadBytes: ByteBuffer = ByteBuffer.allocateDirect(1 shl 16).order(ByteOrder.nativeOrder())
         private var targets = HashMap<Int, Targets>()
 
         private class Targets(
@@ -148,10 +155,15 @@ internal object GlShapeRasterizer {
             circleProgram = program(CIRCLE_VERTEX, CIRCLE_FRAGMENT)
             pathProgram = program(PATH_VERTEX, PATH_FRAGMENT)
             coverProgram = program(COVER_VERTEX, COVER_FRAGMENT)
+            lineProgram = program(LINE_VERTEX, COVER_FRAGMENT)
+            pathExtentAt = GLES30.glGetUniformLocation(pathProgram, "extent")
+            coverExtentAt = GLES30.glGetUniformLocation(coverProgram, "extent")
+            circleExtentAt = GLES30.glGetUniformLocation(circleProgram, "extent")
+            lineExtentAt = GLES30.glGetUniformLocation(lineProgram, "extent")
             GLES30.glGenBuffers(buffers.size, buffers, 0)
             GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, buffers[CORNERS])
             val corners = floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f, 1f, 0f, 1f, 1f, 0f, 1f)
-            GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, corners.size * 4, floats(corners, corners.size), GLES30.GL_STATIC_DRAW)
+            GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, corners.size * 4, staticFloats(corners), GLES30.GL_STATIC_DRAW)
             glOk("setup")
         }
 
@@ -174,9 +186,11 @@ internal object GlShapeRasterizer {
             GLES30.glViewport(0, 0, pixels, pixels)
             GLES30.glClearColor(0f, 0f, 0f, 0f)
             GLES30.glClearStencil(0)
+            GLES30.glClearDepthf(1f)
+            GLES30.glDepthMask(true)
             GLES30.glStencilMask(0xFF)
             GLES30.glColorMask(true, true, true, true)
-            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_STENCIL_BUFFER_BIT)
+            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_STENCIL_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
             GLES30.glEnable(GLES30.GL_BLEND)
             GLES30.glBlendFuncSeparate(GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA, GLES30.GL_ONE, GLES30.GL_ONE_MINUS_SRC_ALPHA)
             GLES30.glEnable(GLES30.GL_STENCIL_TEST)
@@ -189,6 +203,10 @@ internal object GlShapeRasterizer {
             upload(STROKE_COVERS, scene.strokeCovers)
             upload(CIRCLES, scene.circles)
             upload(LINES, scene.lineVertices)
+            if (scene.lineColors.size > 0) {
+                GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, buffers[LINE_COLORS])
+                GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, scene.lineColors.size * 4, ints(scene.lineColors.data, scene.lineColors.size), GLES30.GL_STREAM_DRAW)
+            }
 
             val extent = pixels.toFloat()
             for (batch in scene.batches) {
@@ -212,7 +230,7 @@ internal object GlShapeRasterizer {
                 }
                 if (!batch.strokeCovers.isEmpty()) drawCovers(STROKE_COVERS, batch.strokeCovers, extent)
             }
-            if (scene.lines.size > 0) drawLines(scene, extent)
+            if (scene.lineCount > 0) drawLines(scene, extent)
 
             GLES30.glBindFramebuffer(GLES30.GL_READ_FRAMEBUFFER, target.msaa)
             GLES30.glBindFramebuffer(GLES30.GL_DRAW_FRAMEBUFFER, target.resolve)
@@ -232,7 +250,7 @@ internal object GlShapeRasterizer {
             extent: Float,
         ) {
             GLES30.glUseProgram(pathProgram)
-            GLES30.glUniform1f(GLES30.glGetUniformLocation(pathProgram, "extent"), extent)
+            GLES30.glUniform1f(pathExtentAt, extent)
             GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, buffers[buffer])
             GLES30.glEnableVertexAttribArray(0)
             GLES30.glVertexAttribPointer(0, 2, GLES30.GL_FLOAT, false, 8, 0)
@@ -249,7 +267,7 @@ internal object GlShapeRasterizer {
             GLES30.glStencilFunc(GLES30.GL_NOTEQUAL, 0, 0xFF)
             GLES30.glStencilOp(GLES30.GL_KEEP, GLES30.GL_KEEP, GLES30.GL_ZERO)
             GLES30.glUseProgram(coverProgram)
-            GLES30.glUniform1f(GLES30.glGetUniformLocation(coverProgram, "extent"), extent)
+            GLES30.glUniform1f(coverExtentAt, extent)
             bindCorners()
             GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, buffers[buffer])
             val stride = GlShapeScene.COVER_FLOATS * 4
@@ -267,7 +285,7 @@ internal object GlShapeRasterizer {
             GLES30.glStencilFunc(GLES30.GL_ALWAYS, 0, 0xFF)
             GLES30.glStencilOp(GLES30.GL_KEEP, GLES30.GL_KEEP, GLES30.GL_KEEP)
             GLES30.glUseProgram(circleProgram)
-            GLES30.glUniform1f(GLES30.glGetUniformLocation(circleProgram, "extent"), extent)
+            GLES30.glUniform1f(circleExtentAt, extent)
             bindCorners()
             GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, buffers[CIRCLES])
             val stride = GlShapeScene.CIRCLE_FLOATS * 4
@@ -284,32 +302,26 @@ internal object GlShapeRasterizer {
             scene: GlShapeScene,
             extent: Float,
         ) {
-            GLES30.glUseProgram(pathProgram)
-            GLES30.glUniform1f(GLES30.glGetUniformLocation(pathProgram, "extent"), extent)
-            val colorAt = GLES30.glGetUniformLocation(pathProgram, "color")
+            // Every line in one draw: each paints only nearer than what is there,
+            // so once per line whatever its own joins and crossings overlap, and
+            // each later line (nearer) over the earlier ones.
+            GLES30.glDisable(GLES30.GL_STENCIL_TEST)
+            GLES30.glEnable(GLES30.GL_DEPTH_TEST)
+            GLES30.glDepthFunc(GLES30.GL_LESS)
+            GLES30.glDepthMask(true)
+            GLES30.glUseProgram(lineProgram)
+            GLES30.glUniform1f(lineExtentAt, extent)
             GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, buffers[LINES])
             GLES30.glEnableVertexAttribArray(0)
-            GLES30.glVertexAttribPointer(0, 2, GLES30.GL_FLOAT, false, 8, 0)
-            // Each line paints where the stencil is not its number and sets it:
-            // once per line, whatever its own joins and crossings overlap.
-            GLES30.glStencilOp(GLES30.GL_KEEP, GLES30.GL_KEEP, GLES30.GL_REPLACE)
-            val lines = scene.lines
-            val colors = scene.lineColors.data
-            var k = 0
-            var n = 0
-            while (k < lines.size) {
-                val first = lines[k]
-                val count = lines[k + 1]
-                val id = lines[k + 2]
-                // Numbers start again at 1 after 255 lines: clear the old ones first.
-                if (n > 0 && id == 1) GLES30.glClear(GLES30.GL_STENCIL_BUFFER_BIT)
-                GLES30.glStencilFunc(GLES30.GL_NOTEQUAL, id, 0xFF)
-                GLES30.glUniform4f(colorAt, colors[n * 4], colors[n * 4 + 1], colors[n * 4 + 2], colors[n * 4 + 3])
-                GLES30.glDrawArrays(GLES30.GL_TRIANGLES, first, count)
-                k += 3
-                n++
-            }
+            GLES30.glVertexAttribPointer(0, 3, GLES30.GL_FLOAT, false, 12, 0)
+            GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, buffers[LINE_COLORS])
+            GLES30.glEnableVertexAttribArray(1)
+            GLES30.glVertexAttribPointer(1, 4, GLES30.GL_UNSIGNED_BYTE, true, 4, 0)
+            GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, scene.lineVertices.size / 3)
             GLES30.glDisableVertexAttribArray(0)
+            GLES30.glDisableVertexAttribArray(1)
+            GLES30.glDisable(GLES30.GL_DEPTH_TEST)
+            GLES30.glEnable(GLES30.GL_STENCIL_TEST)
         }
 
         private fun bindCorners() {
@@ -344,6 +356,37 @@ internal object GlShapeRasterizer {
             if (values.size == 0) return
             GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, buffers[index])
             GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, values.size * 4, floats(values.data, values.size), GLES30.GL_STREAM_DRAW)
+        }
+
+        /** [values] in the shared upload buffer, grown when too small. */
+        private fun floats(
+            values: FloatArray,
+            size: Int,
+        ): FloatBuffer {
+            val bytes = staging(size * 4)
+            val buffer = bytes.asFloatBuffer()
+            buffer.put(values, 0, size)
+            buffer.rewind()
+            return buffer
+        }
+
+        private fun ints(
+            values: IntArray,
+            size: Int,
+        ): java.nio.IntBuffer {
+            val bytes = staging(size * 4)
+            val buffer = bytes.asIntBuffer()
+            buffer.put(values, 0, size)
+            buffer.rewind()
+            return buffer
+        }
+
+        private fun staging(bytes: Int): ByteBuffer {
+            if (uploadBytes.capacity() < bytes) {
+                uploadBytes = ByteBuffer.allocateDirect(Integer.highestOneBit(bytes) shl 1).order(ByteOrder.nativeOrder())
+            }
+            uploadBytes.clear()
+            return uploadBytes
         }
 
         private fun createTargets(pixels: Int): Targets {
@@ -409,6 +452,7 @@ internal object GlShapeRasterizer {
             const val CIRCLES = 4
             const val LINES = 5
             const val CORNERS = 6
+            const val LINE_COLORS = 7
 
             fun create(): Context {
                 val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
@@ -438,12 +482,9 @@ internal object GlShapeRasterizer {
                 return Context(display, context, surface)
             }
 
-            private fun floats(
-                values: FloatArray,
-                size: Int,
-            ): FloatBuffer {
-                val buffer = ByteBuffer.allocateDirect(size * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-                buffer.put(values, 0, size)
+            private fun staticFloats(values: FloatArray): FloatBuffer {
+                val buffer = ByteBuffer.allocateDirect(values.size * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
+                buffer.put(values)
                 buffer.rewind()
                 return buffer
             }
@@ -512,6 +553,18 @@ uniform float extent;
 void main() {
     vec2 unit = position / extent;
     gl_Position = vec4(unit.x * 2.0 - 1.0, unit.y * 2.0 - 1.0, 0.0, 1.0);
+}
+"""
+
+            private const val LINE_VERTEX = """#version 300 es
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec4 lineColor;
+uniform float extent;
+flat out vec4 vColor;
+void main() {
+    vec2 unit = position.xy / extent;
+    gl_Position = vec4(unit.x * 2.0 - 1.0, unit.y * 2.0 - 1.0, position.z * 2.0 - 1.0, 1.0);
+    vColor = lineColor;
 }
 """
 
