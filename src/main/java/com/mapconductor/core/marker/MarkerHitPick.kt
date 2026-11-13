@@ -81,11 +81,23 @@ object MarkerHitPick {
         project: (GeoPointInterface) -> Offset?,
         density: Double = ResourceProvider.getDensity().toDouble(),
     ): GeoRectBounds? {
-        val epsilon = 1e-4
-        val north = project(GeoPoint(position.latitude + epsilon, position.longitude)) ?: return null
-        val east = project(GeoPoint(position.latitude, position.longitude + epsilon)) ?: return null
-        val pxPerDegLat = hypot((north.x - touchScreen.x).toDouble(), (north.y - touchScreen.y).toDouble()) / epsilon
-        val pxPerDegLon = hypot((east.x - touchScreen.x).toDouble(), (east.y - touchScreen.y).toDouble()) / epsilon
+        // The scale round the tap, from points a little north and east of it. Some
+        // projections round to whole pixels (ArcGIS's 3D SceneView): zoomed out, 1e-4°
+        // is under a pixel and both points land on the tap, so widen the step until
+        // they move far enough to measure.
+        var epsilon = 1e-4
+        var pxPerDegLat: Double
+        var pxPerDegLon: Double
+        while (true) {
+            val north = project(GeoPoint(position.latitude + epsilon, position.longitude)) ?: return null
+            val east = project(GeoPoint(position.latitude, position.longitude + epsilon)) ?: return null
+            val dLat = hypot((north.x - touchScreen.x).toDouble(), (north.y - touchScreen.y).toDouble())
+            val dLon = hypot((east.x - touchScreen.x).toDouble(), (east.y - touchScreen.y).toDouble())
+            pxPerDegLat = dLat / epsilon
+            pxPerDegLon = dLon / epsilon
+            if ((dLat >= MIN_MEASURED_PX && dLon >= MIN_MEASURED_PX) || epsilon >= MAX_EPSILON_DEG) break
+            epsilon *= 10
+        }
         if (pxPerDegLat <= 0.0 || pxPerDegLon <= 0.0) return null
         val radiusPx = SEARCH_RADIUS_DP * density
         val halfLat = radiusPx / pxPerDegLat
@@ -142,4 +154,10 @@ object MarkerHitPick {
      * 候補を探す半径（dp）。ラベルの長さの上限の目安で、これより遠くまで伸びたラベルの端は拾えない。
      */
     const val SEARCH_RADIUS_DP: Double = 256.0
+
+    /** The scale is measured over at least this many pixels (see [searchBounds]). */
+    private const val MIN_MEASURED_PX = 4.0
+
+    /** The widest step tried when measuring the scale: a 1° step covers any zoom that shows markers. */
+    private const val MAX_EPSILON_DEG = 1.0
 }
