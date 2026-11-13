@@ -2,6 +2,7 @@ package com.mapconductor.core.circle
 
 import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.shapetile.ShapeTileStorage
+import com.mapconductor.core.shapetile.StorageOrder
 import java.io.EOFException
 import java.io.File
 import java.io.RandomAccessFile
@@ -13,12 +14,17 @@ import kotlin.math.max
  * Packed immutable circle geometry, read through a bounded block cache.
  * No nationwide TileCircle or bounding-box object arrays are retained.
  * Small updates share the file; a bounded override map is compacted when full.
+ *
+ * With an [order], the records are stored by place ([storageOrder]): a tile's
+ * circles then lie in a few blocks instead of most of the file. Everything
+ * here still takes the list's indices.
  */
 @InternalMapConductorApi
 internal class CircleTileFileStorage private constructor(
     private val file: SharedFile,
     override val size: Int,
     override val maxStroke: Float,
+    private val order: StorageOrder?,
     private val overrides: Map<Int, TileCircle?> = emptyMap(),
 ) : ShapeTileStorage<TileCircle>() {
     init {
@@ -29,18 +35,25 @@ internal class CircleTileFileStorage private constructor(
     internal val cachedBytes: Int get() = file.cachedBytes
     internal val allocatedReadBuffers: Int get() = file.allocatedReadBuffers
 
+    override val storageOrder: StorageOrder? get() = order
+
+    private fun positionOf(index: Int): Int = order?.positionOf?.get(index) ?: index
+
     override fun get(index: Int): TileCircle? =
         when {
             index !in 0 until size -> null
             overrides.isNotEmpty() && overrides.containsKey(index) -> overrides[index]
-            else -> file.read(index) { bytes, offset -> decode(bytes, offset) }
+            else -> file.read(positionOf(index)) { bytes, offset -> decode(bytes, offset) }
         }
 
     /**
-     * Calls [action] for each of [indices] in order, with the record's bytes and
-     * offset in them, or with the overriding circle (bytes null). Records of one
-     * block are read under one lock, not one per circle: a nationwide tile reads
+     * Calls [action] for each of [indices], with the record's bytes and offset
+     * in them, or with the overriding circle (bytes null). Records of one block
+     * are read under one lock, not one per circle: a nationwide tile reads
      * hundreds of thousands, on several tile threads at once.
+     *
+     * The calls come in storage order, which is [indices]' order only without
+     * an [order]: `k` says which of [indices] each one is.
      */
     internal fun forEachRecord(
         indices: IntArray,
@@ -51,27 +64,29 @@ internal class CircleTileFileStorage private constructor(
         // tiles read the same file on other threads, and must not wait while
         // this one records its circles.
         val scratch = ByteBuffer.allocate(BLOCK_BYTES).order(ByteOrder.LITTLE_ENDIAN)
-        var k = 0
-        while (k < indices.size) {
-            checkCancelled()
+        // Each one's stored position (high half) and k (low half), in storage order.
+        val sorted = LongArray(indices.size)
+        var count = 0
+        for (k in indices.indices) {
             val index = indices[k]
-            if (index !in 0 until size) {
-                k++
-                continue
-            }
+            if (index !in 0 until size) continue
             if (overrides.isNotEmpty() && overrides.containsKey(index)) {
                 action.record(k, null, 0, overrides[index])
-                k++
                 continue
             }
-            val block = index / RECORDS_PER_BLOCK
+            sorted[count++] = (positionOf(index).toLong() shl 32) or k.toLong()
+        }
+        if (order != null) sorted.sort(0, count)
+        var at = 0
+        while (at < count) {
+            checkCancelled()
+            val block = (sorted[at] ushr 32).toInt() / RECORDS_PER_BLOCK
             file.copyBlock(block, scratch)
-            while (k < indices.size) {
-                val i = indices[k]
-                if (i / RECORDS_PER_BLOCK != block || i !in 0 until size) break
-                if (overrides.isNotEmpty() && overrides.containsKey(i)) break
-                action.record(k, scratch, i % RECORDS_PER_BLOCK * RECORD_BYTES, null)
-                k++
+            while (at < count) {
+                val position = (sorted[at] ushr 32).toInt()
+                if (position / RECORDS_PER_BLOCK != block) break
+                action.record(sorted[at].toInt(), scratch, position % RECORDS_PER_BLOCK * RECORD_BYTES, null)
+                at++
             }
         }
     }
@@ -92,7 +107,7 @@ internal class CircleTileFileStorage private constructor(
             index !in 0 until size -> null
             overrides.isNotEmpty() && overrides.containsKey(index) -> overrides[index]?.bbox
             else ->
-                file.read(index) { bytes, p ->
+                file.read(positionOf(index)) { bytes, p ->
                     if (bytes.getInt(p + 76) and 1 == 0) {
                         null
                     } else {
@@ -119,12 +134,12 @@ internal class CircleTileFileStorage private constructor(
             }
             changed[index] = item
         }
-        if (!compact) return CircleTileFileStorage(file, size, widest, changed)
+        if (!compact) return CircleTileFileStorage(file, size, widest, order, changed)
         // Compact by streaming, never by materialising every decoded circle.
-        val next = create(file.path.parentFile!!, size, { get(it) })
+        val next = create(file.path.parentFile!!, size, { get(it) }, order = order)
         try {
-            next.file.patch(updates, size)
-            val result = CircleTileFileStorage(next.file, size, widest)
+            next.file.patch(updates.map { (index, item) -> positionOf(index) to item }, size)
+            val result = CircleTileFileStorage(next.file, size, widest, order)
             next.release()
             return result
         } catch (error: Throwable) {
@@ -223,6 +238,7 @@ internal class CircleTileFileStorage private constructor(
         fun write(
             size: Int,
             itemAt: (Int) -> TileCircle?,
+            order: StorageOrder?,
             checkCancelled: () -> Unit,
         ): Float {
             val header =
@@ -237,9 +253,9 @@ internal class CircleTileFileStorage private constructor(
             while (header.hasRemaining()) channel.write(header)
             val bytes = ByteBuffer.allocate(BLOCK_BYTES).order(ByteOrder.LITTLE_ENDIAN)
             var widest = 0f
-            for (index in 0 until size) {
-                if (index % 4096 == 0) checkCancelled()
-                val item = itemAt(index)
+            for (position in 0 until size) {
+                if (position % 4096 == 0) checkCancelled()
+                val item = itemAt(order?.indexAt?.get(position) ?: position)
                 encode(bytes, bytes.position(), item)
                 bytes.position(bytes.position() + RECORD_BYTES)
                 if (item != null) widest = max(widest, CircleTilePainter.strokeWidth(item))
@@ -254,17 +270,18 @@ internal class CircleTileFileStorage private constructor(
             return widest
         }
 
+        /** [updates] by stored position. */
         @Synchronized fun patch(
             updates: List<Pair<Int, TileCircle?>>,
             size: Int,
         ) {
             check(references == 1) // Only an unpublished freshly compacted file may be written.
             val bytes = ByteBuffer.allocate(RECORD_BYTES).order(ByteOrder.LITTLE_ENDIAN)
-            for ((index, item) in updates) {
-                if (index in 0 until size) {
+            for ((position, item) in updates) {
+                if (position in 0 until size) {
                     bytes.clear()
                     encode(bytes, 0, item)
-                    var at = HEADER_BYTES + index.toLong() * RECORD_BYTES
+                    var at = HEADER_BYTES + position.toLong() * RECORD_BYTES
                     while (bytes.hasRemaining()) {
                         val n = channel.write(bytes, at)
                         check(n > 0)
@@ -287,13 +304,16 @@ internal class CircleTileFileStorage private constructor(
         private const val MAX_OVERRIDES = 2048
         private val liveFiles = HashSet<String>()
 
+        /** [order]: the order to store them in (see the class); index order when null. */
         fun create(
             directory: File,
             size: Int,
             itemAt: (Int) -> TileCircle?,
             checkCancelled: () -> Unit = {
             },
+            order: StorageOrder? = null,
         ): CircleTileFileStorage {
+            require(order == null || order.indexAt.size == size)
             require(size >= 0)
             val path =
                 synchronized(liveFiles) {
@@ -312,8 +332,8 @@ internal class CircleTileFileStorage private constructor(
             var file: SharedFile? = null
             try {
                 file = SharedFile(path)
-                val widest = file.write(size, itemAt, checkCancelled)
-                return CircleTileFileStorage(file, size, widest)
+                val widest = file.write(size, itemAt, order, checkCancelled)
+                return CircleTileFileStorage(file, size, widest, order)
             } catch (error: Throwable) {
                 if (file !=
                     null

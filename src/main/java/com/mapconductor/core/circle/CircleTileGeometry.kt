@@ -362,7 +362,8 @@ internal object CircleTilePainter : ShapeTileRenderer.Painter<TileCircle> {
                 val item = override ?: return@forEachRecord
                 if (!isVisible(item)) return@forEachRecord
                 val slot = subpixelSlot(item, scale, originX, originY, tileSize)
-                if (slot >= 0) lastDot[slot] = index + 1
+                // The pixel keeps the circle drawn last; calls come in storage order.
+                if (slot >= 0 && index + 1 > lastDot[slot]) lastDot[slot] = index + 1
                 return@forEachRecord
             }
             if (bytes.getInt(p + 76) and 1 == 0) return@forEachRecord
@@ -371,8 +372,10 @@ internal object CircleTilePainter : ShapeTileRenderer.Painter<TileCircle> {
             val strokeWidth = bytes.getFloat(p + 72)
             if (!isVisibleColor(fill) && !(strokeWidth > 0f && isVisibleColor(stroke))) return@forEachRecord
             val slot = slotOf(bytes.getDouble(p + 24), bytes.getDouble(p + 32), bytes.getDouble(p + 40), bytes.getDouble(p + 48), bytes.getDouble(p + 56))
-            if (slot >= 0) lastDot[slot] = index + 1
+            if (slot >= 0 && index + 1 > lastDot[slot]) lastDot[slot] = index + 1
         }
+        // Gathered, then added in draw order (k): the calls come in storage order.
+        val deferred = DeferredCircles()
         storage.forEachRecord(candidates, checkCancelled) { k, bytes, p, override ->
             val index = candidates[k]
             if (active != null && !active[index]) return@forEachRecord
@@ -380,7 +383,7 @@ internal object CircleTilePainter : ShapeTileRenderer.Painter<TileCircle> {
                 val item = override ?: return@forEachRecord
                 val slot = subpixelSlot(item, scale, originX, originY, tileSize)
                 if (slot == -1 || (slot >= 0 && lastDot[slot] != index + 1)) return@forEachRecord
-                record(scene, item, simplifyCircle(item, scale), originX, originY, r)
+                deferred.addItem(k, item)
                 return@forEachRecord
             }
             if (bytes.getInt(p + 76) and 1 == 0) return@forEachRecord
@@ -404,8 +407,8 @@ internal object CircleTilePainter : ShapeTileRenderer.Painter<TileCircle> {
             val ryS = (south - y) * scale
             val maxR = max(rx, max(ryN, ryS))
             if (maxR < CIRCLE_DOT_RADIUS_PX) {
-                scene.addCircle(
-                    ((floor(cx) - originX) * r).toFloat(), ((floor(cy) - originY) * r).toFloat(), r, r,
+                deferred.add(
+                    k, ((floor(cx) - originX) * r).toFloat(), ((floor(cy) - originY) * r).toFloat(), r, r,
                     if (fillVisible) fill else stroke, 0, kind = 1,
                 )
                 return@forEachRecord
@@ -414,12 +417,14 @@ internal object CircleTilePainter : ShapeTileRenderer.Painter<TileCircle> {
             if (max(abs(ryN - rx), abs(ryS - rx)) > CIRCLE_ARC_TOLERANCE_PX) throw GlShapeScene.NeedsBatches()
             val outlined = strokeVisible && 2 * maxR >= MIN_OUTLINED_PX
             if (!fillVisible && !outlined) return@forEachRecord
-            scene.addCircle(
-                ((cx - originX) * r).toFloat(), ((cy - originY) * r).toFloat(), (rx * r).toFloat(),
+            deferred.add(
+                k, ((cx - originX) * r).toFloat(), ((cy - originY) * r).toFloat(), (rx * r).toFloat(),
                 if (outlined) strokeWidth * r else 0f,
                 if (fillVisible) fill else 0, if (outlined) stroke else 0, kind = 0,
             )
         }
+        checkCancelled()
+        deferred.addTo(scene) { item -> record(scene, item, simplifyCircle(item, scale), originX, originY, r) }
         return true
     }
 
@@ -467,6 +472,77 @@ internal object CircleTilePainter : ShapeTileRenderer.Painter<TileCircle> {
                 return true
             }
             else -> return false
+        }
+    }
+}
+
+/**
+ * Circles of one tile gathered in storage order, to be added to the scene in
+ * draw order (`k`, their place among the tile's candidates). Primitive arrays:
+ * a zoomed-out tile has tens of thousands.
+ */
+@InternalMapConductorApi
+private class DeferredCircles {
+    private var count = 0
+    private var ks = IntArray(1024)
+    private var floats = FloatArray(1024 * 4)
+    private var ints = IntArray(1024 * 3)
+    private val items = ArrayList<Pair<Int, TileCircle>>()
+
+    fun add(
+        k: Int,
+        x: Float,
+        y: Float,
+        a: Float,
+        b: Float,
+        fill: Int,
+        stroke: Int,
+        kind: Int,
+    ) {
+        if (count == ks.size) {
+            ks = ks.copyOf(count * 2)
+            floats = floats.copyOf(count * 8)
+            ints = ints.copyOf(count * 6)
+        }
+        ks[count] = k
+        floats[count * 4] = x
+        floats[count * 4 + 1] = y
+        floats[count * 4 + 2] = a
+        floats[count * 4 + 3] = b
+        ints[count * 3] = fill
+        ints[count * 3 + 1] = stroke
+        ints[count * 3 + 2] = kind
+        count++
+    }
+
+    /** An overriding circle: recorded through the painter when its turn comes. */
+    fun addItem(
+        k: Int,
+        item: TileCircle,
+    ) {
+        items.add(k to item)
+    }
+
+    /** Adds them to [scene] by k; [recordItem] records the overriding circles in their turn. */
+    fun addTo(
+        scene: GlShapeScene,
+        recordItem: (TileCircle) -> Unit,
+    ) {
+        // k (high half) and which entry (low half; the overriding circles after the others).
+        val order = LongArray(count + items.size)
+        for (i in 0 until count) order[i] = (ks[i].toLong() shl 32) or i.toLong()
+        for ((j, entry) in items.withIndex()) order[count + j] = (entry.first.toLong() shl 32) or (count + j).toLong()
+        order.sort()
+        for (key in order) {
+            val i = key.toInt()
+            if (i >= count) {
+                recordItem(items[i - count].second)
+                continue
+            }
+            scene.addCircle(
+                floats[i * 4], floats[i * 4 + 1], floats[i * 4 + 2], floats[i * 4 + 3],
+                ints[i * 3], ints[i * 3 + 1], kind = ints[i * 3 + 2],
+            )
         }
     }
 }

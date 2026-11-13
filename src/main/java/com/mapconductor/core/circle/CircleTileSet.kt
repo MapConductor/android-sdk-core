@@ -4,6 +4,7 @@ import com.mapconductor.core.ResourceProvider
 import com.mapconductor.core.normalizeLng
 import com.mapconductor.core.shapetile.ShapeTileRenderer
 import com.mapconductor.core.shapetile.ShapeTileSet
+import com.mapconductor.core.shapetile.StorageOrder
 import com.mapconductor.core.tileserver.LocalTileServer
 import com.mapconductor.core.tileserver.TileServerRegistry
 import java.io.File
@@ -55,9 +56,15 @@ class CircleTileSet(
                     val root =
                         runCatching { ResourceProvider.getAppContext().cacheDir }
                             .getOrElse { File(System.getProperty("java.io.tmpdir")) }
+                    // Stored by place, so that a tile reads the few blocks round it.
+                    val order =
+                        StorageOrder.sortedBy(states.size) {
+                            val center = states[it].center
+                            StorageOrder.mortonCellKey(center.latitude, normalizeLng(center.longitude))
+                        }
                     CircleTileFileStorage.create(
                         File(root, "mapconductor-circle-geometry"), states.size,
-                        { TileCircle.from(states[it]) }, { context.ensureActive() },
+                        { TileCircle.from(states[it]) }, { context.ensureActive() }, order,
                     )
                 }
             },

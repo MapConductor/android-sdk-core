@@ -212,7 +212,10 @@ internal class ShapeTileRenderer<T : Any>(
     ): IntArray {
         val m = acquireModel() ?: return IntArray(0)
         return try {
-            m.index.query({ index -> if (m.active?.get(index) == false) null else m.storage.bbox(index) }, minX, minY, maxX, maxY)
+            m.index.query(
+                { index -> if (m.active?.get(index) == false) null else m.storage.bbox(index) },
+                minX, minY, maxX, maxY, m.storage.storageOrder,
+            )
         } finally {
             m.storage.release()
         }
@@ -263,9 +266,10 @@ internal class ShapeTileRenderer<T : Any>(
     ) {
         val index =
             try {
+                var built = 0
                 ShapeGridIndex
-                    .build(storage.size) {
-                        if (it % 4096 == 0) checkCancelled()
+                    .build(storage.size, storage.storageOrder) {
+                        if (built++ % 4096 == 0) checkCancelled()
                         storage.bbox(it)
                     }.also { checkCancelled() }
             } catch (error: Throwable) {
@@ -302,7 +306,7 @@ internal class ShapeTileRenderer<T : Any>(
             }
             val replacement = current.storage.updated(updates)
             next = replacement
-            val index = if (reindex) ShapeGridIndex.build(replacement.size, replacement::bbox) else current.index
+            val index = if (reindex) ShapeGridIndex.build(replacement.size, replacement.storageOrder, replacement::bbox) else current.index
             replaceModel(Model(replacement, index, maxStroke, current.perZoom, current.active))
             next = null
             synchronized(cacheLock) {
@@ -500,6 +504,7 @@ internal class ShapeTileRenderer<T : Any>(
             (originY - pad) / scale,
             (originX + tileSize + pad) / scale,
             (originY + tileSize + pad) / scale,
+            m.storage.storageOrder,
         )
     }
 
