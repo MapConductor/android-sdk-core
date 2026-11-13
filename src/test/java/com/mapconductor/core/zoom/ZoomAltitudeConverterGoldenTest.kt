@@ -5,8 +5,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * [WebMercatorZoomAltitudeConverter] が移行前の各プロバイダ実装と**1 ビットも違わない**
- * ことを検証する。
+ * [WebMercatorZoomAltitudeConverter] が移行前の各プロバイダ実装と**同じ値を返す**
+ * ことを検証する（CPU 差による数 ULP のずれだけは許す）。
  *
  * `zoom/ZoomAltitudeConverter.kt` は 6 プロバイダでほぼ同一（差はズームオフセットだけ）
  * だったので、コアの 1 本にまとめた。ただしズーム換算のズレは
@@ -59,6 +59,17 @@ class ZoomAltitudeConverterGoldenTest {
         }
     }
 
+    /**
+     * 式を 1 本にまとめただけなので、差が出たらそれは実装の変化であって数値誤差ではない。
+     * ただし pow / log / cos などは CPU と JVM で最終ビットが変わる（表は macOS arm64 で
+     * 採取、CI の Linux x86_64 では 1 ULP ずれる）。式の変化はこれより桁違いに大きいので、
+     * 数 ULP だけ許して残りは完全一致を要求する。
+     */
+    private fun sameValue(
+        actual: Double,
+        expected: Double,
+    ): Boolean = actual == expected || kotlin.math.abs(actual - expected) <= 4 * Math.ulp(expected)
+
     @Test
     fun `ゴールデン表が想定の件数ある`() {
         val rows = goldenRows()
@@ -71,9 +82,7 @@ class ZoomAltitudeConverterGoldenTest {
         val failures = mutableListOf<String>()
         goldenRows().forEach { row ->
             val actual = converterFor(row.provider).zoomLevelToAltitude(row.zoom, row.latitude, row.tilt)
-            // 丸め誤差の許容ではなく完全一致を要求する。式を 1 本にまとめただけなので、
-            // 差が出たらそれは実装の変化であって数値誤差ではない。
-            if (actual != row.altitude) {
+            if (!sameValue(actual, row.altitude)) {
                 failures += "${row.provider} z=${row.zoom} lat=${row.latitude} tilt=${row.tilt}: " +
                     "expected=${row.altitude} actual=$actual"
             }
@@ -89,7 +98,7 @@ class ZoomAltitudeConverterGoldenTest {
         val failures = mutableListOf<String>()
         goldenRows().forEach { row ->
             val actual = converterFor(row.provider).altitudeToZoomLevel(row.altitude, row.latitude, row.tilt)
-            if (actual != row.roundTrip) {
+            if (!sameValue(actual, row.roundTrip)) {
                 failures += "${row.provider} alt=${row.altitude} lat=${row.latitude} tilt=${row.tilt}: " +
                     "expected=${row.roundTrip} actual=$actual"
             }
