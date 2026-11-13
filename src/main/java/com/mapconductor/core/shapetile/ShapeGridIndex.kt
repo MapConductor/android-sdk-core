@@ -37,6 +37,7 @@ internal class ShapeGridIndex private constructor(
         minY: Double,
         maxX: Double,
         maxY: Double,
+        order: StorageOrder? = null,
     ): IntArray {
         val seen = BitSet(count)
         val matches = BitSet(count)
@@ -80,13 +81,30 @@ internal class ShapeGridIndex private constructor(
                 }
             }
         }
-        // Read boxes in source order. File-backed geometry can then stream
+        // Read boxes in storage order. File-backed geometry can then stream
         // through its block cache instead of seeking in spatial bucket order.
-        var candidate = seen.nextSetBit(0)
-        while (candidate >= 0) {
+        fun check(candidate: Int) {
             val b = bboxOf(candidate)
             if (b != null && b[0] <= maxX && b[2] >= minX && b[1] <= maxY && b[3] >= minY) matches.set(candidate)
-            candidate = seen.nextSetBit(candidate + 1)
+        }
+        if (order == null) {
+            var candidate = seen.nextSetBit(0)
+            while (candidate >= 0) {
+                check(candidate)
+                candidate = seen.nextSetBit(candidate + 1)
+            }
+        } else {
+            val positions = BitSet(count)
+            var candidate = seen.nextSetBit(0)
+            while (candidate >= 0) {
+                positions.set(order.positionOf[candidate])
+                candidate = seen.nextSetBit(candidate + 1)
+            }
+            var position = positions.nextSetBit(0)
+            while (position >= 0) {
+                check(order.indexAt[position])
+                position = positions.nextSetBit(position + 1)
+            }
         }
         // A bitset removes duplicates before bounding-box checks and produces
         // draw order without sorting the same shape once for every cell it spans.
@@ -102,14 +120,17 @@ internal class ShapeGridIndex private constructor(
 
     @InternalMapConductorApi
     companion object {
+        /** [bboxOf] is called in [order] (storage order) when given; buckets need no order. */
         fun build(
             count: Int,
+            order: StorageOrder? = null,
             bboxOf: (Int) -> DoubleArray?,
         ): ShapeGridIndex {
             val buckets = Array(7) { HashMap<Long, IntList>() }
             val canGroup = BooleanArray(7) { true }
             val large = IntList()
-            for (i in 0 until count) {
+            for (p in 0 until count) {
+                val i = order?.indexAt?.get(p) ?: p
                 val b = bboxOf(i) ?: continue
                 var level = 0
                 var size = POLYGON_CELL

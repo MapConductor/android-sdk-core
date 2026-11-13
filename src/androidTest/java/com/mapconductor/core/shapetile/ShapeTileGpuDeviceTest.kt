@@ -256,5 +256,19 @@ class ShapeTileGpuDeviceTest {
             val (gpu, cpu) = both(::renderer, x, y, z)
             assertTrue("z=$z", mismatch(gpu, cpu, 48) < 0.03)
         }
+        // Stored by place: the GPU reads them in storage order and must still draw
+        // in list order, the same picture as the canvas and as index order.
+        val order = StorageOrder.sortedBy(states.size) { StorageOrder.mortonCellKey(states[it]!!.latitude, states[it]!!.longitude) }
+        fun byPlace() =
+            ShapeTileRenderer(tileSize = 256, pixelScale = { 1f }, painter = CircleTilePainter).apply {
+                setStorage(CircleTileFileStorage.create(temporary.newFolder(), states.size, { states[it] }, order = order))
+            }
+        for ((z, x, y) in listOf(Triple(1, 0, 0), Triple(4, 3, 6), Triple(6, 12, 25))) {
+            val (gpu, cpu) = both(::byPlace, x, y, z)
+            assertTrue("by place z=$z", mismatch(gpu, cpu, 48) < 0.03)
+            ShapeTileRenderer.useGpu = true
+            val plain = renderer().renderBitmap(x, y, z, 1)!!
+            assertEquals("by place z=$z: the same tile as index order", 0.0, mismatch(gpu, plain, 0), 0.0)
+        }
     }
 }
