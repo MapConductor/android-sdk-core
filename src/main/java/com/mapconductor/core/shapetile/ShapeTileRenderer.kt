@@ -8,6 +8,7 @@ import com.mapconductor.core.tileserver.TilePngEncoder
 import com.mapconductor.core.tileserver.TileProviderInterface
 import com.mapconductor.core.tileserver.TileRequest
 import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 import java.util.BitSet
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReferenceArray
@@ -98,6 +99,41 @@ internal class ShapeTileRenderer<T : Any>(
             r: Float,
             paints: Paints,
         ): Boolean
+
+        /** Whether [record] can put this kind of shape in a [GlShapeScene]. */
+        val drawsOnGpu: Boolean get() = false
+
+        /**
+         * Records [shape] into [scene] for the GPU, exactly as [draw] would draw
+         * it on the canvas. True if anything was recorded.
+         */
+        fun record(
+            scene: GlShapeScene,
+            item: T,
+            shape: Any,
+            originX: Double,
+            originY: Double,
+            r: Float,
+        ): Boolean = throw UnsupportedOperationException()
+
+        /**
+         * Records every shape of [candidates] at once, reading [storage]
+         * directly instead of an item per shape; false when this painter or
+         * storage has no such path (then the renderer records them one by one).
+         * Must make the same choices as the one-by-one path.
+         */
+        fun recordAll(
+            scene: GlShapeScene,
+            storage: ShapeTileStorage<T>,
+            candidates: IntArray,
+            active: BitSet?,
+            scale: Double,
+            originX: Double,
+            originY: Double,
+            tileSize: Int,
+            r: Float,
+            checkCancelled: () -> Unit,
+        ): Boolean = false
     }
 
     /** Paints and a path, one set per tile drawn. */
@@ -306,12 +342,18 @@ internal class ShapeTileRenderer<T : Any>(
             val key = cacheKey(z, x, y, ratio)
             synchronized(cacheLock) { tileCache.get(key) }?.let { return it }
 
-            val bitmap = draw(m, x, y, z, ratio, isCancelled) ?: return null
             val bytes =
-                try {
-                    encode(bitmap)
-                } finally {
-                    releaseScratch(bitmap)
+                when (val gpu = drawOnGpu(m, x, y, z, ratio, isCancelled)) {
+                    Gpu.Empty -> return null
+                    is Gpu.Drawn -> encode(gpu.pixels, gpu.size)
+                    Gpu.Unavailable -> {
+                        val bitmap = draw(m, x, y, z, ratio, isCancelled) ?: return null
+                        try {
+                            encode(bitmap)
+                        } finally {
+                            releaseScratch(bitmap)
+                        }
+                    }
                 }
             synchronized(cacheLock) {
                 // The shapes may have changed while this tile was drawn.
@@ -332,6 +374,12 @@ internal class ShapeTileRenderer<T : Any>(
     ): Bitmap? {
         val current = acquireModel() ?: return null
         return try {
+            when (val gpu = drawOnGpu(current, x, y, z, pixelRatio) { false }) {
+                Gpu.Empty -> return null
+                is Gpu.Drawn ->
+                    return createBitmap(gpu.size, gpu.size).apply { copyPixelsFromBuffer(gpu.pixels) }
+                Gpu.Unavailable -> Unit
+            }
             draw(current, x, y, z, pixelRatio) { false }?.let { scratch ->
                 try {
                     scratch.copy(Bitmap.Config.ARGB_8888, false)
@@ -342,6 +390,117 @@ internal class ShapeTileRenderer<T : Any>(
         } finally {
             current.storage.release()
         }
+    }
+
+    /** What [drawOnGpu] did. */
+    private sealed class Gpu {
+        /** Premultiplied RGBA, [size] pixels square, top row first. */
+        class Drawn(
+            val pixels: ByteBuffer,
+            val size: Int,
+        ) : Gpu()
+
+        /** Nothing of any shape is in the tile. */
+        object Empty : Gpu()
+
+        /** No GPU drawing here (or this kind of shape): draw on the canvas. */
+        object Unavailable : Gpu()
+    }
+
+    /**
+     * The tile drawn by [GlShapeRasterizer]: the same shapes as [drawInto], in
+     * the same order, recorded by the painter instead of drawn on a canvas.
+     */
+    private fun drawOnGpu(
+        m: Model<T>,
+        x: Int,
+        y: Int,
+        z: Int,
+        pixelRatio: Int,
+        isCancelled: () -> Boolean,
+    ): Gpu {
+        if (!useGpu || !painter.drawsOnGpu) return Gpu.Unavailable
+        val scale = tileSize.toDouble() * (1L shl z).toDouble()
+        val originX = x.toDouble() * tileSize
+        val originY = y.toDouble() * tileSize
+        val candidates = candidatesFor(m, originX, originY, scale)
+        if (candidates.isEmpty()) return Gpu.Empty
+        val r = pixelScale() * pixelRatio
+        val px = (tileSize * r).roundToInt().coerceAtLeast(1)
+        // A circle tile is one ordered list of circles; a circle drawn as its
+        // 128-gon needs the batched scene instead.
+        val scene =
+            try {
+                val ordered = GlShapeScene(px, orderedCircles = painter.thinSubpixelOverlaps)
+                val checkCancelled = { if (isCancelled()) throw cancelled() }
+                if (painter.recordAll(ordered, m.storage, candidates, m.active, scale, originX, originY, tileSize, r, checkCancelled)) {
+                    ordered.finish()
+                } else {
+                    record(ordered, m, candidates, originX, originY, r, z, scale, isCancelled)
+                }
+            } catch (_: GlShapeScene.NeedsBatches) {
+                record(GlShapeScene(px), m, candidates, originX, originY, r, z, scale, isCancelled)
+            }
+        if (scene.isEmpty) return Gpu.Empty
+        if (isCancelled()) throw cancelled()
+        val pixels = GlShapeRasterizer.render(scene) ?: return Gpu.Unavailable
+        return Gpu.Drawn(pixels, px)
+    }
+
+    /** [drawInto]'s loop, recording into [scene]. */
+    private fun record(
+        scene: GlShapeScene,
+        m: Model<T>,
+        candidates: IntArray,
+        originX: Double,
+        originY: Double,
+        r: Float,
+        z: Int,
+        scale: Double,
+        isCancelled: () -> Boolean,
+    ): GlShapeScene {
+        val perZoom = perZoomOf(m, z)
+        val lastDot = IntArray(if (painter.thinSubpixelOverlaps) tileSize * tileSize else 0)
+        if (painter.thinSubpixelOverlaps) {
+            for ((k, index) in candidates.withIndex()) {
+                if (k % CANCEL_CHECK_EVERY == 0 && isCancelled()) throw cancelled()
+                if (m.active != null && !m.active[index]) continue
+                val item = m.storage[index] ?: continue
+                if (!painter.isVisible(item)) continue
+                val slot = painter.subpixelSlot(item, scale, originX, originY, tileSize)
+                if (slot >= 0) lastDot[slot] = index + 1
+            }
+        }
+        for ((k, index) in candidates.withIndex()) {
+            if (k % CANCEL_CHECK_EVERY == 0 && isCancelled()) throw cancelled()
+            if (m.active != null && !m.active[index]) continue
+            val item = m.storage[index] ?: continue
+            if (painter.thinSubpixelOverlaps) {
+                val slot = painter.subpixelSlot(item, scale, originX, originY, tileSize)
+                if (slot == -1 || (slot >= 0 && lastDot[slot] != index + 1)) continue
+            }
+            painter.record(scene, item, simplifiedAt(perZoom, index, item, scale), originX, originY, r)
+        }
+        return scene.finish()
+    }
+
+    private fun candidatesFor(
+        m: Model<T>,
+        originX: Double,
+        originY: Double,
+        scale: Double,
+    ): IntArray {
+        // A stroke reaches half its width past the shape: take the shapes that
+        // close to the tile too, and draw them whole (the canvas cuts them), so
+        // the tile next door draws the same line at the same place.
+        val pad = m.maxStroke / 2.0 + 1.0
+        return m.index.query(
+            { index -> if (m.active?.get(index) == false) null else m.storage.bbox(index) },
+            (originX - pad) / scale,
+            (originY - pad) / scale,
+            (originX + tileSize + pad) / scale,
+            (originY + tileSize + pad) / scale,
+        )
     }
 
     private fun draw(
@@ -355,18 +514,7 @@ internal class ShapeTileRenderer<T : Any>(
         val scale = tileSize.toDouble() * (1L shl z).toDouble()
         val originX = x.toDouble() * tileSize
         val originY = y.toDouble() * tileSize
-        // A stroke reaches half its width past the shape: take the shapes that
-        // close to the tile too, and draw them whole (the canvas cuts them), so
-        // the tile next door draws the same line at the same place.
-        val pad = m.maxStroke / 2.0 + 1.0
-        val candidates =
-            m.index.query(
-                { index -> if (m.active?.get(index) == false) null else m.storage.bbox(index) },
-                (originX - pad) / scale,
-                (originY - pad) / scale,
-                (originX + tileSize + pad) / scale,
-                (originY + tileSize + pad) / scale,
-            )
+        val candidates = candidatesFor(m, originX, originY, scale)
         if (candidates.isEmpty()) return null
 
         val r = pixelScale() * pixelRatio
@@ -474,6 +622,22 @@ internal class ShapeTileRenderer<T : Any>(
         scratchBitmaps.release(bitmap)
     }
 
+    /** The GPU's pixels as PNG: Rust when it can, else through a bitmap. */
+    private fun encode(
+        pixels: ByteBuffer,
+        size: Int,
+    ): ByteArray {
+        TilePngEncoder.encode(pixels, size, size, premultiplied = true)?.let { return it }
+        pixels.rewind()
+        val bitmap = scratch(size)
+        try {
+            bitmap.copyPixelsFromBuffer(pixels)
+            return encode(bitmap)
+        } finally {
+            releaseScratch(bitmap)
+        }
+    }
+
     private fun encode(bitmap: Bitmap): ByteArray {
         // Rust first, as for marker tiles: Bitmap.compress is several times slower.
         TilePngEncoder.encode(bitmap)?.let { return it }
@@ -519,9 +683,38 @@ internal class ShapeTileRenderer<T : Any>(
     @InternalMapConductorApi
     class TileRenderCancelled : Exception("shape tile no longer wanted")
 
+    init {
+        if (useGpu && painter.drawsOnGpu) prepareGpu
+    }
+
     @InternalMapConductorApi
     companion object {
         const val DEFAULT_CACHE_BYTES = 16 * 1024 * 1024
+
+        /**
+         * Draw shape tiles on the GPU ([GlShapeRasterizer]) when it can. False
+         * draws every tile on the canvas, to compare the two.
+         */
+        @Volatile
+        var useGpu: Boolean = true
+
+        /**
+         * Polygons and polylines on the GPU too. Off: on a Pixel 5a and a
+         * Lenovo TB520FU, Skia drew their tiles as fast or faster (a polygon tile
+         * splits into thousands of small batches), while circles were 2x faster
+         * on the GPU. Kept for the comparison tests and for later work.
+         */
+        @Volatile
+        var gpuPolygonsAndLines: Boolean = false
+
+        /**
+         * The GL contexts and shaders are made on first use. Start that when
+         * shapes are about to be tiled, instead of making the first tiles the
+         * map asks for wait for it.
+         */
+        private val prepareGpu: Unit by lazy {
+            Thread({ GlShapeRasterizer.prepare() }, "mc-shape-gpu-prepare").apply { isDaemon = true }.start()
+        }
 
         /** Simplified copies kept, most recent zooms first. */
         private const val ZOOMS_KEPT = 4

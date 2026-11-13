@@ -36,6 +36,57 @@ internal class CircleTileFileStorage private constructor(
             else -> file.read(index) { bytes, offset -> decode(bytes, offset) }
         }
 
+    /**
+     * Calls [action] for each of [indices] in order, with the record's bytes and
+     * offset in them, or with the overriding circle (bytes null). Records of one
+     * block are read under one lock, not one per circle: a nationwide tile reads
+     * hundreds of thousands, on several tile threads at once.
+     */
+    internal fun forEachRecord(
+        indices: IntArray,
+        checkCancelled: () -> Unit,
+        action: RecordAction,
+    ) {
+        // The block is copied out under the lock and read outside it: other
+        // tiles read the same file on other threads, and must not wait while
+        // this one records its circles.
+        val scratch = ByteBuffer.allocate(BLOCK_BYTES).order(ByteOrder.LITTLE_ENDIAN)
+        var k = 0
+        while (k < indices.size) {
+            checkCancelled()
+            val index = indices[k]
+            if (index !in 0 until size) {
+                k++
+                continue
+            }
+            if (overrides.isNotEmpty() && overrides.containsKey(index)) {
+                action.record(k, null, 0, overrides[index])
+                k++
+                continue
+            }
+            val block = index / RECORDS_PER_BLOCK
+            file.copyBlock(block, scratch)
+            while (k < indices.size) {
+                val i = indices[k]
+                if (i / RECORDS_PER_BLOCK != block || i !in 0 until size) break
+                if (overrides.isNotEmpty() && overrides.containsKey(i)) break
+                action.record(k, scratch, i % RECORDS_PER_BLOCK * RECORD_BYTES, null)
+                k++
+            }
+        }
+    }
+
+    /** What [forEachRecord] calls per circle; primitive arguments, so nothing is boxed per call. */
+    internal fun interface RecordAction {
+        /** [bytes] at [offset] is the record, or [bytes] is null and [override] the circle. */
+        fun record(
+            k: Int,
+            bytes: ByteBuffer?,
+            offset: Int,
+            override: TileCircle?,
+        )
+    }
+
     override fun bbox(index: Int): DoubleArray? =
         when {
             index !in 0 until size -> null
@@ -117,11 +168,27 @@ internal class CircleTileFileStorage private constructor(
             }
         }
 
+        /** Copies [block]'s bytes into [into] (its whole capacity, from 0). */
+        @Synchronized fun copyBlock(
+            block: Int,
+            into: ByteBuffer,
+        ) {
+            val bytes = blockBytes(block)
+            into.clear()
+            into.put(bytes.array(), 0, bytes.limit())
+            into.flip()
+        }
+
         @Synchronized fun <R> read(
             index: Int,
             action: (ByteBuffer, Int) -> R,
         ): R {
             val block = index / RECORDS_PER_BLOCK
+            return action(blockBytes(block), index % RECORDS_PER_BLOCK * RECORD_BYTES)
+        }
+
+        /** The bytes of [block], read into the cache if they are not there. Call with the lock held. */
+        private fun blockBytes(block: Int): ByteBuffer {
             val bytes =
                 blocks[block] ?: run {
                     val buffer = if (blocks.size < MAX_BLOCKS) {
@@ -150,7 +217,7 @@ internal class CircleTileFileStorage private constructor(
                     blocks[block] = buffer
                     buffer
                 }
-            return action(bytes, index % RECORDS_PER_BLOCK * RECORD_BYTES)
+            return bytes
         }
 
         fun write(

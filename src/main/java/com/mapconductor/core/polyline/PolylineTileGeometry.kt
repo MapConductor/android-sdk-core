@@ -6,7 +6,9 @@ import com.mapconductor.core.polygon.DP_TOLERANCE_PX
 import com.mapconductor.core.polygon.douglasPeucker
 import com.mapconductor.core.polygon.isVisibleColor
 import com.mapconductor.core.polygon.toMercatorRing
+import com.mapconductor.core.shapetile.GlShapeScene
 import com.mapconductor.core.shapetile.ShapeTileRenderer
+import com.mapconductor.core.shapetile.toTilePixels
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -185,6 +187,28 @@ internal object PolylineTilePainter : ShapeTileRenderer.Painter<TilePolyline> {
                 paints.stroke.strokeWidth = item.strokeWidth * r
                 canvas.drawPath(path, paints.stroke)
             }
+            else -> return false
+        }
+        return true
+    }
+
+    override val drawsOnGpu: Boolean get() = ShapeTileRenderer.gpuPolygonsAndLines
+
+    override fun record(
+        scene: GlShapeScene,
+        item: TilePolyline,
+        shape: Any,
+        originX: Double,
+        originY: Double,
+        r: Float,
+    ): Boolean {
+        if (!item.visible) return false
+        when (shape) {
+            is PolylineTileShape.Dot -> {
+                val radius = max(item.strokeWidth * r, 1f) / 2f
+                scene.addLineDot(((shape.x - originX) * r).toFloat(), ((shape.y - originY) * r).toFloat(), radius, item.color)
+            }
+            is PolylineTileShape.Path -> scene.addLine(toTilePixels(shape.points, originX, originY, r), item.color, item.strokeWidth * r)
             else -> return false
         }
         return true
