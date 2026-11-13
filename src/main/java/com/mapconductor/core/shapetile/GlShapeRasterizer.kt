@@ -73,10 +73,24 @@ internal object GlShapeRasterizer {
         }
     }
 
-    /** Builds the shaders ahead of the first tile: about a tenth of a second on a phone. */
+    /**
+     * Makes every context of the pool and its shaders ahead of the first tiles,
+     * which otherwise wait for them (about a tenth of a second each on a tablet).
+     */
     fun prepare() {
         if (broken) return
-        release(acquire() ?: return)
+        val made = ArrayList<Context>()
+        repeat(MAX_CONTEXTS) {
+            val context = acquire() ?: return@repeat
+            context.releaseCurrent()
+            made += context
+        }
+        for (context in made) {
+            synchronized(lock) {
+                idle.addLast(context)
+                lock.notifyAll()
+            }
+        }
     }
 
     private fun acquire(): Context? {
