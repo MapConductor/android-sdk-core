@@ -283,6 +283,9 @@ final class com.mapconductor.core.circle.CircleState$Values {
   public int hashCode();
   public boolean equals(java.lang.Object);
 }
+public interface com.mapconductor.core.circle.CircleTileFileStorage$RecordAction {
+  public abstract void record(int, java.nio.ByteBuffer, int, com.mapconductor.core.circle.TileCircle);
+}
 public final class com.mapconductor.core.circle.CircleTileSet {
   public static final com.mapconductor.core.circle.CircleTileSet$Companion Companion;
   public com.mapconductor.core.circle.CircleTileSet(com.mapconductor.core.tileserver.LocalTileServer, kotlinx.coroutines.CoroutineScope);
@@ -3213,11 +3216,67 @@ public final class com.mapconductor.core.raster.TileScheme extends java.lang.Enu
   public static com.mapconductor.core.raster.TileScheme valueOf(java.lang.String);
   public static kotlin.enums.EnumEntries<com.mapconductor.core.raster.TileScheme> getEntries();
 }
+final class com.mapconductor.core.shapetile.GlShapeRasterizer$Context {
+  public static final com.mapconductor.core.shapetile.GlShapeRasterizer$Context$Companion Companion;
+  public static final int FILL;
+  public static final int STROKE;
+  public static final int FILL_COVERS;
+  public static final int STROKE_COVERS;
+  public static final int CIRCLES;
+  public static final int LINES;
+  public static final int CORNERS;
+  public static final int LINE_COLORS;
+  public final boolean makeCurrent();
+  public final void releaseCurrent();
+  public final void destroyContext();
+  public final java.nio.ByteBuffer draw(com.mapconductor.core.shapetile.GlShapeScene);
+}
+public final class com.mapconductor.core.shapetile.GlShapeRasterizer$Context$Companion {
+  public final com.mapconductor.core.shapetile.GlShapeRasterizer$Context create();
+}
+final class com.mapconductor.core.shapetile.GlShapeRasterizer$Context$Targets {
+  public final int getMsaa();
+  public final int getResolve();
+}
+public final class com.mapconductor.core.shapetile.GlShapeScene$Batch {
+  public final kotlin.ranges.IntRange getFill();
+  public final kotlin.ranges.IntRange getFillCovers();
+  public final kotlin.ranges.IntRange getCircles();
+  public final kotlin.ranges.IntRange getStroke();
+  public final kotlin.ranges.IntRange getStrokeCovers();
+}
+public final class com.mapconductor.core.shapetile.GlShapeScene$Floats {
+  public final float[] getData();
+  public final int getSize();
+  public final void add(float);
+  public final void clear();
+  public final void add2(float, float);
+}
+public final class com.mapconductor.core.shapetile.GlShapeScene$NeedsBatches extends java.lang.RuntimeException {
+}
+public final class com.mapconductor.core.shapetile.GlShapeSceneKt {
+  public static final float[] toTilePixels(double[], double, double, float);
+}
+abstract class com.mapconductor.core.shapetile.ShapeTileRenderer$Gpu {
+}
+public final class com.mapconductor.core.shapetile.ShapeTileRenderer$Gpu$Drawn extends com.mapconductor.core.shapetile.ShapeTileRenderer$Gpu {
+  public final java.nio.ByteBuffer getPixels();
+  public final int getSize();
+}
+public final class com.mapconductor.core.shapetile.ShapeTileRenderer$Gpu$Empty extends com.mapconductor.core.shapetile.ShapeTileRenderer$Gpu {
+  public static final com.mapconductor.core.shapetile.ShapeTileRenderer$Gpu$Empty INSTANCE;
+}
+public final class com.mapconductor.core.shapetile.ShapeTileRenderer$Gpu$Unavailable extends com.mapconductor.core.shapetile.ShapeTileRenderer$Gpu {
+  public static final com.mapconductor.core.shapetile.ShapeTileRenderer$Gpu$Unavailable INSTANCE;
+}
 public final class com.mapconductor.core.shapetile.ShapeTileRenderer$Painter$DefaultImpls {
   public static <T> boolean getCacheSimplifiedShapes(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>);
   public static <T> boolean getThinSubpixelOverlaps(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>);
   public static <T> boolean isVisible(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>, T);
   public static <T> int subpixelSlot(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>, T, double, double, double, int);
+  public static <T> boolean getDrawsOnGpu(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>);
+  public static <T> boolean record(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>, com.mapconductor.core.shapetile.GlShapeScene, T, java.lang.Object, double, double, float);
+  public static <T> boolean recordAll(com.mapconductor.core.shapetile.ShapeTileRenderer$Painter<T>, com.mapconductor.core.shapetile.GlShapeScene, com.mapconductor.core.shapetile.ShapeTileStorage<T>, int[], java.util.BitSet, double, double, double, int, float, kotlin.jvm.functions.Function0<kotlin.Unit>);
 }
 public final class com.mapconductor.core.spherical.CalculateMetersPerPixelKt {
   public static final double calculateMetersPerPixel(double, double, double);
