@@ -256,6 +256,27 @@ class OverlayOnAddedTest {
         assertEquals(listOf("onAdded:p0", "onAdded:p1"), events.filter { it.startsWith("onAdded") })
     }
 
+    @Test
+    fun `a listener hears the states that reached the map, with or without onAdded, before their onAdded`() {
+        val map = map()
+        val overlay = overlay()
+        val remove = OverlayAddedListeners.add { states -> events += "heard:" + states.joinToString(",") { it.id } }
+        try {
+            val states = listOf(square(0, recorder), square(1))
+            overlay.show(map, states)
+            overlay.show(map, states) // nothing new
+            remove()
+            overlay.show(map, states + square(2))
+        } finally {
+            remove()
+        }
+
+        assertEquals(
+            listOf("heard:p0,p1", "onAdded:p0"),
+            events.filter { it.startsWith("heard") || it.startsWith("onAdded") },
+        )
+    }
+
     // ── the other overlay types use the same tracker; check each is wired ──
 
     private class RecordingMap :

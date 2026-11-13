@@ -1,6 +1,7 @@
 package com.mapconductor.core
 
 import android.util.Log
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.yield
 
 /**
@@ -62,6 +63,7 @@ internal class OverlayAddedTracker<T : ComponentState>(
         var missing: MutableSet<String>? = null
         var added: MutableList<T>? = null
         var checked = 0
+        val listening = OverlayAddedListeners.active
         for (state in data) {
             if (++checked % CHECKS_PER_YIELD == 0) yield()
             val id = state.id
@@ -69,7 +71,7 @@ internal class OverlayAddedTracker<T : ComponentState>(
                 next?.add(id)
             } else if (isOnMap(state)) {
                 next?.add(id)
-                if (onAddedOf(state) != null) (added ?: ArrayList<T>().also { added = it }).add(state)
+                if (listening || onAddedOf(state) != null) (added ?: ArrayList<T>().also { added = it }).add(state)
             } else if (sourceIds != null) {
                 (missing ?: HashSet<String>().also { missing = it }).add(id)
             }
@@ -81,6 +83,7 @@ internal class OverlayAddedTracker<T : ComponentState>(
     }
 
     private fun notify(states: List<T>) {
+        OverlayAddedListeners.notify(states)
         for (state in states) {
             val callback = onAddedOf(state) ?: continue
             try {
@@ -95,5 +98,34 @@ internal class OverlayAddedTracker<T : ComponentState>(
     @InternalMapConductorApi
     private companion object {
         const val CHECKS_PER_YIELD = 4096
+    }
+}
+
+/**
+ * Hears every batch of states [OverlayAddedTracker] finds on the map, before
+ * their `onAdded` calls, on the main thread. For the framework layer (the
+ * Compose collections count their own states with it), not for apps.
+ */
+@InternalMapConductorApi
+object OverlayAddedListeners {
+    private val listeners = CopyOnWriteArrayList<(List<ComponentState>) -> Unit>()
+
+    internal val active: Boolean
+        get() = listeners.isNotEmpty()
+
+    /** Adds [listener]; call the returned function to remove it. */
+    fun add(listener: (List<ComponentState>) -> Unit): () -> Unit {
+        listeners.add(listener)
+        return { listeners.remove(listener) }
+    }
+
+    internal fun notify(states: List<ComponentState>) {
+        for (listener in listeners) {
+            try {
+                listener(states)
+            } catch (e: Exception) {
+                runCatching { Log.e("MapConductor", "an overlay-added listener threw", e) }
+            }
+        }
     }
 }
