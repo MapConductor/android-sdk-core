@@ -64,11 +64,16 @@ class ZoomAltitudeConverterGoldenTest {
      * ただし pow / log / cos などは CPU と JVM で最終ビットが変わる（表は macOS arm64 で
      * 採取、CI の Linux x86_64 では 1 ULP ずれる）。式の変化はこれより桁違いに大きいので、
      * 数 ULP だけ許して残りは完全一致を要求する。
+     *
+     * 往復ズームは引き算で 0 付近になる（TomTom の 0.0 が 2.2e-16 になる）ので、
+     * ULP は 1.0 を下限にした大きさで測る。
      */
     private fun sameValue(
         actual: Double,
         expected: Double,
-    ): Boolean = actual == expected || kotlin.math.abs(actual - expected) <= 4 * Math.ulp(expected)
+    ): Boolean =
+        actual == expected ||
+            kotlin.math.abs(actual - expected) <= 4 * Math.ulp(maxOf(kotlin.math.abs(expected), 1.0))
 
     @Test
     fun `ゴールデン表が想定の件数ある`() {
