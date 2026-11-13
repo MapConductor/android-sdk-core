@@ -14,7 +14,9 @@ import com.mapconductor.core.polygon.toMercatorRing
 import com.mapconductor.core.projection.Earth
 import com.mapconductor.core.shapetile.GlShapeScene
 import com.mapconductor.core.shapetile.ShapeTileRenderer
+import com.mapconductor.core.shapetile.ShapeTileStorage
 import com.mapconductor.core.shapetile.toTilePixels
+import java.util.BitSet
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.asin
@@ -324,6 +326,102 @@ internal object CircleTilePainter : ShapeTileRenderer.Painter<TileCircle> {
     }
 
     override val drawsOnGpu: Boolean get() = true
+
+    /**
+     * The circles of a file-backed set, read straight from the file's bytes
+     * ([CircleTileFileStorage.forEachRecord]): decoding a [TileCircle] per
+     * circle took about 3.5 µs, seconds for a tile of a nationwide set, against
+     * milliseconds to draw them. The same steps as [subpixelSlot], [simplifyCircle]
+     * and [record]; a circle bent into its 128-gon throws [GlShapeScene.NeedsBatches].
+     */
+    override fun recordAll(
+        scene: GlShapeScene,
+        storage: ShapeTileStorage<TileCircle>,
+        candidates: IntArray,
+        active: BitSet?,
+        scale: Double,
+        originX: Double,
+        originY: Double,
+        tileSize: Int,
+        r: Float,
+        checkCancelled: () -> Unit,
+    ): Boolean {
+        if (storage !is CircleTileFileStorage) return false
+        fun slotOf(x: Double, y: Double, half: Double, north: Double, south: Double): Int {
+            val radius = max(half, max(y - north, south - y)) * scale
+            if (radius >= CIRCLE_DOT_RADIUS_PX) return -2
+            val px = floor(x * scale) - originX
+            val py = floor(y * scale) - originY
+            return if (px >= 0 && px < tileSize && py >= 0 && py < tileSize) py.toInt() * tileSize + px.toInt() else -1
+        }
+        val lastDot = IntArray(tileSize * tileSize)
+        storage.forEachRecord(candidates, checkCancelled) { k, bytes, p, override ->
+            val index = candidates[k]
+            if (active != null && !active[index]) return@forEachRecord
+            if (bytes == null) {
+                val item = override ?: return@forEachRecord
+                if (!isVisible(item)) return@forEachRecord
+                val slot = subpixelSlot(item, scale, originX, originY, tileSize)
+                if (slot >= 0) lastDot[slot] = index + 1
+                return@forEachRecord
+            }
+            if (bytes.getInt(p + 76) and 1 == 0) return@forEachRecord
+            val fill = bytes.getInt(p + 64)
+            val stroke = bytes.getInt(p + 68)
+            val strokeWidth = bytes.getFloat(p + 72)
+            if (!isVisibleColor(fill) && !(strokeWidth > 0f && isVisibleColor(stroke))) return@forEachRecord
+            val slot = slotOf(bytes.getDouble(p + 24), bytes.getDouble(p + 32), bytes.getDouble(p + 40), bytes.getDouble(p + 48), bytes.getDouble(p + 56))
+            if (slot >= 0) lastDot[slot] = index + 1
+        }
+        storage.forEachRecord(candidates, checkCancelled) { k, bytes, p, override ->
+            val index = candidates[k]
+            if (active != null && !active[index]) return@forEachRecord
+            if (bytes == null) {
+                val item = override ?: return@forEachRecord
+                val slot = subpixelSlot(item, scale, originX, originY, tileSize)
+                if (slot == -1 || (slot >= 0 && lastDot[slot] != index + 1)) return@forEachRecord
+                record(scene, item, simplifyCircle(item, scale), originX, originY, r)
+                return@forEachRecord
+            }
+            if (bytes.getInt(p + 76) and 1 == 0) return@forEachRecord
+            val x = bytes.getDouble(p + 24)
+            val y = bytes.getDouble(p + 32)
+            val half = bytes.getDouble(p + 40)
+            val north = bytes.getDouble(p + 48)
+            val south = bytes.getDouble(p + 56)
+            val slot = slotOf(x, y, half, north, south)
+            if (slot == -1 || (slot >= 0 && lastDot[slot] != index + 1)) return@forEachRecord
+            val fill = bytes.getInt(p + 64)
+            val stroke = bytes.getInt(p + 68)
+            val strokeWidth = bytes.getFloat(p + 72)
+            val fillVisible = isVisibleColor(fill)
+            val strokeVisible = strokeWidth > 0f && isVisibleColor(stroke)
+            if (!fillVisible && !strokeVisible) return@forEachRecord
+            val cx = x * scale
+            val cy = y * scale
+            val rx = half * scale
+            val ryN = (y - north) * scale
+            val ryS = (south - y) * scale
+            val maxR = max(rx, max(ryN, ryS))
+            if (maxR < CIRCLE_DOT_RADIUS_PX) {
+                scene.addCircle(
+                    ((floor(cx) - originX) * r).toFloat(), ((floor(cy) - originY) * r).toFloat(), r, r,
+                    if (fillVisible) fill else stroke, 0, kind = 1,
+                )
+                return@forEachRecord
+            }
+            // Bent by the projection: its 128-gon, which the batched scene draws.
+            if (max(abs(ryN - rx), abs(ryS - rx)) > CIRCLE_ARC_TOLERANCE_PX) throw GlShapeScene.NeedsBatches()
+            val outlined = strokeVisible && 2 * maxR >= MIN_OUTLINED_PX
+            if (!fillVisible && !outlined) return@forEachRecord
+            scene.addCircle(
+                ((cx - originX) * r).toFloat(), ((cy - originY) * r).toFloat(), (rx * r).toFloat(),
+                if (outlined) strokeWidth * r else 0f,
+                if (fillVisible) fill else 0, if (outlined) stroke else 0, kind = 0,
+            )
+        }
+        return true
+    }
 
     override fun record(
         scene: GlShapeScene,

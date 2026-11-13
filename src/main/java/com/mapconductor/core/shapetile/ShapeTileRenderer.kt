@@ -115,6 +115,25 @@ internal class ShapeTileRenderer<T : Any>(
             originY: Double,
             r: Float,
         ): Boolean = throw UnsupportedOperationException()
+
+        /**
+         * Records every shape of [candidates] at once, reading [storage]
+         * directly instead of an item per shape; false when this painter or
+         * storage has no such path (then the renderer records them one by one).
+         * Must make the same choices as the one-by-one path.
+         */
+        fun recordAll(
+            scene: GlShapeScene,
+            storage: ShapeTileStorage<T>,
+            candidates: IntArray,
+            active: BitSet?,
+            scale: Double,
+            originX: Double,
+            originY: Double,
+            tileSize: Int,
+            r: Float,
+            checkCancelled: () -> Unit,
+        ): Boolean = false
     }
 
     /** Paints and a path, one set per tile drawn. */
@@ -412,7 +431,13 @@ internal class ShapeTileRenderer<T : Any>(
         // 128-gon needs the batched scene instead.
         val scene =
             try {
-                record(GlShapeScene(px, orderedCircles = painter.thinSubpixelOverlaps), m, candidates, originX, originY, r, z, scale, isCancelled)
+                val ordered = GlShapeScene(px, orderedCircles = painter.thinSubpixelOverlaps)
+                val checkCancelled = { if (isCancelled()) throw cancelled() }
+                if (painter.recordAll(ordered, m.storage, candidates, m.active, scale, originX, originY, tileSize, r, checkCancelled)) {
+                    ordered.finish()
+                } else {
+                    record(ordered, m, candidates, originX, originY, r, z, scale, isCancelled)
+                }
             } catch (_: GlShapeScene.NeedsBatches) {
                 record(GlShapeScene(px), m, candidates, originX, originY, r, z, scale, isCancelled)
             }

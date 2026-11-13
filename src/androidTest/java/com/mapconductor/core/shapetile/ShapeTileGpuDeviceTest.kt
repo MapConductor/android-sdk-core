@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mapconductor.core.circle.CircleState
+import com.mapconductor.core.circle.CircleTileFileStorage
 import com.mapconductor.core.circle.CircleTilePainter
 import com.mapconductor.core.circle.TileCircle
 import com.mapconductor.core.circle.effectiveZIndex
@@ -18,7 +19,9 @@ import com.mapconductor.core.polyline.TilePolyline
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import kotlin.math.abs
 import kotlin.math.max
@@ -34,6 +37,9 @@ import android.graphics.Bitmap
  */
 @RunWith(AndroidJUnit4::class)
 class ShapeTileGpuDeviceTest {
+    @get:Rule
+    val temporary = TemporaryFolder()
+
     @After
     fun restore() {
         ShapeTileRenderer.useGpu = true
@@ -215,5 +221,31 @@ class ShapeTileGpuDeviceTest {
             )
         val (gpu, cpu) = both({ circles(states) }, 0, 0, 0)
         assertTrue(mismatch(gpu, cpu, 48) < 0.02)
+    }
+
+    /**
+     * 全国規模の集合はファイルに置かれ、GPU は記録をバイト列から直接読む
+     * （[CircleTilePainter.recordAll]）。1 つずつ読む Canvas と同じ絵になる。
+     */
+    @Test
+    fun fileBackedCirclesMatchTheCanvas() {
+        val states =
+            (0 until 30_000).map { i ->
+                CircleState(
+                    center = p(30.0 + (i * 7919 % 2000) / 100.0, -120.0 + (i * 104729 % 5000) / 100.0),
+                    radiusMeters = 100.0 + i % 9000,
+                    fillColor = colors[i % 5].copy(alpha = 0.65f),
+                    strokeColor = colors[(i + 1) % 5].copy(alpha = 0.6f),
+                    strokeWidth = (i % 3).dp,
+                )
+            }.sortedBy(::effectiveZIndex).map(TileCircle::from)
+        fun renderer() =
+            ShapeTileRenderer(tileSize = 256, pixelScale = { 1f }, painter = CircleTilePainter).apply {
+                setStorage(CircleTileFileStorage.create(temporary.newFolder(), states.size, { states[it] }))
+            }
+        for ((z, x, y) in listOf(Triple(1, 0, 0), Triple(4, 3, 6), Triple(6, 12, 25))) {
+            val (gpu, cpu) = both(::renderer, x, y, z)
+            assertTrue("z=$z", mismatch(gpu, cpu, 48) < 0.03)
+        }
     }
 }

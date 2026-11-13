@@ -36,6 +36,34 @@ internal class CircleTileFileStorage private constructor(
             else -> file.read(index) { bytes, offset -> decode(bytes, offset) }
         }
 
+    /**
+     * Calls [action] for each of [indices] in order, with the record's bytes and
+     * offset in them, or with the overriding circle (bytes null). Records of one
+     * block are read under one lock, not one per circle: a nationwide tile reads
+     * hundreds of thousands, on several tile threads at once.
+     */
+    internal fun forEachRecord(
+        indices: IntArray,
+        checkCancelled: () -> Unit,
+        action: (k: Int, bytes: ByteBuffer?, offset: Int, override: TileCircle?) -> Unit,
+    ) {
+        var k = 0
+        while (k < indices.size) {
+            checkCancelled()
+            val index = indices[k]
+            if (index !in 0 until size) {
+                k++
+                continue
+            }
+            if (overrides.isNotEmpty() && overrides.containsKey(index)) {
+                action(k, null, 0, overrides[index])
+                k++
+                continue
+            }
+            k = file.readRun(indices, k, size, overrides, action)
+        }
+    }
+
     override fun bbox(index: Int): DoubleArray? =
         when {
             index !in 0 until size -> null
@@ -117,11 +145,40 @@ internal class CircleTileFileStorage private constructor(
             }
         }
 
+        /**
+         * [action] for the records of `indices[from]` onwards while they stay in
+         * the first one's block (and are not overridden); returns where it stopped.
+         */
+        @Synchronized fun readRun(
+            indices: IntArray,
+            from: Int,
+            size: Int,
+            overrides: Map<Int, TileCircle?>,
+            action: (k: Int, bytes: ByteBuffer?, offset: Int, override: TileCircle?) -> Unit,
+        ): Int {
+            val block = indices[from] / RECORDS_PER_BLOCK
+            val bytes = blockBytes(block)
+            var k = from
+            while (k < indices.size) {
+                val index = indices[k]
+                if (index / RECORDS_PER_BLOCK != block || index !in 0 until size) break
+                if (overrides.isNotEmpty() && overrides.containsKey(index)) break
+                action(k, bytes, index % RECORDS_PER_BLOCK * RECORD_BYTES, null)
+                k++
+            }
+            return k
+        }
+
         @Synchronized fun <R> read(
             index: Int,
             action: (ByteBuffer, Int) -> R,
         ): R {
             val block = index / RECORDS_PER_BLOCK
+            return action(blockBytes(block), index % RECORDS_PER_BLOCK * RECORD_BYTES)
+        }
+
+        /** The bytes of [block], read into the cache if they are not there. Call with the lock held. */
+        private fun blockBytes(block: Int): ByteBuffer {
             val bytes =
                 blocks[block] ?: run {
                     val buffer = if (blocks.size < MAX_BLOCKS) {
@@ -150,7 +207,7 @@ internal class CircleTileFileStorage private constructor(
                     blocks[block] = buffer
                     buffer
                 }
-            return action(bytes, index % RECORDS_PER_BLOCK * RECORD_BYTES)
+            return bytes
         }
 
         fun write(
