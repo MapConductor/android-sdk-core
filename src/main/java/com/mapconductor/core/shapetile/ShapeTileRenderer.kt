@@ -699,6 +699,15 @@ internal class ShapeTileRenderer<T : Any>(
         var useGpu: Boolean = true
 
         /**
+         * Polygons and polylines on the GPU too. Off: on a Pixel 5a and a
+         * Lenovo TB520FU, Skia drew their tiles as fast or faster (a polygon tile
+         * splits into thousands of small batches), while circles were 2x faster
+         * on the GPU. Kept for the comparison tests and for later work.
+         */
+        @Volatile
+        var gpuPolygonsAndLines: Boolean = false
+
+        /**
          * The GL contexts and shaders are made on first use. Start that when
          * shapes are about to be tiled, instead of making the first tiles the
          * map asks for wait for it.

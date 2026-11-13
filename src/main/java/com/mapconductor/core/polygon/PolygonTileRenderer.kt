@@ -125,7 +125,7 @@ internal object PolygonTilePainter : ShapeTileRenderer.Painter<TilePolygon> {
         return drew
     }
 
-    override val drawsOnGpu: Boolean get() = true
+    override val drawsOnGpu: Boolean get() = ShapeTileRenderer.gpuPolygonsAndLines
 
     override fun record(
         scene: GlShapeScene,

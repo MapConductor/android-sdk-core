@@ -192,7 +192,7 @@ internal object PolylineTilePainter : ShapeTileRenderer.Painter<TilePolyline> {
         return true
     }
 
-    override val drawsOnGpu: Boolean get() = true
+    override val drawsOnGpu: Boolean get() = ShapeTileRenderer.gpuPolygonsAndLines
 
     override fun record(
         scene: GlShapeScene,

@@ -17,6 +17,7 @@ import com.mapconductor.core.polyline.PolylineState
 import com.mapconductor.core.polyline.PolylineTilePainter
 import com.mapconductor.core.polyline.TilePolyline
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -40,9 +41,17 @@ class ShapeTileGpuDeviceTest {
     @get:Rule
     val temporary = TemporaryFolder()
 
+    @Before
+    fun drawEveryKindOnTheGpu() {
+        // Polygons and polylines are drawn on the canvas by default; turn them on
+        // here so that their GPU path is compared too.
+        ShapeTileRenderer.gpuPolygonsAndLines = true
+    }
+
     @After
     fun restore() {
         ShapeTileRenderer.useGpu = true
+        ShapeTileRenderer.gpuPolygonsAndLines = false
     }
 
     private fun p(
