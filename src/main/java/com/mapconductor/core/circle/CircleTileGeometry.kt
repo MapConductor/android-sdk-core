@@ -12,7 +12,9 @@ import com.mapconductor.core.polygon.isVisibleColor
 import com.mapconductor.core.polygon.simplifyRing
 import com.mapconductor.core.polygon.toMercatorRing
 import com.mapconductor.core.projection.Earth
+import com.mapconductor.core.shapetile.GlShapeScene
 import com.mapconductor.core.shapetile.ShapeTileRenderer
+import com.mapconductor.core.shapetile.toTilePixels
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.asin
@@ -316,6 +318,55 @@ internal object CircleTilePainter : ShapeTileRenderer.Painter<TileCircle> {
                     drew = true
                 }
                 return drew
+            }
+            else -> return false
+        }
+    }
+
+    override val drawsOnGpu: Boolean get() = true
+
+    override fun record(
+        scene: GlShapeScene,
+        item: TileCircle,
+        shape: Any,
+        originX: Double,
+        originY: Double,
+        r: Float,
+    ): Boolean {
+        val fillVisible = item.fillVisible
+        val strokeVisible = item.strokeVisible
+        if (!fillVisible && !strokeVisible) return false
+        when (shape) {
+            is CircleTileShape.Dot -> {
+                val left = ((shape.x - originX) * r).toFloat()
+                val top = ((shape.y - originY) * r).toFloat()
+                scene.addCircle(left, top, r, r, if (fillVisible) item.fill else item.stroke, 0, kind = 1)
+                return true
+            }
+            is CircleTileShape.Arc -> {
+                val outlined = strokeVisible && shape.outlined
+                if (!fillVisible && !outlined) return false
+                scene.addCircle(
+                    ((shape.cx - originX) * r).toFloat(),
+                    ((shape.cy - originY) * r).toFloat(),
+                    (shape.radius * r).toFloat(),
+                    if (outlined) item.strokeWidth * r else 0f,
+                    if (fillVisible) item.fill else 0,
+                    if (outlined) item.stroke else 0,
+                    kind = 0,
+                )
+                return true
+            }
+            is CircleTileShape.Ring -> {
+                val outlined = strokeVisible && shape.outlined
+                if (!fillVisible && !outlined) return false
+                scene.addPolygon(
+                    listOf(toTilePixels(shape.points, originX, originY, r)),
+                    fill = if (fillVisible) item.fill else 0,
+                    outline = if (outlined) item.stroke else 0,
+                    strokeWidth = item.strokeWidth * r,
+                )
+                return true
             }
             else -> return false
         }

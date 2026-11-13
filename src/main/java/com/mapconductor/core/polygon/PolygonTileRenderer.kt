@@ -2,7 +2,9 @@ package com.mapconductor.core.polygon
 
 import com.mapconductor.core.InternalMapConductorApi
 import com.mapconductor.core.ResourceProvider
+import com.mapconductor.core.shapetile.GlShapeScene
 import com.mapconductor.core.shapetile.ShapeTileRenderer
+import com.mapconductor.core.shapetile.toTilePixels
 import com.mapconductor.core.tileserver.TileProviderInterface
 import com.mapconductor.core.tileserver.TileRequest
 import android.graphics.Bitmap
@@ -121,6 +123,40 @@ internal object PolygonTilePainter : ShapeTileRenderer.Painter<TilePolygon> {
             }
         }
         return drew
+    }
+
+    override val drawsOnGpu: Boolean get() = true
+
+    override fun record(
+        scene: GlShapeScene,
+        item: TilePolygon,
+        shape: Any,
+        originX: Double,
+        originY: Double,
+        r: Float,
+    ): Boolean {
+        val fillVisible = item.fillVisible
+        when (shape) {
+            is TileShape.Dot -> {
+                if (!fillVisible && !item.strokeVisible) return false
+                val left = ((shape.x - originX) * r).toFloat()
+                val top = ((shape.y - originY) * r).toFloat()
+                scene.addCircle(left, top, r, r, if (fillVisible) item.fill else item.stroke, 0, kind = 1)
+                return true
+            }
+            is TileShape.Rings -> {
+                val outlined = item.strokeVisible && shape.outlined
+                if (!fillVisible && !outlined) return false
+                scene.addPolygon(
+                    shape.rings.map { toTilePixels(it, originX, originY, r) },
+                    fill = if (fillVisible) item.fill else 0,
+                    outline = if (outlined) item.stroke else 0,
+                    strokeWidth = item.strokeWidth * r,
+                )
+                return true
+            }
+        }
+        return false
     }
 
     private fun addRing(
