@@ -139,4 +139,26 @@ class MarkerHitTestPickTest {
         assertTrue(MarkerHitPick.pickIndex(touch, listOf(far, near), 40.0) == 1)
         assertTrue(MarkerHitPick.pickIndex(Offset(400f, 400f), listOf(far, near), tolerance) == null)
     }
+
+    /**
+     * A projection that rounds to whole pixels (ArcGIS's 3D SceneView does): zoomed out,
+     * 1e-4° is under a pixel, and the scale must still be measured. Without that the
+     * search area could not be made and no marker tap was recognised.
+     */
+    @Test
+    fun searchBoundsWorksWithAProjectionRoundedToWholePixels() {
+        val worldPx = 512.0 * Math.pow(2.0, 9.0) // zoom 9
+        fun project(p: com.mapconductor.core.features.GeoPointInterface): Offset {
+            val x = (p.longitude + 180.0) / 360.0 * worldPx
+            val s = Math.sin(Math.toRadians(p.latitude))
+            val y = (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * worldPx
+            return Offset(Math.round(x).toFloat(), Math.round(y).toFloat())
+        }
+        val tap = com.mapconductor.core.features.GeoPoint(21.31, -157.86)
+        val bounds = MarkerHitPick.searchBounds(tap, project(tap), ::project, density = 2.0)
+        assertTrue("bounds were not made", bounds != null)
+        // 256 dp at density 2 is 512 px; at zoom 9 (728 px a degree) that is about 0.70° each way.
+        val halfLon = (bounds!!.northEast!!.longitude - bounds.southWest!!.longitude) / 2
+        assertTrue("half width $halfLon", halfLon in 0.63..0.77)
+    }
 }
