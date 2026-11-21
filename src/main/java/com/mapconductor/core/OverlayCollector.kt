@@ -124,7 +124,20 @@ class OverlayCollector<T : ComponentState>(
     private class PassToken(
         val collector: OverlayCollector<*>,
     ) : StateMutationListener {
-        override fun onMutated(state: ComponentState) = collector.onMutated(state)
+        override fun onMutated(state: ComponentState) = collector.onMutated(state, this)
+    }
+
+    /** Each state of [states] with its id, walking an [OverlayStateList]'s list rather than its index. */
+    private inline fun forEachState(
+        states: Map<String, T>,
+        action: (id: String, state: T) -> Unit,
+    ) {
+        if (states is OverlayStateList<*>) {
+            @Suppress("UNCHECKED_CAST")
+            (states as OverlayStateList<T>).forEachState { action(it.id, it) }
+        } else {
+            for ((id, state) in states) action(id, state)
+        }
     }
 
     private fun tokenOf(state: T): PassToken? =
@@ -168,7 +181,7 @@ class OverlayCollector<T : ComponentState>(
         val pass = PassToken(this)
         token = pass
         val anyPending = pendingAdds.isNotEmpty()
-        for ((id, state) in states) {
+        forEachState(states) { id, state ->
             if (anyPending) {
                 val pending = pendingAdds.remove(id)
                 if (pending !== null && pending !== state) stop(pending)
@@ -185,9 +198,11 @@ class OverlayCollector<T : ComponentState>(
         // Only stop what this path started: a state added through [add] may not
         // have reached [flow] yet (membership is debounced).
         val stillPending = pendingAdds.isNotEmpty()
-        for ((id, state) in previous) {
-            val heard = tokenOf(state) ?: continue
-            if (heard !== pass && (!stillPending || pendingAdds[id] !== state)) state.mutations.stopListening(heard)
+        forEachState(previous) { id, state ->
+            val heard = tokenOf(state)
+            if (heard != null && heard !== pass && (!stillPending || pendingAdds[id] !== state)) {
+                state.mutations.stopListening(heard)
+            }
         }
     }
 
@@ -218,10 +233,15 @@ class OverlayCollector<T : ComponentState>(
      * state left listening by a membership change this collector never saw
      * (a [flow] value replaced before it was collected) is dropped here.
      */
-    private fun onMutated(state: ComponentState) {
+    private fun onMutated(
+        state: ComponentState,
+        via: PassToken,
+    ) {
         val channel = mutated ?: return
         val id = state.id
-        if (pendingAdds[id] !== state && flow.value[id] !== state && published[id] !== state) return
+        // Heard through the latest pass's token: the latest published membership
+        // has it. Otherwise look it up (pending adds, a newer flow value).
+        if (via !== token && pendingAdds[id] !== state && flow.value[id] !== state && published[id] !== state) return
         @Suppress("UNCHECKED_CAST")
         channel.trySend(state as T)
     }

@@ -97,6 +97,32 @@ class OverlayCollectorMutationTest {
         assertEquals(states.map { "${it.id}=2" }, seen.sorted())
     }
 
+    @Test
+    fun aListHandOverReportsWritesOfItsStatesOnly() = runTest {
+        val collector = collector(StandardTestDispatcher(testScheduler))
+        val seen = mutableListOf<String>()
+        collector.setUpdateHandler { seen.add("${it.id}=${it.label}") }
+        val states = List(4) { Thing("l$it", "0") }
+        collector.flow.value = OverlayStateList(states)
+        advanceUntilIdle()
+        collector.flow.value = OverlayStateList(states.take(2))
+        advanceUntilIdle()
+        states.forEach { it.label = "1" }
+        advanceUntilIdle()
+        assertEquals(listOf("l0=1", "l1=1"), seen.sorted())
+    }
+
+    @Test
+    fun aWrittenListFollowsItsIndex() {
+        val states = List(3) { Thing("w$it", "0") }
+        val list = OverlayStateList(states)
+        assertEquals(states, list.states())
+        assertEquals(states[1], list["w1"])
+        list.remove("w1")
+        assertEquals(listOf(states[0], states[2]), list.states())
+        assertEquals(setOf("w0", "w2"), list.keys)
+    }
+
     private fun collector(dispatcher: TestDispatcher) =
         OverlayCollector<Thing>(
             updateDebounce = window,
