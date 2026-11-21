@@ -341,9 +341,17 @@ internal class ShapeTileRenderer<T : Any>(
         }
     }
 
+    /** Busy while a tile is being drawn; the owning tiler adds its own work. */
+    val activity = TileActivity()
+
     override fun renderTile(request: TileRequest): ByteArray? = renderTile(request) { false }
 
     override fun renderTile(
+        request: TileRequest,
+        isCancelled: () -> Boolean,
+    ): ByteArray? = activity.during { drawTile(request, isCancelled) }
+
+    private fun drawTile(
         request: TileRequest,
         isCancelled: () -> Boolean,
     ): ByteArray? {

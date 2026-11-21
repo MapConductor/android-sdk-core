@@ -1,5 +1,6 @@
 package com.mapconductor.core.polyline
 
+import kotlinx.coroutines.flow.StateFlow
 import com.mapconductor.core.raster.RasterLayerSource
 import com.mapconductor.core.raster.RasterLayerState
 import com.mapconductor.core.shapetile.ShapeTiler
@@ -58,6 +59,9 @@ class PolylineTiler(
             idOf = { it.id },
             onTemplate = { template, tileSize -> onTemplate?.invoke(template, tileSize) },
         )
+
+    /** Busy while this tiler takes a list or its tiles are drawn. See [com.mapconductor.core.controller.overlayTileActivity]. */
+    internal val activity: StateFlow<Boolean> get() = tileSet.shapes.activity.active
 
     /** Re-decides tiling for [data] and returns the ids drawn as tiles. */
     suspend fun route(data: List<PolylineState>): Set<String> = tiler.route(data)
