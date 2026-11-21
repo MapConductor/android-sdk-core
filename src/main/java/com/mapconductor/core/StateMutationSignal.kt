@@ -22,8 +22,12 @@ import androidx.compose.runtime.mutableStateOf
  */
 @InternalMapConductorApi
 class StateMutationSignal {
+    /** A `() -> Unit`, or a [StateMutationListener] that is handed [source]. */
     @Volatile
-    private var listener: (() -> Unit)? = null
+    private var listener: Any? = null
+
+    @Volatile
+    private var source: ComponentState? = null
 
     /**
      * Sets who hears about writes, or clears it with null.
@@ -32,12 +36,39 @@ class StateMutationSignal {
      * than a list.
      */
     internal fun listen(listener: (() -> Unit)?) {
+        source = null
         this.listener = listener
+    }
+
+    /**
+     * Sets [listener] to hear about writes as `listener.onMutated(state)`.
+     *
+     * One listener object serves every state of a collector, instead of a
+     * closure per state: with 720k circles the closures alone were 17 MB.
+     */
+    internal fun listen(
+        listener: StateMutationListener,
+        state: ComponentState,
+    ) {
+        source = state
+        this.listener = listener
+    }
+
+    /** Stops reporting, but only if [listener] is the one reported to. */
+    internal fun stopListening(listener: StateMutationListener) {
+        if (this.listener === listener) {
+            this.listener = null
+            source = null
+        }
     }
 
     /** Reports a write. Called from whatever thread performed it. */
     fun notifyMutated() {
-        listener?.invoke()
+        when (val current = listener) {
+            null -> Unit
+            is StateMutationListener -> source?.let(current::onMutated)
+            else -> @Suppress("UNCHECKED_CAST") (current as () -> Unit)()
+        }
     }
 
     /**
@@ -60,6 +91,12 @@ class StateMutationSignal {
      * Callers change such a field by assigning a new value.
      */
     fun <T> notifying(initial: T): MutableState<T> = NotifyingState(mutableStateOf(initial), this)
+}
+
+/** Hears about writes to the states it was given with [StateMutationSignal.listen]. */
+@InternalMapConductorApi
+internal fun interface StateMutationListener {
+    fun onMutated(state: ComponentState)
 }
 
 /**

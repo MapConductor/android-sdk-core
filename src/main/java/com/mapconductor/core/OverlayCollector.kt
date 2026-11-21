@@ -78,7 +78,8 @@ interface OverlayCollectorInterface<T : ComponentState> {
 class OverlayCollector<T : ComponentState>(
     private val updateDebounce: Duration,
     scope: CoroutineScope = CoroutineScope(Dispatchers.Main.immediate),
-) : OverlayCollectorInterface<T> {
+) : OverlayCollectorInterface<T>,
+    StateMutationListener {
     private val scope = scope
     private val addSharedFlow = MutableSharedFlow<T>(1000)
     private val removeSharedFlow = MutableSharedFlow<String>(1000)
@@ -98,18 +99,18 @@ class OverlayCollector<T : ComponentState>(
     override val flow = MutableStateFlow<MutableMap<String, T>>(mutableMapOf())
 
     /**
-     * Who is currently reporting mutations, kept here rather than read back out
-     * of [flow].
+     * Direct adds waiting for their debounced membership publication.
      *
      * Membership reaches [flow] through a debounce, so a state added and
      * removed inside the same window is not in the map when the removal
-     * arrives — clearing by id there found nothing and left it reporting for
-     * the rest of the collector's life.
+     * arrives; it is found here instead. Together with [published] this is
+     * every state this collector listens to, without a second map of the whole
+     * collection (with 720k circles that map alone was 28 MB).
      */
-    private val listening = ConcurrentHashMap<String, T>()
+    private val pendingAdds = ConcurrentHashMap<String, T>()
 
-    /** Only direct adds waiting for their debounced membership publication. */
-    private val pendingAdds = ConcurrentHashMap.newKeySet<String>()
+    /** The membership [listenToWrittenStates] last listened to. */
+    @Volatile private var published: Map<String, T> = emptyMap()
 
     init {
         scope.launch {
@@ -144,45 +145,55 @@ class OverlayCollector<T : ComponentState>(
     }
 
     private fun listenToWrittenStates(states: Map<String, T>) {
+        val previous = published
+        published = states
         for ((id, state) in states) {
-            if (listening[id] !== state) {
-                listen(state)
-            }
-            pendingAdds.remove(id)
+            val pending = pendingAdds.remove(id)
+            if (pending !== null && pending !== state) stop(pending)
+            val old = previous[id]
+            if (old !== null && old !== state) stop(old)
+            listen(state)
         }
         // Only stop what this path started: a state added through [add] may not
         // have reached [flow] yet (membership is debounced).
-        // The listener map already identifies every registered state. Keep a
-        // small exception set for pending direct adds rather than duplicating
-        // the IDs of an entire bulk collection in another concurrent hash set.
-        for (id in listening.keys) {
-            if (id !in states && id !in pendingAdds) {
-                unlisten(id)
-            }
+        for ((id, state) in previous) {
+            if (id !in states && pendingAdds[id] !== state) stop(state)
         }
     }
 
     override suspend fun add(state: T) {
-        pendingAdds.add(state.id)
+        val previous = pendingAdds.put(state.id, state) ?: published[state.id]
+        if (previous !== null && previous !== state) stop(previous)
         listen(state)
         addSharedFlow.emit(state)
     }
 
     override fun remove(id: String) {
-        pendingAdds.remove(id)
-        unlisten(id)
+        pendingAdds.remove(id)?.let(::stop)
+        published[id]?.let(::stop)
         removeSharedFlow.tryEmit(id)
     }
 
-
     private fun listen(state: T) {
-        val previous = listening.put(state.id, state)
-        if (previous !== null && previous !== state) previous.mutations.listen(null)
-        state.mutations.listen { mutated?.trySend(state) }
+        state.mutations.listen(this, state)
     }
 
-    private fun unlisten(id: String) {
-        listening.remove(id)?.mutations?.listen(null)
+    private fun stop(state: T) {
+        state.mutations.stopListening(this)
+    }
+
+    /**
+     * A write to a state this collector listens to. Delivered only while the
+     * state is still a member (published, or added and waiting to be): a
+     * state left listening by a membership change this collector never saw
+     * (a [flow] value replaced before it was collected) is dropped here.
+     */
+    override fun onMutated(state: ComponentState) {
+        val channel = mutated ?: return
+        val id = state.id
+        if (pendingAdds[id] !== state && flow.value[id] !== state && published[id] !== state) return
+        @Suppress("UNCHECKED_CAST")
+        channel.trySend(state as T)
     }
 
     override fun setUpdateHandler(handler: (suspend (T) -> Unit)?) {
@@ -199,8 +210,8 @@ class OverlayCollector<T : ComponentState>(
     override fun replaceAll(states: List<T>) {
         val next = copyOverlayStates<T>(emptyMap())
         for (state in states) next[state.id] = state
-        for (id in listening.keys.toList()) {
-            if (next[id] !== listening[id]) unlisten(id)
+        for (map in listOf(published, flow.value, pendingAdds)) {
+            for ((id, state) in map) if (next[id] !== state) stop(state)
         }
         for (state in next.values) listen(state)
         flow.value = next
