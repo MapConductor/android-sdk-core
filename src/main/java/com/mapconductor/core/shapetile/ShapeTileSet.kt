@@ -56,6 +56,9 @@ internal class ShapeTileSet<S, T : Any>(
 
     val tileSize: Int get() = renderer.tileSize
 
+    /** Busy while tiles of this set are drawn, and while [ShapeTiler] hands it a list. */
+    val activity: TileActivity get() = renderer.activity
+
     private val lock = Any()
     // Never changed once assigned, so the sets [ids] hands out stay as they were.
     // An ObjectIntMap rather than a HashMap<String, Int>: no node or boxed Int

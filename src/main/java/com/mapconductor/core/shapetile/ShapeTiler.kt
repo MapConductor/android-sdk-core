@@ -33,6 +33,15 @@ internal class ShapeTiler<S>(
 
     /** Re-decides tiling for [data] and returns the ids drawn as tiles. */
     suspend fun route(data: List<S>): Set<String> {
+        tileSet.activity.begin()
+        try {
+            return routeWork(data)
+        } finally {
+            tileSet.activity.end()
+        }
+    }
+
+    private suspend fun routeWork(data: List<S>): Set<String> {
         // A city of shapes is a second of work; none of it belongs on the map's thread.
         val (tileable, useTiles) =
             withContext(Dispatchers.Default) {

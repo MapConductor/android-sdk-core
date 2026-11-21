@@ -1,5 +1,7 @@
 package com.mapconductor.core.controller
 
+import com.mapconductor.core.polygon.PolygonTiler
+import com.mapconductor.core.polygon.PolygonController
 import com.mapconductor.core.OnCameraMoveHandler
 import com.mapconductor.core.OnMapEventHandler
 import com.mapconductor.core.OnMapInitializedHandler
@@ -305,6 +307,10 @@ abstract class BaseMapViewController :
     /** The tilers of this map's circle controllers, for [com.mapconductor.core.circle.CircleOverlay]'s per-map options. */
     internal fun circleTilers(): List<CircleTiler> =
         overlayControllersOf(OverlayKind.Circle).mapNotNull { (it as? CircleController<*>)?.tiler }
+
+    /** The tilers of this map's polygon controllers. */
+    internal fun polygonTilers(): List<PolygonTiler> =
+        overlayControllersOf(OverlayKind.Polygon).mapNotNull { (it as? PolygonController<*>)?.tiler }
 
     /** The tilers of this map's polyline controllers, for [com.mapconductor.core.polyline.PolylineOverlay]'s per-map options. */
     internal fun polylineTilers(): List<PolylineTiler> =

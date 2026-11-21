@@ -1,5 +1,6 @@
 package com.mapconductor.core.polygon
 
+import kotlinx.coroutines.flow.StateFlow
 import com.mapconductor.core.raster.RasterLayerSource
 import com.mapconductor.core.raster.RasterLayerState
 import com.mapconductor.core.shapetile.ShapeTiler
@@ -42,15 +43,20 @@ class PolygonTiler(
 ) {
     var onTemplate: (suspend (template: String?, tileSize: Int) -> Unit)? = null
 
+    private val tileSet = PolygonTileSet()
+
     private val tiler =
         ShapeTiler(
-            tileSet = PolygonTileSet().shapes,
+            tileSet = tileSet.shapes,
             canTile = PolygonTileSet::canTile,
             vertexCount = PolygonTileSet::vertexCount,
             shouldUseTiles = { count, vertices -> options.shouldUseTiles(count, vertices) },
             idOf = { it.id },
             onTemplate = { template, tileSize -> onTemplate?.invoke(template, tileSize) },
         )
+
+    /** Busy while this tiler takes a list or its tiles are drawn. See [com.mapconductor.core.controller.overlayTileActivity]. */
+    internal val activity: StateFlow<Boolean> get() = tileSet.shapes.activity.active
 
     /** Re-decides tiling for [data] and returns the ids drawn as tiles. */
     suspend fun route(data: List<PolygonState>): Set<String> = tiler.route(data)
