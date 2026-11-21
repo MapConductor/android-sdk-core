@@ -1,6 +1,7 @@
 package com.mapconductor.core.circle
 
 import com.mapconductor.core.OverlayAddedTracker
+import com.mapconductor.core.OverlayStateList
 import com.mapconductor.core.controller.BaseMapViewController
 import com.mapconductor.core.controller.MapViewControllerInterface
 import com.mapconductor.core.map.MapOverlayInterface
@@ -29,8 +30,10 @@ class CircleOverlay
             tilingOptions?.value?.let { options ->
                 (controller as? BaseMapViewController)?.circleTilers()?.forEach { it.options = options }
             }
-            val states = data.values.toList()
+            @Suppress("UNCHECKED_CAST")
+            val list = data as? OverlayStateList<CircleState>
+            val states = list?.states() ?: data.values.toList()
             capable.compositionCircles(states)
-            added.synced(controller, states, capable::hasCircle, sourceIds = data.keys)
+            added.synced(controller, states, capable::hasCircle, sourceIds = list?.ids ?: data.keys)
         }
     }

@@ -73,6 +73,56 @@ class OverlayCollectorMutationTest {
         assertEquals(setOf("single", "bulk"), collector.flow.value.keys)
     }
 
+    @Test
+    fun aBulkListThatDropsAndRestoresSomeStatesKeepsTheRestReporting() = runTest {
+        val collector = collector(StandardTestDispatcher(testScheduler))
+        val seen = mutableListOf<String>()
+        collector.setUpdateHandler { seen.add("${it.id}=${it.label}") }
+        val states = List(5) { Thing("s$it", "0") }
+        fun publish(list: List<Thing>) {
+            collector.flow.value = copyOverlayStates(list.associateBy { it.id })
+        }
+        publish(states)
+        advanceUntilIdle()
+        publish(states.filterIndexed { index, _ -> index % 2 == 0 })
+        advanceUntilIdle()
+        states.forEach { it.label = "1" }
+        advanceUntilIdle()
+        assertEquals(listOf("s0=1", "s2=1", "s4=1"), seen.sorted())
+        seen.clear()
+        publish(states)
+        advanceUntilIdle()
+        states.forEach { it.label = "2" }
+        advanceUntilIdle()
+        assertEquals(states.map { "${it.id}=2" }, seen.sorted())
+    }
+
+    @Test
+    fun aListHandOverReportsWritesOfItsStatesOnly() = runTest {
+        val collector = collector(StandardTestDispatcher(testScheduler))
+        val seen = mutableListOf<String>()
+        collector.setUpdateHandler { seen.add("${it.id}=${it.label}") }
+        val states = List(4) { Thing("l$it", "0") }
+        collector.flow.value = OverlayStateList(states)
+        advanceUntilIdle()
+        collector.flow.value = OverlayStateList(states.take(2))
+        advanceUntilIdle()
+        states.forEach { it.label = "1" }
+        advanceUntilIdle()
+        assertEquals(listOf("l0=1", "l1=1"), seen.sorted())
+    }
+
+    @Test
+    fun aWrittenListFollowsItsIndex() {
+        val states = List(3) { Thing("w$it", "0") }
+        val list = OverlayStateList(states)
+        assertEquals(states, list.states())
+        assertEquals(states[1], list["w1"])
+        list.remove("w1")
+        assertEquals(listOf(states[0], states[2]), list.states())
+        assertEquals(setOf("w0", "w2"), list.keys)
+    }
+
     private fun collector(dispatcher: TestDispatcher) =
         OverlayCollector<Thing>(
             updateDebounce = window,
