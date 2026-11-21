@@ -2068,6 +2068,38 @@ public final class com.mapconductor.core.marker.MarkerState implements com.mapco
   public int hashCode();
   public final com.mapconductor.core.marker.MarkerFingerPrint fingerPrint();
 }
+final class com.mapconductor.core.marker.MarkerState$Values {
+  public final com.mapconductor.core.features.GeoPointInterface getPosition();
+  public final com.mapconductor.core.marker.MarkerIconInterface getIcon();
+  public final com.mapconductor.core.marker.MarkerAnimation getAnimation();
+  public final java.lang.Integer getZIndex();
+  public final boolean getClickable();
+  public final boolean getDraggable();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> getOnClick();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> getOnDragStart();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> getOnDrag();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> getOnDragEnd();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> getOnAnimateStart();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> getOnAnimateEnd();
+  public final int getIconRevision();
+  public final com.mapconductor.core.features.GeoPointInterface component1();
+  public final com.mapconductor.core.marker.MarkerIconInterface component2();
+  public final com.mapconductor.core.marker.MarkerAnimation component3();
+  public final java.lang.Integer component4();
+  public final boolean component5();
+  public final boolean component6();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> component7();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> component8();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> component9();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> component10();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> component11();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.marker.MarkerState, kotlin.Unit> component12();
+  public final int component13();
+  public final com.mapconductor.core.marker.MarkerState$Values copy(com.mapconductor.core.features.GeoPointInterface, com.mapconductor.core.marker.MarkerIconInterface, com.mapconductor.core.marker.MarkerAnimation, java.lang.Integer, boolean, boolean, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, kotlin.jvm.functions.Function1<? super com.mapconductor.core.marker.MarkerState, kotlin.Unit>, int);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
 public interface com.mapconductor.core.marker.MarkerTileRasterLayerCallback {
   public abstract java.lang.Object onRasterLayerUpdate(com.mapconductor.core.raster.RasterLayerState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
 }
@@ -2498,6 +2530,32 @@ public final class com.mapconductor.core.polygon.PolygonState implements com.map
   public com.mapconductor.core.polygon.PolygonState(java.util.List, java.util.List, java.lang.String, long, float, long, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
   public com.mapconductor.core.polygon.PolygonState(java.util.List, java.util.List, java.lang.String, long, float, long, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
 }
+final class com.mapconductor.core.polygon.PolygonState$Values {
+  public final java.util.List<com.mapconductor.core.features.GeoPointInterface> getPoints();
+  public final java.util.List<java.util.List<com.mapconductor.core.features.GeoPointInterface>> getHoles();
+  public final long getStrokeColor-0d7_KjU();
+  public final float getStrokeWidth-D9Ej5fM();
+  public final long getFillColor-0d7_KjU();
+  public final boolean getGeodesic();
+  public final boolean getClickable();
+  public final int getZIndex();
+  public final java.io.Serializable getExtra();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.polygon.PolygonEvent, kotlin.Unit> getOnClick();
+  public final java.util.List<com.mapconductor.core.features.GeoPointInterface> component1();
+  public final java.util.List<java.util.List<com.mapconductor.core.features.GeoPointInterface>> component2();
+  public final long component3-0d7_KjU();
+  public final float component4-D9Ej5fM();
+  public final long component5-0d7_KjU();
+  public final boolean component6();
+  public final boolean component7();
+  public final int component8();
+  public final java.io.Serializable component9();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.polygon.PolygonEvent, kotlin.Unit> component10();
+  public final com.mapconductor.core.polygon.PolygonState$Values copy-cWpAVu8(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, java.util.List<? extends java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>>, long, float, long, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.polygon.PolygonEvent, kotlin.Unit>);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
+}
 public final class com.mapconductor.core.polygon.PolygonTileGeometryKt {
   public static final double POLYGON_CELL;
   public static final int POLYGON_MAX_CELLS;
@@ -2830,6 +2888,28 @@ public final class com.mapconductor.core.polyline.PolylineState implements com.m
   public final com.mapconductor.core.polyline.PolylineFingerPrint fingerPrint();
   public com.mapconductor.core.polyline.PolylineState(java.util.List, java.lang.String, long, float, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
   public com.mapconductor.core.polyline.PolylineState(java.util.List, java.lang.String, long, float, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1, kotlin.jvm.internal.DefaultConstructorMarker);
+}
+final class com.mapconductor.core.polyline.PolylineState$Values {
+  public final java.util.List<com.mapconductor.core.features.GeoPointInterface> getPoints();
+  public final long getStrokeColor-0d7_KjU();
+  public final float getStrokeWidth-D9Ej5fM();
+  public final boolean getGeodesic();
+  public final boolean getClickable();
+  public final int getZIndex();
+  public final java.io.Serializable getExtra();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.polyline.PolylineEvent, kotlin.Unit> getOnClick();
+  public final java.util.List<com.mapconductor.core.features.GeoPointInterface> component1();
+  public final long component2-0d7_KjU();
+  public final float component3-D9Ej5fM();
+  public final boolean component4();
+  public final boolean component5();
+  public final int component6();
+  public final java.io.Serializable component7();
+  public final kotlin.jvm.functions.Function1<com.mapconductor.core.polyline.PolylineEvent, kotlin.Unit> component8();
+  public final com.mapconductor.core.polyline.PolylineState$Values copy-3MZ6nm0(java.util.List<? extends com.mapconductor.core.features.GeoPointInterface>, long, float, boolean, boolean, int, java.io.Serializable, kotlin.jvm.functions.Function1<? super com.mapconductor.core.polyline.PolylineEvent, kotlin.Unit>);
+  public java.lang.String toString();
+  public int hashCode();
+  public boolean equals(java.lang.Object);
 }
 public final class com.mapconductor.core.polyline.PolylineTileSet {
   public static final com.mapconductor.core.polyline.PolylineTileSet$Companion Companion;
