@@ -1,6 +1,7 @@
 package com.mapconductor.core.polygon
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -46,10 +47,45 @@ class PolygonState(
      */
     override val mutations = StateMutationSignal()
 
-    var strokeColor by mutations.notifying(strokeColor)
-    var strokeWidth by mutations.notifying(strokeWidth)
-    var fillColor by mutations.notifying(fillColor)
-    var geodesic by mutations.notifying(geodesic)
+    // One Compose snapshot record per polygon rather than one per attribute, as
+    // in CircleState: a mutableStateOf is three objects, and there were nine.
+    private data class Values(
+        val points: List<GeoPointInterface>,
+        val holes: List<List<GeoPointInterface>>,
+        val strokeColor: Color,
+        val strokeWidth: Dp,
+        val fillColor: Color,
+        val geodesic: Boolean,
+        val clickable: Boolean,
+        val zIndex: Int,
+        val extra: Serializable?,
+        val onClick: OnPolygonEventHandler?,
+    )
+
+    private var values by mutableStateOf(
+        Values(points, holes, strokeColor, strokeWidth, fillColor, geodesic, clickable, zIndex, extra, onClick),
+    )
+
+    // A write compares only the field written, as the per-attribute states did
+    // (not the whole record, which would compare the points to change a colour),
+    // and is serialized so writes to two fields from two threads both land.
+    private inline fun write(next: (Values) -> Values?) {
+        synchronized(this) { values = next(values) ?: return }
+        mutations.notifyMutated()
+    }
+
+    var strokeColor: Color
+        get() = values.strokeColor
+        set(value) = write { if (it.strokeColor == value) null else it.copy(strokeColor = value) }
+    var strokeWidth: Dp
+        get() = values.strokeWidth
+        set(value) = write { if (it.strokeWidth == value) null else it.copy(strokeWidth = value) }
+    var fillColor: Color
+        get() = values.fillColor
+        set(value) = write { if (it.fillColor == value) null else it.copy(fillColor = value) }
+    var geodesic: Boolean
+        get() = values.geodesic
+        set(value) = write { if (it.geodesic == value) null else it.copy(geodesic = value) }
 
     /**
      * タップを受け取るか。`false` ならこのポリゴンはタップに対して透過し、
@@ -59,8 +95,12 @@ class PolygonState(
      * どのプロバイダでも同じ挙動になる。描画には影響しないので [fingerPrint] には
      * 含めない（含めると値を変えるたびにオーバーレイが作り直される）。
      */
-    var clickable by mutations.notifying(clickable)
-    var zIndex by mutations.notifying(zIndex)
+    var clickable: Boolean
+        get() = values.clickable
+        set(value) = write { if (it.clickable == value) null else it.copy(clickable = value) }
+    var zIndex: Int
+        get() = values.zIndex
+        set(value) = write { if (it.zIndex == value) null else it.copy(zIndex = value) }
 
     /**
      * 外周の頂点。
@@ -76,15 +116,23 @@ class PolygonState(
      * 内容の等しいリストの代入は無視される。その場で書き換えた同じリストを代入し直しても、
      * 前の値と同じものなので何も起きない。
      */
-    var points by mutations.notifying<List<GeoPointInterface>>(points)
+    var points: List<GeoPointInterface>
+        get() = values.points
+        set(value) = write { if (it.points == value) null else it.copy(points = value) }
 
     /**
      * 穴（内周）の頂点。[points] と同じく、変えるときは新しいリストを代入する。
      * 内側のリストをその場で書き換えても描き直されない。
      */
-    var holes by mutations.notifying<List<List<GeoPointInterface>>>(holes)
-    var extra by mutations.notifying(extra)
-    var onClick by mutations.notifying(onClick)
+    var holes: List<List<GeoPointInterface>>
+        get() = values.holes
+        set(value) = write { if (it.holes == value) null else it.copy(holes = value) }
+    var extra: Serializable?
+        get() = values.extra
+        set(value) = write { if (it.extra == value) null else it.copy(extra = value) }
+    var onClick: OnPolygonEventHandler?
+        get() = values.onClick
+        set(value) = write { if (it.onClick == value) null else it.copy(onClick = value) }
 
     /**
      * Called once each time this polygon goes from not being on the map to being on it:

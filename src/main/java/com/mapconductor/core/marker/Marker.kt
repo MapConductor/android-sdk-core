@@ -1,7 +1,7 @@
 package com.mapconductor.core.marker
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -55,26 +55,73 @@ class MarkerState(
      */
     override val mutations = StateMutationSignal()
 
-    private val currentIcon = mutations.notifying<MarkerIconInterface?>(icon)
+    // One Compose snapshot record per marker rather than one per attribute, as
+    // in CircleState: a mutableStateOf is three objects, and there were thirteen.
+    private data class Values(
+        val position: GeoPointInterface,
+        val icon: MarkerIconInterface?,
+        val animation: MarkerAnimation?,
+        val zIndex: Int?,
+        val clickable: Boolean,
+        val draggable: Boolean,
+        val onClick: OnMarkerEventHandler?,
+        val onDragStart: OnMarkerEventHandler?,
+        val onDrag: OnMarkerEventHandler?,
+        val onDragEnd: OnMarkerEventHandler?,
+        val onAnimateStart: OnMarkerEventHandler?,
+        val onAnimateEnd: OnMarkerEventHandler?,
+        /** [iconRevision] の中身。URL の画像が届くたびに増える。 */
+        val iconRevision: Int = 0,
+    )
 
-    /** [iconRevision] の中身。URL の画像が届くたびに増える。 */
-    internal val iconRevisionState = mutableIntStateOf(0)
+    private var values by mutableStateOf(
+        Values(
+            position, icon, animation, zIndex, clickable, draggable,
+            onClick, onDragStart, onDrag, onDragEnd, onAnimateStart, onAnimateEnd,
+        ),
+    )
+
+    // A write compares only the field written, as the per-attribute states did,
+    // and is serialized so writes to two fields from two threads both land (an
+    // animation moving the marker while the app swaps its icon, say).
+    private inline fun write(next: (Values) -> Values?) {
+        synchronized(this) { values = next(values) ?: return }
+        mutations.notifyMutated()
+    }
+
+    internal val iconRevisionValue: Int get() = values.iconRevision
 
     var icon: MarkerIconInterface?
-        get() = currentIcon.value
+        get() = values.icon
         set(value) {
-            val changed = currentIcon.value != value
-            currentIcon.value = value
+            val changed = values.icon != value
+            write { if (it.icon == value) null else it.copy(icon = value) }
             if (changed) redrawWhenImageLoaded(value)
         }
-    var clickable by mutations.notifying(clickable)
-    var draggable by mutations.notifying(draggable)
-    var onClick by mutations.notifying(onClick)
-    var onDragStart by mutations.notifying(onDragStart)
-    var onDrag by mutations.notifying(onDrag)
-    var onDragEnd by mutations.notifying(onDragEnd)
-    var onAnimateStart by mutations.notifying(onAnimateStart)
-    var onAnimateEnd by mutations.notifying(onAnimateEnd)
+    var clickable: Boolean
+        get() = values.clickable
+        set(value) = write { if (it.clickable == value) null else it.copy(clickable = value) }
+    var draggable: Boolean
+        get() = values.draggable
+        set(value) = write { if (it.draggable == value) null else it.copy(draggable = value) }
+    var onClick: OnMarkerEventHandler?
+        get() = values.onClick
+        set(value) = write { if (it.onClick == value) null else it.copy(onClick = value) }
+    var onDragStart: OnMarkerEventHandler?
+        get() = values.onDragStart
+        set(value) = write { if (it.onDragStart == value) null else it.copy(onDragStart = value) }
+    var onDrag: OnMarkerEventHandler?
+        get() = values.onDrag
+        set(value) = write { if (it.onDrag == value) null else it.copy(onDrag = value) }
+    var onDragEnd: OnMarkerEventHandler?
+        get() = values.onDragEnd
+        set(value) = write { if (it.onDragEnd == value) null else it.copy(onDragEnd = value) }
+    var onAnimateStart: OnMarkerEventHandler?
+        get() = values.onAnimateStart
+        set(value) = write { if (it.onAnimateStart == value) null else it.copy(onAnimateStart = value) }
+    var onAnimateEnd: OnMarkerEventHandler?
+        get() = values.onAnimateEnd
+        set(value) = write { if (it.onAnimateEnd == value) null else it.copy(onAnimateEnd = value) }
 
     /**
      * Called once each time this marker goes from not being on the map to being on it:
@@ -92,9 +139,9 @@ class MarkerState(
      * it redraws nothing. If the same state is shown on two maps, each map calls it.
      */
     var onAdded: OnMarkerEventHandler? = onAdded
-    var zIndex by mutations.notifying<Int?>(zIndex)
-
-    private var internalAnimation by mutations.notifying<MarkerAnimation?>(animation)
+    var zIndex: Int?
+        get() = values.zIndex
+        set(value) = write { if (it.zIndex == value) null else it.copy(zIndex = value) }
 
     init {
         redrawWhenImageLoaded(icon)
@@ -110,10 +157,7 @@ class MarkerState(
     private fun redrawWhenImageLoaded(icon: MarkerIconInterface?) {
         val image = icon as? ImageIcon ?: return
         image.whenImageLoaded {
-            if (currentIcon.value === image) {
-                iconRevisionState.intValue++
-                mutations.notifyMutated()
-            }
+            write { if (it.icon !== image) null else it.copy(iconRevision = it.iconRevision + 1) }
         }
     }
 
@@ -152,19 +196,14 @@ class MarkerState(
     )
 
     fun animate(animation: MarkerAnimation?) {
-        internalAnimation = animation
+        write { if (it.animation == animation) null else it.copy(animation = animation) }
     }
 
-    fun getAnimation(): MarkerAnimation? = internalAnimation
+    fun getAnimation(): MarkerAnimation? = values.animation
 
-    private val currentPosition = mutations.notifying(position)
     var position: GeoPointInterface
-        get() {
-            return currentPosition.value
-        }
-        set(value) {
-            currentPosition.value = value
-        }
+        get() = values.position
+        set(value) = write { if (it.position == value) null else it.copy(position = value) }
 
     /**
      * Copies this state, carrying every property over unless overridden.
@@ -254,9 +293,10 @@ class MarkerState(
         var result = extra?.hashCode() ?: 0
         result = 31 * result + clickable.hashCode()
         result = 31 * result + draggable.hashCode()
-        result = 31 * result + currentPosition.value.latitude.hashCode()
-        result = 31 * result + currentPosition.value.longitude.hashCode()
-        result = 31 * result + currentPosition.value.altitude.hashCode()
+        val position = values.position
+        result = 31 * result + position.latitude.hashCode()
+        result = 31 * result + position.longitude.hashCode()
+        result = 31 * result + position.altitude.hashCode()
         result = 31 * result + (icon?.hashCode() ?: 0)
         result = 31 * result + zIndex.hashCode()
         return result
@@ -268,9 +308,9 @@ class MarkerState(
             icon.hashCode(),
             clickable.hashCode(),
             draggable.hashCode(),
-            currentPosition.value.latitude.hashCode(),
-            currentPosition.value.longitude.hashCode(),
-            internalAnimation?.hashCode() ?: 1,
+            values.position.latitude.hashCode(),
+            values.position.longitude.hashCode(),
+            values.animation?.hashCode() ?: 1,
             zIndex.hashCode(),
         )
 }
