@@ -13,6 +13,23 @@ internal abstract class ShapeTileStorage<T : Any> {
 
     abstract operator fun get(index: Int): T?
 
+    /**
+     * Calls [action] with each of [indices]' items (null for an empty slot), in
+     * whatever order reads the storage best; `k` says which of [indices] it is.
+     * A file-backed set reads them block by block in storage order, instead of
+     * one random read per [get].
+     */
+    open fun forEachItem(
+        indices: IntArray,
+        checkCancelled: () -> Unit,
+        action: (k: Int, item: T?) -> Unit,
+    ) {
+        for (k in indices.indices) {
+            if (k % 4096 == 0) checkCancelled()
+            action(k, get(indices[k]))
+        }
+    }
+
     abstract fun bbox(index: Int): DoubleArray?
 
     abstract fun updated(updates: List<Pair<Int, T?>>): ShapeTileStorage<T>

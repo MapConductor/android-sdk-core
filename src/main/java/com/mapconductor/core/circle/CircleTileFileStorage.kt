@@ -91,6 +91,18 @@ internal class CircleTileFileStorage private constructor(
         }
     }
 
+    override fun forEachItem(
+        indices: IntArray,
+        checkCancelled: () -> Unit,
+        action: (k: Int, item: TileCircle?) -> Unit,
+    ) {
+        forEachRecord(indices, checkCancelled) { k, bytes, offset, override ->
+            action(k, if (bytes == null) override else decode(bytes, offset))
+        }
+        // forEachRecord skips indices outside the storage; report them as empty.
+        for (k in indices.indices) if (indices[k] !in 0 until size) action(k, null)
+    }
+
     /** What [forEachRecord] calls per circle; primitive arguments, so nothing is boxed per call. */
     internal fun interface RecordAction {
         /** [bytes] at [offset] is the record, or [bytes] is null and [override] the circle. */

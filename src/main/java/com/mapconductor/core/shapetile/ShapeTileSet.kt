@@ -43,6 +43,11 @@ internal class ShapeTileSet<S, T : Any>(
     private val toTile: (S) -> T?,
     private val canReuse: ((S, T) -> Boolean)? = null,
     private val createStorage: (suspend (List<S>) -> ShapeTileStorage<T>?)? = null,
+    // An object that is the same (===) while the state's values are unchanged and
+    // is replaced by any write; CircleState's snapshot record. With it a state
+    // registered before and untouched since is known to match its slot without
+    // reading the slot's geometry, which a file-backed set reads from disk.
+    private val snapshotOf: ((S) -> Any)? = null,
 ) {
     val routeId: String = "$routePrefix-${UUID.randomUUID().toString().take(8)}"
 
@@ -58,6 +63,10 @@ internal class ShapeTileSet<S, T : Any>(
     private var indexById: ObjectIntMap<String> = emptyObjectIntMap()
     private var sourceStates: MutableList<S?> = mutableListOf()
     private var sourceZ = IntArray(0)
+
+    // [snapshotOf] of the state each slot was drawn from, or null when unknown.
+    // Kept for inactive slots too, so a shape filtered out and back in is known.
+    private var sourceSnapshots: Array<Any?> = arrayOfNulls(0)
     private var active: BitSet? = null
 
     fun ids(): Set<String> =
@@ -137,52 +146,59 @@ internal class ShapeTileSet<S, T : Any>(
     private var flushJob: Job? = null
 
     /**
+     * [states] in draw order (zIndex, then the order given) with their zIndex.
+     * Each zIndex is read once: reading a state is not free, and a sort by a
+     * selector reads it at every comparison.
+     */
+    private fun orderByZ(states: List<S>): Pair<List<S>, IntArray> {
+        val z = IntArray(states.size) { zIndexOf(states[it]) }
+        // zIndex in the high half, position in the low: one primitive sort, stable by position.
+        val keys = LongArray(states.size) { (z[it].toLong() shl 32) or it.toLong() }
+        keys.sort()
+        val ordered = ArrayList<S>(states.size)
+        val orderedZ = IntArray(states.size)
+        for ((k, key) in keys.withIndex()) {
+            val i = key.toInt()
+            ordered.add(states[i])
+            orderedZ[k] = z[i]
+        }
+        return ordered to orderedZ
+    }
+
+    /**
+     * The states of [states] that [canTile] accepts, without asking it about a
+     * state registered here before and unchanged since: it was tileable then,
+     * and [canTile] reads only its values.
+     */
+    fun filterTileable(
+        states: List<S>,
+        canTile: (S) -> Boolean,
+    ): List<S> {
+        val snapshot = snapshotOf ?: return states.filter(canTile)
+        val (ids, snapshots) = synchronized(lock) { indexById to sourceSnapshots }
+        return states.filter { state ->
+            val index = ids.getOrDefault(idOf(state), -1)
+            (index >= 0 && snapshots[index] != null && snapshots[index] === snapshot(state)) || canTile(state)
+        }
+    }
+
+    /**
      * Registers [states] (replacing whatever was registered) and returns the
      * URL template of their tiles.
      */
     suspend fun setShapes(states: List<S>): String {
         cancelPending()
-        val ordered = withContext(Dispatchers.Default) { states.sortedBy(zIndexOf) }
+        val (ordered, orderedZ) = withContext(Dispatchers.Default) { orderByZ(states) }
+        // Taken before any geometry is made from the states: a write in between
+        // then shows as a different snapshot, never as a stale match.
+        val snapshots: Array<Any?>? =
+            snapshotOf?.let { snapshot -> withContext(Dispatchers.Default) { Array(ordered.size) { snapshot(ordered[it]) } } }
         // A filtered collection often refers to the same geometry. Keep the
         // original slots, including temporarily hidden shapes, for re-enabling.
         val reused =
             withContext(Dispatchers.Default) {
                 val context = currentCoroutineContext()
-                synchronized(lock) {
-                    val matches = canReuse
-                    if (!registered || matches == null) {
-                        false
-                    } else {
-                        val mask = BitSet(sourceStates.size)
-                        var previous = -1
-                        var checked = 0
-                        val reusable =
-                            ordered.all { state ->
-                                if (++checked % 4096 == 0) context.ensureActive()
-                                val index = indexOf(idOf(state))
-                                val item = if (index >= 0) renderer.itemAt(index) else null
-                                val ok =
-                                    index > previous &&
-                                        item != null &&
-                                        sourceZ[index] == zIndexOf(state) &&
-                                        matches(state, item)
-                                if (ok) {
-                                    mask.set(index)
-                                    previous = index
-                                }
-                                ok
-                            }
-                        if (reusable) {
-                            // Cache geometry, not removed application states/handlers.
-                            for (index in sourceStates.indices) if (!mask[index]) sourceStates[index] = null
-                            for (state in ordered) sourceStates[indexOf(idOf(state))] = state
-                            active = mask
-                            renderer.setActiveItems(mask)
-                            version++
-                        }
-                        reusable
-                    }
-                }
+                synchronized(lock) { reuseLocked(ordered, orderedZ, snapshots) { context.ensureActive() } }
             }
         if (reused) return template()
         var prepared: ShapeTileStorage<T>? = null
@@ -211,7 +227,8 @@ internal class ShapeTileSet<S, T : Any>(
                     if (!registered) server.register(routeId, renderer)
                     indexById = ids
                     sourceStates = sources
-                    sourceZ = IntArray(ordered.size) { zIndexOf(ordered[it]) }
+                    sourceZ = orderedZ
+                    sourceSnapshots = snapshots ?: arrayOfNulls(ordered.size)
                     active = null
                     registered = true
                     version++
@@ -221,6 +238,56 @@ internal class ShapeTileSet<S, T : Any>(
         } finally {
             prepared?.release()
         }
+    }
+
+    /**
+     * Shows [ordered] with the slots already registered, if each of them is in
+     * one, in the same order, with the same zIndex and the same geometry.
+     *
+     * A state whose snapshot is the one its slot was drawn from matches without
+     * reading the slot. The rest are compared with their slot's geometry in one
+     * pass in storage order: reading a file-backed set one slot at a time in
+     * draw order missed its block cache on nearly every read.
+     */
+    private fun reuseLocked(
+        ordered: List<S>,
+        orderedZ: IntArray,
+        snapshots: Array<Any?>?,
+        checkCancelled: () -> Unit,
+    ): Boolean {
+        val matches = canReuse
+        if (!registered || matches == null) return false
+        val mask = BitSet(sourceStates.size)
+        val slots = IntArray(ordered.size)
+        var unknown = 0
+        val toCompare = IntArray(ordered.size)
+        var previous = -1
+        for ((k, state) in ordered.withIndex()) {
+            if (k % 4096 == 0) checkCancelled()
+            val index = indexOf(idOf(state))
+            if (index <= previous || sourceZ[index] != orderedZ[k]) return false
+            val known = snapshots != null && snapshots[k] != null && snapshots[k] === sourceSnapshots[index]
+            if (!known) toCompare[unknown++] = k
+            slots[k] = index
+            mask.set(index)
+            previous = index
+        }
+        if (unknown > 0) {
+            val compared = IntArray(unknown) { slots[toCompare[it]] }
+            var ok = true
+            renderer.forEachItem(compared, checkCancelled) { j, item ->
+                if (ok && (item == null || !matches(ordered[toCompare[j]], item))) ok = false
+            }
+            if (!ok) return false
+        }
+        // Cache geometry, not removed application states/handlers.
+        for (index in sourceStates.indices) if (!mask[index]) sourceStates[index] = null
+        for ((k, state) in ordered.withIndex()) sourceStates[slots[k]] = state
+        if (snapshots != null) for (j in 0 until unknown) sourceSnapshots[slots[toCompare[j]]] = snapshots[toCompare[j]]
+        active = mask
+        renderer.setActiveItems(mask)
+        version++
+        return true
     }
 
     fun has(id: String): Boolean =
@@ -292,6 +359,7 @@ internal class ShapeTileSet<S, T : Any>(
             indexById = emptyObjectIntMap()
             sourceStates = mutableListOf()
             sourceZ = IntArray(0)
+            sourceSnapshots = arrayOfNulls(0)
             active = null
             renderer.clear()
         }

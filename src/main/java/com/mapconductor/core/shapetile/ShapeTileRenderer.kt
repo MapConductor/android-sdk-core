@@ -190,6 +190,20 @@ internal class ShapeTileRenderer<T : Any>(
             previous?.storage?.release()
         }
 
+    /** [ShapeTileStorage.forEachItem] on the current storage; every item null when there is none. */
+    fun forEachItem(
+        indices: IntArray,
+        checkCancelled: () -> Unit,
+        action: (k: Int, item: T?) -> Unit,
+    ) {
+        val current = acquireModel() ?: return indices.indices.forEach { action(it, null) }
+        try {
+            current.storage.forEachItem(indices, checkCancelled, action)
+        } finally {
+            current.storage.release()
+        }
+    }
+
     fun itemAt(index: Int): T? {
         val current = acquireModel() ?: return null
         return try {
