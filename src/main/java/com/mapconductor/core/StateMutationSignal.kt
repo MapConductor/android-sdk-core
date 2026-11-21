@@ -54,8 +54,8 @@ class StateMutationSignal {
         this.listener = listener
     }
 
-    /** Whether writes are reported to [listener]. */
-    internal fun isListenedBy(listener: StateMutationListener): Boolean = this.listener === listener
+    /** Who writes are reported to now: a `() -> Unit`, a [StateMutationListener], or null. */
+    internal val currentListener: Any? get() = listener
 
     /** Stops reporting, but only if [listener] is the one reported to. */
     internal fun stopListening(listener: StateMutationListener) {
