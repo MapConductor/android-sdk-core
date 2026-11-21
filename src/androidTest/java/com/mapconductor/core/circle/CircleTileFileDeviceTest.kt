@@ -1,6 +1,7 @@
 package com.mapconductor.core.circle
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mapconductor.core.ResourceProvider
@@ -163,5 +164,39 @@ class CircleTileFileDeviceTest {
                 set.dispose()
             }
             assertTrue(created.none { it.exists() })
+        }
+
+    @Test fun filteringReusesTheFile_andAChangedCircleIsComparedNotTrusted() =
+        runBlocking {
+            ResourceProvider.init(
+                androidx.test.platform.app.InstrumentationRegistry
+                    .getInstrumentation()
+                    .targetContext,
+            )
+            val directory = File(ResourceProvider.getAppContext().cacheDir, "mapconductor-circle-geometry")
+            fun files() = directory.listFiles()?.toSet() ?: emptySet<File>()
+            val set = CircleTileSet()
+            try {
+                val states = List(2500) { state(-60.0 + it * 0.04, -71.0, true, "reuse-$it").apply { zIndex = it } }
+                set.setCircles(states)
+                val file = files()
+                // Filtered out and back in: the same slots, no new file.
+                set.setCircles(states.filterIndexed { index, _ -> index % 3 != 0 })
+                assertFalse(set.has(states[0].id))
+                set.setCircles(states)
+                assertTrue(set.has(states[0].id))
+                assertEquals(file, files())
+                // New objects with the same values match their slots by geometry.
+                val copies = states.map { it.copy() }
+                set.setCircles(copies)
+                assertEquals(file, files())
+                // A circle changed in place since it was drawn is compared, not
+                // trusted on its snapshot: the tiles are built again with its colour.
+                copies[3].fillColor = Color.Green
+                set.setCircles(copies)
+                assertEquals(Color.Green.toArgb(), set.renderer.itemAt(3)?.fill)
+            } finally {
+                set.dispose()
+            }
         }
 }

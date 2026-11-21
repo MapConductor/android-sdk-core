@@ -36,7 +36,7 @@ internal class ShapeTiler<S>(
         // A city of shapes is a second of work; none of it belongs on the map's thread.
         val (tileable, useTiles) =
             withContext(Dispatchers.Default) {
-                val tileable = data.filter(canTile)
+                val tileable = tileSet.filterTileable(data, canTile)
                 tileable to shouldUseTiles(tileable.size, vertexCount(tileable))
             }
         val template = if (useTiles) tileSet.setShapes(tileable) else null

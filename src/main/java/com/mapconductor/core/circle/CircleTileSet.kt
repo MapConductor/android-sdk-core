@@ -48,6 +48,7 @@ class CircleTileSet(
             zIndexOf = ::effectiveZIndex,
             toTile = TileCircle::from,
             canReuse = { state, tile -> tile.matches(state) },
+            snapshotOf = { it.captureValues() },
             createStorage = { states ->
                 if (states.size <= 2000) {
                     null

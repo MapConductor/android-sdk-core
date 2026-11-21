@@ -147,9 +147,15 @@ class OverlayCollector<T : ComponentState>(
     private fun listenToWrittenStates(states: Map<String, T>) {
         val previous = published
         published = states
+        val anyPending = pendingAdds.isNotEmpty()
         for ((id, state) in states) {
-            val pending = pendingAdds.remove(id)
-            if (pending !== null && pending !== state) stop(pending)
+            if (anyPending) {
+                val pending = pendingAdds.remove(id)
+                if (pending !== null && pending !== state) stop(pending)
+            }
+            // Already reporting here: whatever held its id before was stopped
+            // when it started. Most of a bulk list is, from the last pass.
+            if (state.mutations.isListenedBy(this)) continue
             val old = previous[id]
             if (old !== null && old !== state) stop(old)
             listen(state)
