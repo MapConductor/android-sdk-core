@@ -55,10 +55,24 @@ class LocalTileServer private constructor(
     private val running = AtomicBoolean(false)
     private val acceptThread = Thread { acceptLoop() }
     private val shedConnections = AtomicLong(0)
+
+    /**
+     * Where tiles are drawn. Connection handling and idle sockets are separate
+     * from the memory-intensive bitmap/PNG work, so only a few renders are live.
+     *
+     * Taken only once a tile is ready: it holds no slot while its provider
+     * waits on the network in [TileProviderInterface.prepareTile]. When the
+     * workers were the slots, a screen of tiles waiting on a Wi-Fi that
+     * answered nothing held all of them, and a tile from an offline package
+     * queued behind them for as long as they waited -- measured at 11.5
+     * seconds for a tile that draws at once.
+     */
     private val renderPermits = java.util.concurrent.Semaphore(MAX_CONCURRENT_RENDERS)
 
     // Bounded worker pool: excess connections beyond the queue capacity are
-    // rejected and closed instead of spawning unbounded threads.
+    // rejected and closed instead of spawning unbounded threads. Wider than
+    // the render permits: a worker spends most of a slow tile waiting in
+    // [TileProviderInterface.prepareTile], not drawing.
     private val clientExecutor =
         ThreadPoolExecutor(
             MAX_WORKER_THREADS,
@@ -589,25 +603,38 @@ class LocalTileServer private constructor(
             } else {
                 LONG_CACHE_CONTROL
             }
+        val request = TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio)
+        // Whatever the tile has to wait for, it waits for here, outside the
+        // render slots.
+        try {
+            provider.prepareTile(request, isCancelled)
+        } catch (error: Exception) {
+            Log.w(TAG, "Tile prepare failed route=$routeId z=$z x=$x y=$y", error)
+        }
+        if (!acquireRenderPermit(isCancelled)) return TileOutcome.Failed
         val bytes =
             try {
-                // Connection handling and idle sockets are separate from the
-                // memory-intensive bitmap/PNG work. Keep only two renders live.
-                while (!renderPermits.tryAcquire(16, TimeUnit.MILLISECONDS)) {
-                    if (isCancelled()) return TileOutcome.Failed
-                }
-                try {
-                    if (isCancelled()) return TileOutcome.Failed
-                    provider.renderTile(
-                        TileRequest(x = x, y = y, z = z, pixelRatio = key.pixelRatio),
-                        isCancelled,
-                    )
-                } finally { renderPermits.release() }
+                if (isCancelled()) return TileOutcome.Failed
+                provider.renderTile(request, isCancelled)
             } catch (error: Exception) {
                 Log.w(TAG, "Tile render failed route=$routeId z=$z x=$x y=$y", error)
                 return TileOutcome.Failed
+            } finally {
+                renderPermits.release()
             } ?: return TileOutcome.Empty(key.tileSize * key.pixelRatio, cacheControl)
         return TileOutcome.Tile(bytes, cacheControl)
+    }
+
+    /**
+     * Waits for a render permit, giving up when the map stops wanting the tile.
+     * Answered as a failure, which the caller drops unsent for a client that
+     * is gone.
+     */
+    private fun acquireRenderPermit(isCancelled: () -> Boolean): Boolean {
+        while (true) {
+            if (renderPermits.tryAcquire(RENDER_PERMIT_POLL_MS, TimeUnit.MILLISECONDS)) return true
+            if (isCancelled() || !running.get()) return false
+        }
     }
 
     private fun parseTileKey(path: String): TileKey? {
@@ -804,7 +831,12 @@ class LocalTileServer private constructor(
 
         // Serve independent connections without letting idle keep-alives block
         // the viewport. Bitmap/PNG concurrency is limited separately above.
-        private const val MAX_WORKER_THREADS = 8
+        // The extra workers are for tiles waiting to be ready (see
+        // prepareTile), up to 32 of those as on iOS.
+        private const val CONNECTION_WORKERS = 8
+        private const val MAX_PREPARING = 32
+        private const val MAX_WORKER_THREADS = CONNECTION_WORKERS + MAX_PREPARING
+        private const val RENDER_PERMIT_POLL_MS = 16L
         private const val MAX_QUEUED_CONNECTIONS = 256
         private const val WORKER_KEEP_ALIVE_SECONDS = 60L
         private const val LONG_CACHE_CONTROL = "public, max-age=31536000, immutable"

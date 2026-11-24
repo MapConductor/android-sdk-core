@@ -27,4 +27,22 @@ interface TileProviderInterface {
         request: TileRequest,
         isCancelled: () -> Boolean,
     ): ByteArray? = renderTile(request)
+
+    /**
+     * Gets ready to draw a tile: fetches whatever it has to wait for.
+     *
+     * Called by the server before [renderTile], outside the few slots tiles
+     * are drawn in, and many at once. A provider that has to wait on the
+     * network -- sources, glyphs -- waits here, so the slots are left to tiles
+     * that are ready to draw, and a tile on the device is never queued behind
+     * a screen of tiles waiting on a network that is not answering. The
+     * render that follows should then not wait again.
+     *
+     * The default does nothing, so a provider that renders from what it holds
+     * needs no changes.
+     */
+    fun prepareTile(
+        request: TileRequest,
+        isCancelled: () -> Boolean,
+    ) {}
 }
