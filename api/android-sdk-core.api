@@ -840,6 +840,7 @@ public final class com.mapconductor.core.groundimage.GroundImageTileProvider imp
   public final void update(com.mapconductor.core.groundimage.GroundImageState, float);
   public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest);
   public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
+  public void prepareTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
   public com.mapconductor.core.groundimage.GroundImageTileProvider();
 }
 public final class com.mapconductor.core.groundimage.GroundImageTileProvider$Companion {
@@ -2081,6 +2082,7 @@ public final class com.mapconductor.core.marker.MarkerTileRenderer<ActualMarker>
   public final void clear();
   public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest);
   public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
+  public void prepareTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
 }
 final class com.mapconductor.core.marker.MarkerTileRenderer$Companion {
 }
@@ -2524,6 +2526,7 @@ public final class com.mapconductor.core.polygon.PolygonTileRenderer implements 
   public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest);
   public byte[] renderTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
   public final android.graphics.Bitmap renderBitmap(int, int, int, int);
+  public void prepareTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
   public com.mapconductor.core.polygon.PolygonTileRenderer();
 }
 public final class com.mapconductor.core.polygon.PolygonTileRenderer$Companion {
@@ -3479,9 +3482,11 @@ public final class com.mapconductor.core.tileserver.TilePngEncoder {
 public interface com.mapconductor.core.tileserver.TileProviderInterface {
   public abstract byte[] renderTile(com.mapconductor.core.tileserver.TileRequest);
   public default byte[] renderTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
+  public default void prepareTile(com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
 }
 public final class com.mapconductor.core.tileserver.TileProviderInterface$DefaultImpls {
   public static byte[] renderTile(com.mapconductor.core.tileserver.TileProviderInterface, com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
+  public static void prepareTile(com.mapconductor.core.tileserver.TileProviderInterface, com.mapconductor.core.tileserver.TileRequest, kotlin.jvm.functions.Function0<java.lang.Boolean>);
 }
 public final class com.mapconductor.core.tileserver.TileRequest {
   public com.mapconductor.core.tileserver.TileRequest(int, int, int, int);
