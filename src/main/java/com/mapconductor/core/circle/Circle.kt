@@ -202,6 +202,15 @@ class CircleState(
             extra = snapshot.extra?.hashCode() ?: 0,
         )
 
+    /**
+     * Copies this state, carrying every property over unless overridden.
+     *
+     * [id] is not carried over: it is recomputed from the copied contents unless
+     * one is passed. Keeping it made the renderer, which keys overlays by id,
+     * treat the copy as an update of the original, so an overlay added with
+     * `copy()` replaced the original instead of appearing next to it. Pass
+     * `id = state.id` to update the same overlay.
+     */
     fun copy(
         center: GeoPointInterface = this.center,
         radiusMeters: Double = this.radiusMeters,
@@ -210,7 +219,7 @@ class CircleState(
         strokeColor: Color = this.strokeColor,
         strokeWidth: Dp = this.strokeWidth,
         fillColor: Color = this.fillColor,
-        id: String? = this.id,
+        id: String? = null,
         zIndex: Int? = this.zIndex,
         extra: Serializable? = this.extra,
         onClick: OnCircleEventHandler? = this.onClick,
@@ -240,7 +249,7 @@ class CircleState(
         strokeColor: Color = this.strokeColor,
         strokeWidth: Dp = this.strokeWidth,
         fillColor: Color = this.fillColor,
-        id: String? = this.id,
+        id: String? = null,
         zIndex: Int? = this.zIndex,
         extra: Serializable? = this.extra,
         onClick: OnCircleEventHandler? = this.onClick,

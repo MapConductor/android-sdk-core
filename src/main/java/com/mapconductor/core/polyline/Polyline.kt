@@ -179,9 +179,18 @@ class PolylineState(
         return result
     }
 
+    /**
+     * Copies this state, carrying every property over unless overridden.
+     *
+     * [id] is not carried over: it is recomputed from the copied contents unless
+     * one is passed. Keeping it made the renderer, which keys overlays by id,
+     * treat the copy as an update of the original, so an overlay added with
+     * `copy()` replaced the original instead of appearing next to it. Pass
+     * `id = state.id` to update the same overlay.
+     */
     fun copy(
         points: List<GeoPointInterface> = this.points,
-        id: String? = this.id,
+        id: String? = null,
         strokeColor: Color = this.strokeColor,
         strokeWidth: Dp = this.strokeWidth,
         geodesic: Boolean = this.geodesic,
@@ -207,7 +216,7 @@ class PolylineState(
     @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
     fun copy(
         points: List<GeoPointInterface> = this.points,
-        id: String? = this.id,
+        id: String? = null,
         strokeColor: Color = this.strokeColor,
         strokeWidth: Dp = this.strokeWidth,
         geodesic: Boolean = this.geodesic,

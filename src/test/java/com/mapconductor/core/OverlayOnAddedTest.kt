@@ -429,6 +429,6 @@ class OverlayOnAddedTest {
         assertEquals(a.fingerPrint(), square(0, null).fingerPrint())
         val marker = MarkerState(position = GeoPoint.fromLatLong(0.0, 0.0), id = "m", onAdded = { })
         assertTrue(marker.copy().onAdded === marker.onAdded)
-        assertEquals(marker.fingerPrint(), marker.copy(onAdded = null).fingerPrint())
+        assertEquals(marker.fingerPrint(), marker.copy(id = marker.id, onAdded = null).fingerPrint())
     }
 }
