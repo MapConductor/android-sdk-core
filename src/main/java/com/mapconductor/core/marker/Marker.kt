@@ -213,9 +213,15 @@ class MarkerState(
      * without one — so `marker.copy(position = p)` on a bouncing marker
      * returned a still one. Nothing about a copy implies "stop animating", and
      * ios-sdk / react-sdk both carry it over.
+     *
+     * [id] is not carried over: it is recomputed from the copied contents unless
+     * one is passed. Keeping it made the renderer, which keys markers by id,
+     * treat the copy as an update of the original, so a marker added with
+     * `copy()` replaced the original instead of appearing next to it. Pass
+     * `id = state.id` to move the same marker.
      */
     fun copy(
-        id: String? = this.id,
+        id: String? = null,
         position: GeoPointInterface = this.position,
         extra: Serializable? = this.extra,
         icon: MarkerIconInterface? = this.icon,
@@ -232,7 +238,7 @@ class MarkerState(
         onAdded: OnMarkerEventHandler? = this.onAdded,
     ): MarkerState =
         MarkerState(
-            id = id, // Keep marker id
+            id = id,
             position = position,
             extra = extra,
             icon = icon,
@@ -251,7 +257,7 @@ class MarkerState(
 
     @Deprecated("Binary compatibility only; use the overload with onAdded.", level = DeprecationLevel.HIDDEN)
     fun copy(
-        id: String? = this.id,
+        id: String? = null,
         position: GeoPointInterface = this.position,
         extra: Serializable? = this.extra,
         icon: MarkerIconInterface? = this.icon,

@@ -2,6 +2,7 @@ package com.mapconductor.core.marker
 
 import com.mapconductor.core.features.GeoPoint
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -59,10 +60,37 @@ class MarkerStateCopyTest {
             )
         val copied = original.copy()
 
-        assertEquals("m1", copied.id)
         assertEquals(7, copied.zIndex)
         assertEquals(false, copied.clickable)
         assertEquals(true, copied.draggable)
         assertEquals(MarkerAnimation.Bounce, copied.getAnimation())
+    }
+
+    /**
+     * id は引き継がず、新しい中身から計算し直す。描画側はマーカーを id で区別するので、
+     * 引き継ぐと copy で増やしたマーカーが元のマーカーを上書きし、1 個にしか見えなかった。
+     */
+    @Test
+    fun copy_recomputesId() {
+        val base = MarkerState(position = GeoPoint(35.0, 139.0))
+        val moved = base.copy(position = GeoPoint(36.0, 140.0))
+
+        assertNotEquals(base.id, moved.id)
+        assertEquals(MarkerState(position = GeoPoint(36.0, 140.0)).id, moved.id)
+    }
+
+    @Test
+    fun copy_doesNotCarryExplicitIdOver() {
+        val moved = state().copy(position = GeoPoint(36.0, 140.0))
+
+        assertNotEquals("m1", moved.id)
+    }
+
+    @Test
+    fun copy_usesPassedId() {
+        val original = state()
+
+        assertEquals("m1", original.copy(id = "m1", position = GeoPoint(36.0, 140.0)).id)
+        assertEquals("m2", original.copy(id = "m2").id)
     }
 }
